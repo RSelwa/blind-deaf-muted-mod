@@ -49,6 +49,12 @@ Full detail lives in **`DESIGN.md`** (read it for the complete picture).
   Discord fallback supported. Note: deaf/muted are only fully enforceable for
   in-game comms; over Discord they become honor-system + soft HUD cues. Blind is
   always enforceable.
+- **In-game voice: Simple Voice Chat — decided & implemented.** Integrated via its
+  server plugin API (`server/MonkeysVoicechatPlugin.java`); we *enforce* DEAF (cancel
+  inbound sound packets) and MUTED (cancel the speaker's mic packet) server-side, so
+  in-game voice is truly enforced, not honor-system. Optional soft-dependency
+  (`voicechat` entrypoint + `suggests`); server auto-downloads it + opens UDP 24454,
+  every client installs the SVC mod. See `DESIGN.md` §4 and `DEVELOPER.md`.
 
 ## Hard constraints
 

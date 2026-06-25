@@ -51,6 +51,8 @@ restarts — you only `op` yourself once.
 | **Deaf** | Cancel all sound playback at the source; stop in-flight sounds on transition | `mixin/SoundSystemMixin`, `DeafHandler` |
 | **Muted** | Block outgoing chat | `MuteHandler` |
 
+Deaf/Muted are *also* enforced over **voice** (server side) — see the Voice section below.
+
 ### Blind — two modes (`BlindMode`)
 Toggle live with the **`B`** keybind (rebindable; category "Monkeys"). Mode is a
 client-side visual style only — the player can't see the environment either way.
@@ -69,6 +71,37 @@ client-side visual style only — the player can't see the environment either wa
 - We deliberately do **not** modify `client.options` volumes, so moving a player
   between roles is instant and lossless (nothing to restore / desync). Sound resumes
   naturally when deafness ends.
+
+## Voice chat (Simple Voice Chat integration — server side)
+
+We don't build voice ourselves; we integrate **[Simple Voice Chat](https://modrepo.de/minecraft/voicechat/api)**
+(henkelmax) and enforce roles through its **server plugin API**. Because all voice
+is relayed through the server, cancelling packets there enforces the rules for
+everyone with no client cooperation — this is what makes DEAF/MUTED *enforced* over
+voice (not just honor-system as the original `DESIGN.md` note assumed).
+
+- **File:** `server/MonkeysVoicechatPlugin.java` (a `VoicechatPlugin`).
+- **Registration:** the `voicechat` entrypoint in `server/fabric.mod.json`. Only the
+  voice-chat mod reads that key, so if it isn't installed the class is never loaded —
+  that's why SVC stays an **optional soft dependency** (`suggests`, not `depends`).
+- **MUTED** → cancel the speaker's `MicrophonePacketEvent` (mic dropped at the server
+  before it reaches anyone).
+- **DEAF** → cancel `Entity`/`Locational`/`Static` `SoundPacketEvent` whose *receiver*
+  is deaf (covers proximity, group, entity, spectator audio).
+- **Role lookup:** `RoleManager.get(UUID)` — the voice connection only exposes a UUID,
+  not a `ServerPlayerEntity`. The plugin gets the `RoleManager` via the static
+  `MonkeysVoicechatPlugin.bind(...)` call in `MonkeysServer#onInitialize` (SVC builds
+  the plugin itself, so we can't constructor-inject it).
+
+### Build & deploy notes
+- `voicechat-api` is a **`compileOnly`** dependency (`gradle.properties`
+  `voicechat_api_version`, repo `maven.maxhenkel.de`). It is *not* bundled — the real
+  classes come from the installed mod at runtime.
+- **Server:** `docker-compose.yml` auto-downloads `simple-voice-chat` from Modrinth and
+  opens **UDP 24454** (the voice port). Without that UDP port, players connect but voice
+  silently never starts.
+- **Clients:** every player must install the Simple Voice Chat mod (1.21.4 build) in
+  their own `mods/` folder, same as Fabric API.
 
 ## TODO
 

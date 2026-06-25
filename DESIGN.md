@@ -176,6 +176,25 @@ is **optional / soft-dependency**; if absent, fall back to Discord/honor mode.
 In Discord mode the mod still helps without true enforcement: HUD reminder
 ("🔇 you are MUTED"), block in-game chat, trust players on voice.
 
+### In-game voice: Simple Voice Chat — DECIDED & IMPLEMENTED
+
+The in-game voice mode is built on **[Simple Voice Chat](https://modrepo.de/minecraft/voicechat/api)**
+(henkelmax), the de-facto Fabric standard, integrated via its **server-side plugin
+API** (`compileOnly` `voicechat-api`, runtime-provided by the installed mod).
+
+Why this matters: because SVC relays all voice through the server, we enforce
+DEAF/MUTED there by **cancelling voice packets** — so the table above is *literally*
+enforced for in-game voice, not honor-system:
+- **MUTED** → cancel the speaker's `MicrophonePacketEvent` (mic dropped at source).
+- **DEAF** → cancel `Entity`/`Locational`/`Static` `SoundPacketEvent` whose receiver
+  is deaf (covers proximity, group, entity, spectator audio).
+
+It stays an **optional soft-dependency**: our plugin loads only via the `voicechat`
+entrypoint (read solely by the SVC mod), so a server without SVC simply runs in
+Discord/honor mode with nothing broken. Server auto-downloads SVC and opens UDP
+24454; every client must install the SVC mod. Implementation detail lives in
+`DEVELOPER.md` → "Voice chat (Simple Voice Chat integration)".
+
 ---
 
 ## 4b. Role / communication loop (the core fun)
@@ -327,7 +346,8 @@ Nothing here is blocked or impossible.
 - [x] **Loader: Fabric** (both pieces) — decided, backed by 2026 comparison (§2b).
 - [x] **Server runs in Docker** (Fabric server container) — decided (§2c).
 - [ ] Command syntax & permissions.
-- [ ] Whether to bundle/recommend Simple Voice Chat for the in-game comms mode.
+- [x] **Simple Voice Chat for in-game voice** — decided & implemented. Integrated via
+  its server plugin API to *enforce* DEAF/MUTED over voice; optional soft-dependency. See §4.
 
 ---
 

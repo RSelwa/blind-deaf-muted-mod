@@ -8,6 +8,9 @@
   "entrypoints": {
     "main": [
       "com.monkeys.server.MonkeysServer"
+    ],
+    "voicechat": [
+      "com.monkeys.server.MonkeysVoicechatPlugin"
     ]
   },
   "depends": {
@@ -15,5 +18,8 @@
     "minecraft": "~1.21.4",
     "java": ">=21",
     "fabric-api": "*"
+  },
+  "suggests": {
+    "voicechat": "*"
   }
 }

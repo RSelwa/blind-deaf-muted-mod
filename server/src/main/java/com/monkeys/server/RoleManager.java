@@ -23,7 +23,16 @@ public class RoleManager {
     private final Map<UUID, Role> roles = new HashMap<>();
 
     public Role get(ServerPlayerEntity player) {
-        return roles.getOrDefault(player.getUuid(), Role.NONE);
+        return get(player.getUuid());
+    }
+
+    /**
+     * Look up a role by UUID. Used by the voice-chat integration, which only has
+     * the player's UUID (via the Simple Voice Chat connection), not the
+     * {@link ServerPlayerEntity}. Unknown players default to {@link Role#NONE}.
+     */
+    public Role get(UUID uuid) {
+        return roles.getOrDefault(uuid, Role.NONE);
     }
 
     /** Set a player's role and immediately sync it to their client. */

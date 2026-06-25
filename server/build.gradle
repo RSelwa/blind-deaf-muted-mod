@@ -2,11 +2,26 @@
 // Owns roles, admin commands, and (later) random events.
 apply plugin: 'fabric-loom'
 
+repositories {
+    // Simple Voice Chat plugin API lives here (not on Maven Central).
+    maven {
+        name = 'Henkelmax (Simple Voice Chat)'
+        url = 'https://maven.maxhenkel.de/repository/public'
+    }
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // Simple Voice Chat plugin API — COMPILE-ONLY. The real classes are supplied
+    // at runtime by the installed Simple Voice Chat mod (an optional soft
+    // dependency). If it isn't installed, our `voicechat` entrypoint is simply
+    // never invoked, so nothing breaks. It is a plain API jar, so plain
+    // `compileOnly` (not loom's `modCompileOnly`) is correct.
+    compileOnly "de.maxhenkel.voicechat:voicechat-api:${project.voicechat_api_version}"
 
     // Share the common code. For a shipped jar you'll likely want loom's
     // `include project(':common')` (jar-in-jar) so the classes ride along;

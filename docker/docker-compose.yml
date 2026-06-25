@@ -9,13 +9,18 @@ services:
     container_name: monkeys-server
     environment:
       EULA: "TRUE"
-      # Fabric API is a separate mod our server jar depends on. The itzg image
-      # auto-downloads it from Modrinth, matching the FABRIC loader + 1.21.4
-      # already set in the Dockerfile. No local files needed.
-      MODRINTH_PROJECTS: "fabric-api"
+      # Mods our server needs, auto-downloaded from Modrinth (matched to the
+      # FABRIC loader + 1.21.4 set in the Dockerfile). No local files needed:
+      #   fabric-api        — our jar's hard dependency
+      #   simple-voice-chat — provides the voice API our MonkeysVoicechatPlugin
+      #                       enforces DEAF/MUTED against. Must also be installed
+      #                       by every player on their client.
+      MODRINTH_PROJECTS: "fabric-api,simple-voice-chat"
       MODRINTH_DOWNLOAD_DEPENDENCIES: "required"
     ports:
       - "25565:25565"        # share host IP:25565 with players (see DESIGN.md §2g)
+      - "24454:24454/udp"    # Simple Voice Chat voice traffic (UDP). REQUIRED, or
+                             # players connect but voice silently fails to start.
     volumes:
       - ./world:/data        # persists the world + server files across restarts
     stdin_open: true

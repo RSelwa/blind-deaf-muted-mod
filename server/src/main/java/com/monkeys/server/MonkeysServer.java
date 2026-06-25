@@ -40,5 +40,11 @@ public class MonkeysServer implements ModInitializer {
         // When a player joins, immediately sync whatever role they have.
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
                 roleManager.sync(handler.getPlayer()));
+
+        // Hand the role store to the Simple Voice Chat integration. Safe even if
+        // that mod isn't installed: the plugin class is only loaded via the
+        // `voicechat` entrypoint (read solely by the voice-chat mod), and this
+        // call only sets a static reference — it touches no voice-chat classes.
+        MonkeysVoicechatPlugin.bind(roleManager);
     }
 }
