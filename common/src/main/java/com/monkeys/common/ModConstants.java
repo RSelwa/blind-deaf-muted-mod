@@ -14,8 +14,9 @@ public final class ModConstants {
 
     public static final String MOD_ID = "monkeys";
 
-    /** Bump on ANY change to the network payload format. */
-    public static final int PROTOCOL_VERSION = 1;
+    /** Bump on ANY change to the network payload format.
+     *  v2: added {@link TrackerPayload} (teammate HUD tracker). */
+    public static final int PROTOCOL_VERSION = 2;
 
     /** Helper to build identifiers under our namespace. */
     public static Identifier id(String path) {

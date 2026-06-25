@@ -1,4 +1,5 @@
 {
   "key.categories.monkeys": "Monkeys",
-  "key.monkeys.toggle_blind_mode": "Toggle blind mode (vanilla / blackout)"
+  "key.monkeys.toggle_blind_mode": "Toggle blind mode (vanilla / blackout)",
+  "key.monkeys.toggle_tracker": "Toggle teammate tracker HUD"
 }

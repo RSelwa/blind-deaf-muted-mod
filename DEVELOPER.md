@@ -103,6 +103,28 @@ voice (not just honor-system as the original `DESIGN.md` note assumed).
 - **Clients:** every player must install the Simple Voice Chat mod (1.21.4 build) in
   their own `mods/` folder, same as Fabric API.
 
+## Teammate tracker (HUD)
+
+A co-op QoL aid so players don't get hopelessly lost: a small stack of lines just
+above the health/food bar, one per teammate — `Name  142b  ↗` (name, distance in
+blocks, direction arrow relative to where you're looking, `↑` = dead ahead; a `▲`/`▼`
+is appended when the teammate is well above/below you).
+
+- **On by default**, toggled with a keybind (default **`K`**, category "Monkeys").
+  State lives in `TrackerState` (`enabled` boolean + latest positions).
+- **Why server-driven:** a client only knows positions of *loaded* players, so the
+  server pushes everyone's positions to everyone via `TrackerPayload` (`:common`),
+  every `TRACKER_INTERVAL_TICKS` (5 ticks ≈ 4×/sec) from `MonkeysServer`. Bumped
+  `PROTOCOL_VERSION` → 2.
+- **Render:** `TrackerHud.render()`, called from `InGameHudMixin` at the **TAIL** of
+  `InGameHud#render` (draws on top of the finished HUD). Direction math:
+  `atan2(-dx, dz)` for the target yaw, minus the player yaw, into 8 arrow sectors.
+- **Role-gated:** never drawn while **BLIND** (can't see the HUD anyway), and respects
+  F1 (`options.hudHidden`). Deaf/Muted/None all see it.
+- **Open design lever:** currently shows *all* teammates. If full awareness flattens
+  the relay tension, switch to "assigned buddy only" — the packet/render already
+  supports any subset; just filter server-side in `broadcastTrackerPositions`.
+
 ## TODO
 
 ### Soon
@@ -116,14 +138,13 @@ voice (not just honor-system as the original `DESIGN.md` note assumed).
       should be able to set/lock the mode server-side (would need a packet field).
 
 ### Planned features
-- [ ] **Inter-player compass** — give each player a compass that points toward the
-      other players (or toward a chosen teammate). Helps the team regroup/relay around
-      their disabilities. Likely needs: server tracks player positions → small S2C
-      packet (or vanilla lodestone-compass trickery) → client renders the needle.
-      Open questions: point to whom (nearest? a fixed buddy? rotate?), and does it
-      undercut the "blind can't see / muted can't tell you where I am" tension?
-      Design before building.
+- [x] **Inter-player tracker** — done, shipped as the **HUD teammate tracker** above
+      (name · distance · arrow) rather than a compass item. Open question "point to
+      whom?" resolved to "all teammates, default-on" for now; revisit if it flattens
+      the relay tension (see the design lever note in that section).
 - [ ] **Random events** (from `DESIGN.md` §7) — bolt on once the role system is solid.
+- [ ] **Persist tracker toggle** — the `K` on/off state is in-memory; resets each
+      launch. Persist to a small client config if players want it to stick.
 
 ### Known caveats
 - **Vanilla blind in multiplayer** — the Blindness effect is applied *client-side*.

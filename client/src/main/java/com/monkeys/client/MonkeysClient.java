@@ -3,6 +3,7 @@ package com.monkeys.client;
 import com.monkeys.common.ModConstants;
 import com.monkeys.common.Role;
 import com.monkeys.common.RolePayload;
+import com.monkeys.common.TrackerPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -27,17 +28,22 @@ public class MonkeysClient implements ClientModInitializer {
     public void onInitializeClient() {
         // Must match the server-side registration in MonkeysServer.
         PayloadTypeRegistry.playS2C().register(RolePayload.ID, RolePayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(TrackerPayload.ID, TrackerPayload.CODEC);
 
         ClientPlayNetworking.registerGlobalReceiver(RolePayload.ID, (payload, context) -> {
             // Networking callbacks run off-thread; touch game state on the client thread.
             context.client().execute(() -> handleRole(payload));
         });
 
+        ClientPlayNetworking.registerGlobalReceiver(TrackerPayload.ID, (payload, context) ->
+                context.client().execute(() -> TrackerState.setEntries(payload.entries())));
+
         // Wire up the effect handlers. (BLIND's BLACKOUT_HUD draw and DEAF's muting
         // live in mixins — InGameHudMixin / SoundSystemMixin — and need no registration.)
         BlindHandler.register();  // blind-mode keybind + vanilla Blindness effect
         DeafHandler.register();   // stops in-flight sounds on going deaf
         MuteHandler.register();   // blocks outgoing chat
+        TrackerHud.register();    // teammate tracker keybind (HUD draw is in InGameHudMixin)
 
         LOGGER.info("Monkeys client ready (protocol v{})", ModConstants.PROTOCOL_VERSION);
     }

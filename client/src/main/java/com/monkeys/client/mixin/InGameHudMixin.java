@@ -2,6 +2,7 @@ package com.monkeys.client.mixin;
 
 import com.monkeys.client.BlindMode;
 import com.monkeys.client.RoleState;
+import com.monkeys.client.TrackerHud;
 import com.monkeys.common.Role;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.InGameHud;
@@ -22,6 +23,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *
  * <p>This is shader-safe: it's a flat opaque quad on the GUI layer, after the world
  * pass — shaders can't render past it.
+ *
+ * <p>A second injection at the TAIL draws the teammate tracker on top of the finished
+ * HUD ({@link TrackerHud}). It runs after the blackout draw above, but the tracker
+ * gates itself off while blind, so the two never both show.
  */
 @Mixin(InGameHud.class)
 public class InGameHudMixin {
@@ -36,5 +41,12 @@ public class InGameHudMixin {
         int w = context.getScaledWindowWidth();
         int h = context.getScaledWindowHeight();
         context.fill(0, 0, w, h, 0xFF000000);
+    }
+
+    @Inject(
+            method = "render(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/client/render/RenderTickCounter;)V",
+            at = @At("TAIL"))
+    private void monkeys$drawTracker(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
+        TrackerHud.render(context);
     }
 }
