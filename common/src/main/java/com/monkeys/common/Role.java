@@ -20,6 +20,19 @@ public enum Role {
     DEAF,
     MUTED;
 
+    /**
+     * The disabilities eligible for <em>random</em> assignment, in a stable index
+     * order (1 = DEAF, 2 = BLIND, 3 = MUTED). {@link #NONE} is intentionally
+     * excluded — it is the "cleared" state, not a disability.
+     *
+     * <p>This array is the single source of truth for the random pool: its length
+     * is the "randomness length" the server uses, and adding a future disability
+     * to the game is as simple as adding it here (and to the enum above). The
+     * random-assignment command guarantees every entry here is handed out at least
+     * once before any disability is duplicated.
+     */
+    public static final Role[] ASSIGNABLE = { DEAF, BLIND, MUTED };
+
     /** Case-insensitive parse used by the server command; null if unknown. */
     public static Role fromString(String s) {
         if (s == null) return null;

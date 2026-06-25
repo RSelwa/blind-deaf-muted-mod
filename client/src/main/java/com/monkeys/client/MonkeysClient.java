@@ -33,10 +33,11 @@ public class MonkeysClient implements ClientModInitializer {
             context.client().execute(() -> handleRole(payload));
         });
 
-        // Wire up the effect handlers (HUD overlay, sound muting, chat blocking).
-        BlindOverlay.register();
-        DeafHandler.register();
-        MuteHandler.register();
+        // Wire up the effect handlers. (BLIND's BLACKOUT_HUD draw and DEAF's muting
+        // live in mixins — InGameHudMixin / SoundSystemMixin — and need no registration.)
+        BlindHandler.register();  // blind-mode keybind + vanilla Blindness effect
+        DeafHandler.register();   // stops in-flight sounds on going deaf
+        MuteHandler.register();   // blocks outgoing chat
 
         LOGGER.info("Monkeys client ready (protocol v{})", ModConstants.PROTOCOL_VERSION);
     }
