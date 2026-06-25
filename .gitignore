@@ -1,0 +1,33 @@
+# Gradle / build
+.gradle/
+build/
+*/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Loom
+.loom-cache/
+run/
+
+# Docker world data
+docker/world/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+bin/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / runtime
+*.log
+hs_err_pid*
+
+# Local env / secrets
+.env
+.env.local

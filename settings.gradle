@@ -1,0 +1,18 @@
+// Fabric multi-project monorepo for the "Monkeys" disability-challenge mod.
+// One build, three subprojects:
+//   :common — shared code (Role enum, network packet, version constant)
+//   :client — client mod jar (applies blind/deaf/mute effects locally)
+//   :server — server mod jar (assigns roles, commands, game logic)
+pluginManagement {
+    repositories {
+        maven { name = 'Fabric'; url = 'https://maven.fabricmc.net/' }
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'minecraft-mod-monkeys'
+
+include 'common'
+include 'client'
+include 'server'

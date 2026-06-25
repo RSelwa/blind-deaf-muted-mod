@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "monkeys_server",
+  "version": "${version}",
+  "name": "Monkeys (Server)",
+  "description": "Assigns disability roles (blind/deaf/muted) and runs the Ender Dragon co-op challenge. Server side.",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "com.monkeys.server.MonkeysServer"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

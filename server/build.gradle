@@ -1,0 +1,23 @@
+// :server — the server-side mod jar. Goes into the Docker image's /mods folder.
+// Owns roles, admin commands, and (later) random events.
+apply plugin: 'fabric-loom'
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // Share the common code. For a shipped jar you'll likely want loom's
+    // `include project(':common')` (jar-in-jar) so the classes ride along;
+    // `implementation` is enough for dev runs.
+    implementation project(':common')
+    include project(':common')
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') {
+        expand 'version': project.version
+    }
+}

@@ -1,0 +1,11 @@
+// :common — shared code used by BOTH client and server.
+// It references Minecraft types (for the network packet), so it applies loom too.
+// Holds: the Role enum, the role-sync network payload, and the protocol version.
+apply plugin: 'fabric-loom'
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+}

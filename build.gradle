@@ -1,0 +1,28 @@
+// Root build script — shared config applied to every subproject.
+// Each subproject (common/client/server) adds only what's specific to it.
+plugins {
+    id 'fabric-loom' version '1.9-SNAPSHOT' apply false
+}
+
+subprojects {
+    apply plugin: 'java'
+
+    group = project.maven_group
+    version = project.mod_version
+
+    java {
+        // Minecraft 1.21.x runs on Java 21.
+        toolchain.languageVersion = JavaLanguageVersion.of(21)
+        withSourcesJar()
+    }
+
+    repositories {
+        maven { name = 'Fabric'; url = 'https://maven.fabricmc.net/' }
+        mavenCentral()
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        it.options.encoding = 'UTF-8'
+        it.options.release = 21
+    }
+}
