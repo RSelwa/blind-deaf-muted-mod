@@ -60,6 +60,14 @@ public final class RouletteAnimation {
         shown = REEL.length > 0 ? REEL[0] : finalRole;
         lastIndex = -1;
         active = true;
+        // Freeze the leaderboard so it keeps showing the OLD roles until the reveal —
+        // otherwise it spoils the result mid-spin.
+        RosterState.freeze();
+    }
+
+    /** Whether a roulette reveal is currently playing (used to gate other HUD bits). */
+    public static boolean isActive() {
+        return active;
     }
 
     private static void tick(MinecraftClient client) {
@@ -92,6 +100,7 @@ public final class RouletteAnimation {
             client.getSoundManager().play(PositionedSoundInstance.master(
                     SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0f));
             RoleState.set(target);
+            RosterState.unfreeze(); // reveal the new roles on the leaderboard now
             active = false;
         }
     }

@@ -99,7 +99,11 @@ Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODO
   bottle) announces automatically. Admin command feedback is coloured too.
 - **Who-is-what leaderboard (idea #4):** new `RosterPayload` (S2C) broadcast once/sec
   from `MonkeysServer`; `RosterState` + `RosterHud` draw a right-aligned roster using
-  the role colours (self shown bold). Protocol bumped to **v3**.
+  the role colours (self shown bold). Protocol bumped to **v3**. Refinements: the
+  roster is **frozen during the roulette** (shows old roles, flips to new exactly at
+  the reveal — anti-spoiler) and is **visible even when blind** (out-of-character meta
+  info; renders white-on-black over the blackout). The teammate tracker stays hidden
+  while blind.
 - **Roulette reveal animation (idea #4 bis):** `/monkeys random` now calls
   `RoleManager.setAnimated()` → sends a new `RollPayload` (S2C) instead of applying
   instantly. Client `RouletteAnimation` spins a slot machine through the roles
@@ -107,6 +111,21 @@ Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODO
   at the reveal (so a blind player watches their own roll before blacking out). The
   role is still stored server-side immediately (roster + voice enforcement correct
   right away). Manual `/monkeys set` stays instant (no animation). Protocol → **v4**.
+  Sounds: rising-pitch `UI_BUTTON_CLICK` per reel step + `UI_TOAST_CHALLENGE_COMPLETE`
+  fanfare at the reveal.
+- **Randomizer bottle (idea #3):** a throwable item (`ModItems.RANDOMIZER`) +
+  thrown entity (`RandomizerBottleEntity`, modelled on the XP bottle) registered in
+  `common` and called from BOTH entrypoints (same ids both sides). On shatter it
+  re-rolls EVERY online player via `RoleRoller.rollAll` → `setAnimated`, so the
+  roulette plays for everyone. Server logic is injected into a static
+  `RandomizerBottleEntity.SHATTER_HANDLER` (common can't see the `server` module).
+  Lootable in structure chests via `LootTableEvents.MODIFY` (10% in dungeon/mineshaft/
+  weaponsmith/stronghold/jungle/desert/nether-bridge/bastion-treasure) — works on
+  already-generated worlds since chests only roll loot on first open. Test helper:
+  `/monkeys randomizer` gives 4 bottles. Item renders as the vanilla XP-bottle texture
+  (no PNG shipped); 1.21.4 item-model defs under `assets/monkeys/items|models`.
+  No protocol change (reuses RollPayload). `RoleRoller` also de-duplicates the random
+  logic that used to live in `MonkeysCommand`.
 - Fixed a pre-existing compile break in `TrackerHud` (undefined `elevation` var left
   by the compass-HUD commit) — now shows a ↑/↓ elevation hint past the threshold.
 - `docker/` — multi-stage `Dockerfile` + `docker-compose.yml`.

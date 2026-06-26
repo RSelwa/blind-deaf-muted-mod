@@ -1,6 +1,9 @@
 package com.monkeys.server;
 
 import com.monkeys.common.ModConstants;
+import com.monkeys.common.ModEntities;
+import com.monkeys.common.ModItems;
+import com.monkeys.common.RandomizerBottleEntity;
 import com.monkeys.common.RolePayload;
 import com.monkeys.common.RollPayload;
 import com.monkeys.common.RosterPayload;
@@ -8,15 +11,27 @@ import com.monkeys.common.TrackerPayload;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.loot.v2.LootTableEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.loot.LootPool;
+import net.minecraft.loot.LootTable;
+import net.minecraft.loot.LootTables;
+import net.minecraft.loot.condition.RandomChanceLootCondition;
+import net.minecraft.loot.entry.ItemEntry;
+import net.minecraft.loot.provider.number.ConstantLootNumberProvider;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Server entrypoint.
@@ -45,15 +60,59 @@ public class MonkeysServer implements ModInitializer {
     private static final int ROSTER_INTERVAL_TICKS = 20;
     private int rosterTickCounter = 0;
 
+    /** Chest loot tables the Randomizer bottle can drop in (built-in structures). */
+    private static final Set<RegistryKey<LootTable>> RANDOMIZER_CHESTS = Set.of(
+            LootTables.SIMPLE_DUNGEON_CHEST,
+            LootTables.ABANDONED_MINESHAFT_CHEST,
+            LootTables.VILLAGE_WEAPONSMITH_CHEST,
+            LootTables.STRONGHOLD_CORRIDOR_CHEST,
+            LootTables.JUNGLE_TEMPLE_CHEST,
+            LootTables.DESERT_PYRAMID_CHEST,
+            LootTables.NETHER_BRIDGE_CHEST,
+            LootTables.BASTION_TREASURE_CHEST);
+
+    /** Roughly how often a qualifying chest yields a Randomizer (1 = 10%). */
+    private static final float RANDOMIZER_CHANCE = 0.10F;
+
     @Override
     public void onInitialize() {
         LOGGER.info("Monkeys server starting (protocol v{})", ModConstants.PROTOCOL_VERSION);
+
+        // Register our shared item + entity (the client does the same; same ids both sides).
+        ModItems.register();
+        ModEntities.register();
 
         // Tell the networking layer our payloads exist (must also be done client-side).
         PayloadTypeRegistry.playS2C().register(RolePayload.ID, RolePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(TrackerPayload.ID, TrackerPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(RosterPayload.ID, RosterPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(RollPayload.ID, RollPayload.CODEC);
+
+        // When a Randomizer bottle shatters, re-roll EVERY online player's role.
+        RandomizerBottleEntity.SHATTER_HANDLER = bottle -> {
+            MinecraftServer server = bottle.getServer();
+            if (server == null) return;
+            List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
+            int count = RoleRoller.rollAll(players, roleManager);
+            if (count > 0) {
+                server.getPlayerManager().broadcast(
+                        Text.literal("🎲 A Randomizer shattered — everyone's role was re-rolled!")
+                                .formatted(Formatting.LIGHT_PURPLE),
+                        false);
+            }
+        };
+
+        // Make the Randomizer lootable in structure chests. Works on already-generated
+        // worlds: a chest only rolls its loot table the first time it's opened, so any
+        // unopened chest (old or new) can yield it.
+        LootTableEvents.MODIFY.register((key, tableBuilder, source) -> {
+            if (source.isBuiltin() && RANDOMIZER_CHESTS.contains(key)) {
+                tableBuilder.pool(LootPool.builder()
+                        .rolls(ConstantLootNumberProvider.create(1))
+                        .conditionally(RandomChanceLootCondition.builder(RANDOMIZER_CHANCE))
+                        .with(ItemEntry.builder(ModItems.RANDOMIZER)));
+            }
+        });
 
         // Admin command: /monkeys set <player> <blind|deaf|muted|none>, etc.
         CommandRegistrationCallback.EVENT.register((dispatcher, access, env) ->

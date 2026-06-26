@@ -1,6 +1,8 @@
 package com.monkeys.client;
 
 import com.monkeys.common.ModConstants;
+import com.monkeys.common.ModEntities;
+import com.monkeys.common.ModItems;
 import com.monkeys.common.Role;
 import com.monkeys.common.RolePayload;
 import com.monkeys.common.RollPayload;
@@ -8,7 +10,9 @@ import com.monkeys.common.RosterPayload;
 import com.monkeys.common.TrackerPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +32,13 @@ public class MonkeysClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        // Register our shared item + entity (the server does the same; same ids both sides).
+        ModItems.register();
+        ModEntities.register();
+        // The thrown bottle renders as its flat item, like a splash potion / XP bottle.
+        EntityRendererRegistry.register(ModEntities.RANDOMIZER_BOTTLE,
+                ctx -> new FlyingItemEntityRenderer<>(ctx));
+
         // Must match the server-side registration in MonkeysServer.
         PayloadTypeRegistry.playS2C().register(RolePayload.ID, RolePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(TrackerPayload.ID, TrackerPayload.CODEC);

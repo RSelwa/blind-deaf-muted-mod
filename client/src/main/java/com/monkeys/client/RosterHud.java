@@ -1,6 +1,5 @@
 package com.monkeys.client;
 
-import com.monkeys.common.Role;
 import com.monkeys.common.RosterPayload;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -58,7 +57,10 @@ public final class RosterHud {
     /** Draw the roster. Called from InGameHudMixin at the TAIL of HUD render. */
     public static void render(DrawContext context) {
         if (!RosterState.isEnabled()) return;
-        if (RoleState.is(Role.BLIND)) return; // a blind player can't see the HUD
+        // NOTE: intentionally NOT hidden while blind. The roster is out-of-character
+        // "who is what" meta info, useful even to a blind player. It's drawn at the
+        // HUD TAIL, so in blackout mode it renders on top of the black fill (readable
+        // white-on-black) rather than being hidden by it.
 
         MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null || mc.options.hudHidden) return;

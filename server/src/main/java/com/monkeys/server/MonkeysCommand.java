@@ -2,7 +2,9 @@ package com.monkeys.server;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
+import com.monkeys.common.ModItems;
 import com.monkeys.common.Role;
+import net.minecraft.item.ItemStack;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -12,10 +14,7 @@ import static net.minecraft.server.command.CommandManager.literal;
 import net.minecraft.command.argument.EntityArgumentType;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 
 /**
  * The admin command tree. Requires op (permission level 2).
@@ -33,9 +32,6 @@ import java.util.Random;
  */
 public final class MonkeysCommand {
     private MonkeysCommand() {}
-
-    /** Shared RNG for assignment. Not security-sensitive; default seed is fine. */
-    private static final Random RNG = new Random();
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher,
                                 RoleManager roles) {
@@ -55,6 +51,7 @@ public final class MonkeysCommand {
                         .then(literal("random").executes(ctx -> randomize(ctx, roles)))
                         .then(literal("clear").executes(ctx -> clear(ctx, roles)))
                         .then(literal("status").executes(ctx -> status(ctx, roles)))
+                        .then(literal("randomizer").executes(MonkeysCommand::giveRandomizer))
                         .then(literal("help").executes(MonkeysCommand::help))
         );
     }
@@ -96,22 +93,28 @@ public final class MonkeysCommand {
             return 0;
         }
 
-        List<Role> pool = new ArrayList<>(Arrays.asList(Role.ASSIGNABLE));
-        Collections.shuffle(pool, RNG);
-        Collections.shuffle(players, RNG);
-
-        int poolSize = Role.ASSIGNABLE.length;
-        for (int i = 0; i < players.size(); i++) {
-            // setAnimated: each client plays the roulette reveal and applies the effect
-            // at the end, instead of snapping to the new role instantly.
-            roles.setAnimated(players.get(i), pool.get(i % poolSize));
-        }
-
-        final int count = players.size();
+        // setAnimated (inside RoleRoller): each client plays the roulette reveal and
+        // applies the effect at the end, instead of snapping to the new role instantly.
+        final int count = RoleRoller.rollAll(players, roles);
         ctx.getSource().sendFeedback(
                 () -> Text.literal("Assigned random disabilities to " + count + " player(s)."),
                 true);
         return count;
+    }
+
+    /**
+     * Give the command runner a few Randomizer bottles — a test/spawn helper so you
+     * don't have to loot a fresh chest just to try the re-roll item.
+     */
+    private static int giveRandomizer(CommandContext<ServerCommandSource> ctx) {
+        ServerPlayerEntity player = ctx.getSource().getPlayer();
+        if (player == null) {
+            ctx.getSource().sendError(Text.literal("Run this as a player."));
+            return 0;
+        }
+        player.giveItemStack(new ItemStack(ModItems.RANDOMIZER, 4));
+        ctx.getSource().sendFeedback(() -> Text.literal("Gave 4 Randomizer bottles."), false);
+        return 1;
     }
 
     /** Reset every online player back to {@link Role#NONE}. */
@@ -161,6 +164,7 @@ public final class MonkeysCommand {
                   /monkeys random                                - random disability to every online player
                   /monkeys clear                                 - reset everyone to NONE
                   /monkeys status                                - list every player's current role
+                  /monkeys randomizer                            - give yourself Randomizer bottles (test)
                   /monkeys help                                  - show this help
                 Random assignment gives every disability out once before any repeats.""";
         ctx.getSource().sendFeedback(() -> Text.literal(text), false);
