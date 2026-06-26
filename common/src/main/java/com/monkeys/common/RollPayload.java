@@ -9,7 +9,7 @@ import net.minecraft.network.packet.CustomPayload;
  * for a freshly-assigned {@link Role} (see {@code RouletteAnimation}).
  *
  * <p>Unlike {@link RolePayload} — which applies the role's effect immediately and is
- * used for joins and manual admin {@code /monkeys set} — this is sent by the random
+ * used for joins and manual admin {@code /bdm set} — this is sent by the random
  * roll (and the future re-roll bottle). The client spins a slot machine through the
  * roles, lands on {@link #role()}, and only then applies the effect, so the player
  * gets to watch their own reveal (a blind player would otherwise black out instantly).

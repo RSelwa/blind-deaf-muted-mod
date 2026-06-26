@@ -14,17 +14,17 @@ see [`CLAUDE.md`](CLAUDE.md).
 
 The mod ships as **two jars** built from one repo:
 
-| Jar | Runs on | Job |
-|-----|---------|-----|
-| `server` | the host's server | Stores everyone's role, exposes the admin command, tells each client its role over a custom network packet. |
+| Jar      | Runs on                     | Job                                                                                                                      |
+| -------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `server` | the host's server           | Stores everyone's role, exposes the admin command, tells each client its role over a custom network packet.              |
 | `client` | **each player's** Minecraft | Receives that packet and applies the effect locally — black screen (blind), silenced audio (deaf), blocked chat (muted). |
 
 A third module, `common`, holds the shared role list + packet format so the two
 sides can never disagree. Effects are **client-side on purpose**: only the player's
-own game can mute *all* their audio or paint *their* screen — and it keeps the mod
+own game can mute _all_ their audio or paint _their_ screen — and it keeps the mod
 shader-compatible. See [`DESIGN.md` §3](DESIGN.md).
 
-The **fun** is structural: each role is missing exactly one of *see / hear / speak*,
+The **fun** is structural: each role is missing exactly one of _see / hear / speak_,
 so no one player can perceive, report, and act alone — they're forced to relay
 information through each other. Full breakdown in [`DESIGN.md` §4b](DESIGN.md).
 
@@ -35,8 +35,8 @@ information through each other. Full breakdown in [`DESIGN.md` §4b](DESIGN.md).
 - **The host** (one person): runs the server. Easiest path is **Docker** — one
   command, no Java or Minecraft install required (see deployment sections below).
 - **Every player** (including the host, if they also play): installs **Fabric Loader**
-  + **Fabric API**, then drops the matching `monkeys-client.jar` into their `mods/`
-  folder. One-time setup. See [Player setup](#player-setup-everyone).
+  - **Fabric API**, then drops the matching `monkeys-client.jar` into their `mods/`
+    folder. One-time setup. See [Player setup](#player-setup-everyone).
 
 The server jar and the client jars **must be the same version** — they're built and
 released as a pair. A mismatched client gets a "please update" warning, not a crash.
@@ -46,10 +46,12 @@ released as a pair. A mismatched client gets a "please update" warning, not a cr
 ## Prerequisites
 
 **To run the server (host):**
+
 - [Docker](https://docs.docker.com/get-docker/) + Docker Compose (recommended), **or**
 - a manual Fabric server + JDK 21 if you prefer not to use Docker (not covered here).
 
 **To build the jars from source (only if you're modifying the mod):**
+
 - **JDK 21** (the build targets Java 21 — Minecraft 1.21.x requires it).
 - That's it — the repo ships a Gradle wrapper (`./gradlew`), so you don't need Gradle
   installed. Docker also builds the server jar itself, so for a plain server run you
@@ -68,8 +70,9 @@ released as a pair. A mismatched client gets a "please update" warning, not a cr
 ```
 
 Outputs:
-- `server/build/libs/server-0.1.0.jar`  → goes on the **server**
-- `client/build/libs/client-0.1.0.jar`  → goes in **each player's** `mods/`
+
+- `server/build/libs/server-0.1.0.jar` → goes on the **server**
+- `client/build/libs/client-0.1.0.jar` → goes in **each player's** `mods/`
 
 > **JDK 21 note:** the build needs a Java 21 toolchain. `gradle.properties` contains
 > an `org.gradle.java.installations.paths` line pointing at a macOS Homebrew JDK 21.
@@ -110,23 +113,28 @@ Best when players aren't on the same network. You rent a small Linux server.
    the group for lower ping.
 
 2. **Install Docker** on it:
+
    ```bash
    curl -fsSL https://get.docker.com | sh
    ```
 
 3. **Get the repo onto the VPS** and build + start the server:
+
    ```bash
    git clone <your-repo-url> monkeys && cd monkeys/docker
    docker compose up -d --build
    ```
+
    The image downloads vanilla 1.21.4, installs Fabric, drops in our mod, and runs.
    First boot takes a minute or two. Check it with `docker compose logs -f`.
 
 4. **Open the firewall** for the Minecraft port (TCP **25565**):
+
    ```bash
    # ufw (Ubuntu/Debian)
    sudo ufw allow 25565/tcp
    ```
+
    Also open it in your provider's web control panel if they have a separate
    firewall/security-group.
 
@@ -150,6 +158,7 @@ volume) across restarts.
 Best for a couch/Wi-Fi session. No internet exposure, no port-forwarding.
 
 1. On the **host machine** (a PC on the LAN with Docker installed):
+
    ```bash
    git clone <your-repo-url> monkeys && cd monkeys/docker
    docker compose up -d --build
@@ -183,15 +192,16 @@ The host (or any opped player) assigns roles. The command requires **op /
 permission level 2**.
 
 ```
-/monkeys set <player> <blind|deaf|muted|none>
+/bdm set <player> <blind|deaf|muted|none>
 ```
 
 Examples:
+
 ```
-/monkeys set Alice blind
-/monkeys set Bob deaf
-/monkeys set Carol muted
-/monkeys set Alice none     # clear a role
+/bdm set Alice blind
+/bdm set Bob deaf
+/bdm set Carol muted
+/bdm set Alice none     # clear a role
 ```
 
 The change applies **instantly** on that player's client. Roles currently reset on
@@ -199,6 +209,7 @@ server restart (persistence is a planned TODO — see `CLAUDE.md`).
 
 To **op yourself**, run in the server console (`docker compose logs` won't accept
 input — attach instead):
+
 ```bash
 docker attach monkeys-server      # then type:  op <yourname>     (Ctrl-P Ctrl-Q to detach)
 ```
@@ -217,15 +228,15 @@ so you can tune the world by adding environment variables in
 [`docker/docker-compose.yml`](docker/docker-compose.yml) under `environment:`. Useful ones:
 
 ```yaml
-    environment:
-      EULA: "TRUE"
-      DIFFICULTY: "hard"          # peaceful | easy | normal | hard
-      HARDCORE: "true"            # the mod supports hardcore — set before first launch
-      MOTD: "Monkeys challenge!"  # server list description
-      MAX_PLAYERS: "8"
-      WHITELIST: "Alice,Bob,Carol"  # lock the server to your group
-      OPS: "Alice"                # auto-op the admin who assigns roles
-      MEMORY: "3G"                # JVM heap; bump for more players
+environment:
+  EULA: "TRUE"
+  DIFFICULTY: "hard" # peaceful | easy | normal | hard
+  HARDCORE: "true" # the mod supports hardcore — set before first launch
+  MOTD: "Monkeys challenge!" # server list description
+  MAX_PLAYERS: "8"
+  WHITELIST: "Alice,Bob,Carol" # lock the server to your group
+  OPS: "Alice" # auto-op the admin who assigns roles
+  MEMORY: "3G" # JVM heap; bump for more players
 ```
 
 Full list: the itzg image docs. Change them, then `docker compose up -d` to apply.
@@ -249,11 +260,11 @@ the "Must-verify before first build" notes in `CLAUDE.md`.
 
 Each effect is a small, self-contained handler in `client/src/main/java/com/monkeys/client/`:
 
-| File | Controls | Easy tweaks |
-|------|----------|-------------|
-| `BlindOverlay.java` | the black screen | Leave the hotbar/hand visible instead of pure black; tint instead of full black. |
-| `DeafHandler.java` | muting audio | Silence only *some* sound categories (e.g. keep music); snapshot/restore real volumes (TODO in the file). |
-| `MuteHandler.java` | blocking chat | Add an on-screen "you are MUTED" toast; decide whether to also block command-style messages. |
+| File                | Controls         | Easy tweaks                                                                                               |
+| ------------------- | ---------------- | --------------------------------------------------------------------------------------------------------- |
+| `BlindOverlay.java` | the black screen | Leave the hotbar/hand visible instead of pure black; tint instead of full black.                          |
+| `DeafHandler.java`  | muting audio     | Silence only _some_ sound categories (e.g. keep music); snapshot/restore real volumes (TODO in the file). |
+| `MuteHandler.java`  | blocking chat    | Add an on-screen "you are MUTED" toast; decide whether to also block command-style messages.              |
 
 Roles themselves live in `common/src/main/java/com/monkeys/common/Role.java` — add a
 new role here and it automatically appears in the command's tab-completion. You'd
@@ -261,9 +272,9 @@ then add a matching handler on the client.
 
 ### Rename the command
 
-The command literal `monkeys` is defined in
+The command literal `bdm` is defined in
 `server/src/main/java/com/monkeys/server/MonkeysCommand.java`. Change the
-`literal("monkeys")` call to rename it.
+`literal("bdm")` call to rename it.
 
 ### Network port
 
@@ -283,7 +294,7 @@ port) unchanged.
   Fabric one.
 - **`docker compose up` fails to build** — make sure you ran it from the `docker/`
   folder (the compose file sets the build context to the repo root).
-- **Effects don't apply after `/monkeys set`** — confirm the target player has the
+- **Effects don't apply after `/bdm set`** — confirm the target player has the
   **client** jar installed; the server can store a role for anyone but only a modded
   client renders the effect.
 - **Roles vanished after a restart** — expected for now; role persistence is a
@@ -296,7 +307,7 @@ port) unchanged.
 ```
 common/   shared Role enum + network packet + version  (depended on by both)
 client/   the player-side jar (blind/deaf/mute effects)
-server/   the host-side jar (roles, /monkeys command)
+server/   the host-side jar (roles, /bdm command)
 docker/   Dockerfile + docker-compose.yml (one-command server)
 DESIGN.md the full design doc and rationale
 CLAUDE.md project status, decisions, and build notes

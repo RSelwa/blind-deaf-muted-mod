@@ -22,11 +22,11 @@ import java.util.List;
  *
  * <p>Usage so far:
  * <pre>
- *   /monkeys set &lt;player&gt; &lt;blind|deaf|muted|none&gt;   assign one player
- *   /monkeys random                                    random disability to everyone
- *   /monkeys clear                                     reset everyone to NONE
- *   /monkeys status                                    list everyone's current role
- *   /monkeys help                                      show the command reference
+ *   /bdm set &lt;player&gt; &lt;blind|deaf|muted|none&gt;   assign one player
+ *   /bdm random                                    random disability to everyone
+ *   /bdm clear                                     reset everyone to NONE
+ *   /bdm status                                    list everyone's current role
+ *   /bdm help                                      show the command reference
  * </pre>
  * TODO (later): team management, random-event triggers, and an assignment
  * animation in front of {@code random}.
@@ -37,7 +37,7 @@ public final class MonkeysCommand {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher,
                                 RoleManager roles, SharedHealthManager sharedHealth) {
         // One <target> argument node, with a literal per role hung off it so
-        // tab-completion offers /monkeys set <player> blind|deaf|muted|none.
+        // tab-completion offers /bdm set <player> blind|deaf|muted|none.
         var target = argument("target", EntityArgumentType.player());
         for (Role role : Role.values()) {
             target = target.then(
@@ -46,7 +46,7 @@ public final class MonkeysCommand {
         }
 
         dispatcher.register(
-                literal("monkeys")
+                literal("bdm")
                         .requires(src -> src.hasPermissionLevel(2))
                         .then(literal("set").then(target))
                         .then(literal("random").executes(ctx -> randomize(ctx, roles)))
@@ -189,13 +189,13 @@ public final class MonkeysCommand {
     private static int help(CommandContext<ServerCommandSource> ctx) {
         String text = """
                 Monkeys commands:
-                  /monkeys set <player> <blind|deaf|muted|none>  - assign one player a role
-                  /monkeys random                                - random disability to every online player
-                  /monkeys clear                                 - reset everyone to NONE
-                  /monkeys status                                - list every player's current role
-                  /monkeys randomizer                            - give yourself Randomizer bottles (test)
-                  /monkeys health <on|off>                       - toggle shared-health mode (damage mirrored across the team)
-                  /monkeys help                                  - show this help
+                  /bdm set <player> <blind|deaf|muted|none>  - assign one player a role
+                  /bdm random                                - random disability to every online player
+                  /bdm clear                                 - reset everyone to NONE
+                  /bdm status                                - list every player's current role
+                  /bdm randomizer                            - give yourself Randomizer bottles (test)
+                  /bdm health <on|off>                       - toggle shared-health mode (damage mirrored across the team)
+                  /bdm help                                  - show this help
                 Random assignment gives every disability out once before any repeats.""";
         ctx.getSource().sendFeedback(() -> Text.literal(text), false);
         return 1;

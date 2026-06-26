@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Shared random-role assignment, used by both {@code /monkeys random} and the
+ * Shared random-role assignment, used by both {@code /bdm random} and the
  * Randomizer bottle so they roll identically (and both trigger the client roulette
  * via {@link RoleManager#setAnimated}).
  *

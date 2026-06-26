@@ -29,7 +29,9 @@ Design goals: **easy to manage**, **runs on the latest Minecraft version**, and
 Two small components that talk to each other:
 
 ### A. Server component (Fabric server mod or Paper plugin)
+
 Owns the game logic:
+
 - Assigns and stores each player's role.
 - Admin commands (e.g. `/disability set <player> <blind|deaf|mute>`, team moves).
 - Hardcore toggle (vanilla setting).
@@ -37,7 +39,9 @@ Owns the game logic:
 - **Tells each client what its role is** via a small custom packet.
 
 ### B. Thin client mod (Fabric)
+
 Receives its role from the server and applies the effect **locally**:
+
 - **Blind** → black screen overlay, rendered client-side.
 - **Deaf** → set all sound-category volumes to 0 (or cancel sound events locally).
 - **Muted** → block chat send / voice input.
@@ -50,13 +54,13 @@ shader / Sodium / Iris compatibility. See §2b for the comparison that backs thi
 
 ### 2b. Mod loader comparison (2026) — why Fabric
 
-| Loader | Position in 2026 | Best for |
-|---|---|---|
-| **Fabric** | Performance king, lightweight, **fastest to update to new MC versions**. Owns Sodium / Lithium / Iris (shaders). | Small/custom mods, QoL, performance, **shader compatibility** |
-| **NeoForge** | The **new standard for content/tech modding** on 1.21+. ~93% of popular mods target it; nearly every new big modpack (ATM 10, Better MC 5) runs on it. | Heavy content modpacks, tech mods |
-| **Forge** | Legacy. Only for older packs (1.12.2, 1.16.5, 1.19.2, many 1.20.1). Slower to update, heavier. | Old modpacks that never migrated |
+| Loader       | Position in 2026                                                                                                                                       | Best for                                                      |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| **Fabric**   | Performance king, lightweight, **fastest to update to new MC versions**. Owns Sodium / Lithium / Iris (shaders).                                       | Small/custom mods, QoL, performance, **shader compatibility** |
+| **NeoForge** | The **new standard for content/tech modding** on 1.21+. ~93% of popular mods target it; nearly every new big modpack (ATM 10, Better MC 5) runs on it. | Heavy content modpacks, tech mods                             |
+| **Forge**    | Legacy. Only for older packs (1.12.2, 1.16.5, 1.19.2, many 1.20.1). Slower to update, heavier.                                                         | Old modpacks that never migrated                              |
 
-**Decision: Fabric.** We are building a *small custom mod* that needs shader /
+**Decision: Fabric.** We are building a _small custom mod_ that needs shader /
 Sodium / Iris compatibility and fast updates to the latest version — not interop
 with a giant content-mod ecosystem (the only reason to pick NeoForge). NeoForge's
 2026 momentum is about modpacks and doesn't change our calculus. Forge is legacy.
@@ -142,7 +146,7 @@ our jar) to erase the last bit of client friction.
 We moved the disability effects to the **client mod** instead of enforcing them
 purely server-side. This is the better design:
 
-- **Deaf becomes complete & clean.** A client mod can mute *all* audio, including
+- **Deaf becomes complete & clean.** A client mod can mute _all_ audio, including
   client-generated sounds (footsteps, UI, music) that a server can never touch.
   No leaks, no ProtocolLib packet juggling.
 - **No server performance hit.** No per-sound packet interception → avoids the
@@ -159,19 +163,20 @@ Fabric + shader-safe, so it coexists with Sodium / Iris / shaderpacks.
 
 A mod can only enforce what passes **through Minecraft**:
 
-- **Blind** is *always* enforceable (client render effect), in every mode.
+- **Blind** is _always_ enforceable (client render effect), in every mode.
 - **Deaf** and **Muted** are only truly enforceable if comms go **through the game**
   (proximity voice + chat). On **Discord**, the mod cannot stop a muted player from
   talking or a deaf player from listening.
 
 ### Comms-mode flexibility (decided: flexible, easily toggled)
+
 Build a **comms-mode toggle** in config. Proximity voice (e.g. Simple Voice Chat)
 is **optional / soft-dependency**; if absent, fall back to Discord/honor mode.
 
-| Mode | Blind | Deaf | Muted | Client install |
-|---|---|---|---|---|
-| **In-game** (proximity voice + chat) | ✅ enforced | ✅ enforced | ✅ enforced | voice mod required |
-| **Discord** (external voice) | ✅ enforced | ⚠️ honor-system + soft HUD cues | ⚠️ honor-system (in-game chat still blockable) | none |
+| Mode                                 | Blind       | Deaf                            | Muted                                          | Client install     |
+| ------------------------------------ | ----------- | ------------------------------- | ---------------------------------------------- | ------------------ |
+| **In-game** (proximity voice + chat) | ✅ enforced | ✅ enforced                     | ✅ enforced                                    | voice mod required |
+| **Discord** (external voice)         | ✅ enforced | ⚠️ honor-system + soft HUD cues | ⚠️ honor-system (in-game chat still blockable) | none               |
 
 In Discord mode the mod still helps without true enforcement: HUD reminder
 ("🔇 you are MUTED"), block in-game chat, trust players on voice.
@@ -183,8 +188,9 @@ The in-game voice mode is built on **[Simple Voice Chat](https://modrepo.de/mine
 API** (`compileOnly` `voicechat-api`, runtime-provided by the installed mod).
 
 Why this matters: because SVC relays all voice through the server, we enforce
-DEAF/MUTED there by **cancelling voice packets** — so the table above is *literally*
+DEAF/MUTED there by **cancelling voice packets** — so the table above is _literally_
 enforced for in-game voice, not honor-system:
+
 - **MUTED** → cancel the speaker's `MicrophonePacketEvent` (mic dropped at source).
 - **DEAF** → cancel `Entity`/`Locational`/`Static` `SoundPacketEvent` whose receiver
   is deaf (covers proximity, group, entity, spectator audio).
@@ -200,7 +206,7 @@ Discord/honor mode with nothing broken. Server auto-downloads SVC and opens UDP
 ## 4b. Role / communication loop (the core fun)
 
 This is the heart of the mod: the three disabilities are chosen so that **no single
-player owns all three I/O channels**, which *forces* them to relay information
+player owns all three I/O channels**, which _forces_ them to relay information
 through each other to do anything coordinated — above all, to kill the Ender Dragon.
 
 ### Channel matrix (what each role can / can't do)
@@ -208,11 +214,11 @@ through each other to do anything coordinated — above all, to kill the Ender D
 There are three communication channels: **See** (visual input), **Hear** (audio
 input), **Speak** (output — in-game voice + chat). Each role is missing exactly one:
 
-| Role  | See | Hear | Speak | Enforced by (client) |
-|-------|:---:|:----:|:-----:|----------------------|
-| **Blind** | ❌ | ✅ | ✅ | `BlindOverlay` (opaque black HUD) |
-| **Deaf**  | ✅ | ❌ | ✅ | `DeafHandler` (all sound volumes → 0) |
-| **Muted** | ✅ | ✅ | ❌ | `MuteHandler` (blocks outgoing chat/voice) |
+| Role      | See | Hear | Speak | Enforced by (client)                       |
+| --------- | :-: | :--: | :---: | ------------------------------------------ |
+| **Blind** | ❌  |  ✅  |  ✅   | `BlindOverlay` (opaque black HUD)          |
+| **Deaf**  | ✅  |  ❌  |  ✅   | `DeafHandler` (all sound volumes → 0)      |
+| **Muted** | ✅  |  ✅  |  ❌   | `MuteHandler` (blocks outgoing chat/voice) |
 
 Read it the other way — each channel is owned by exactly **two** of the three roles:
 
@@ -220,18 +226,18 @@ Read it the other way — each channel is owned by exactly **two** of the three 
 - **Hear:** Blind + Muted
 - **Speak:** Blind + Deaf
 
-That overlap is the whole game. Any single fact has to *hop* between players to get
+That overlap is the whole game. Any single fact has to _hop_ between players to get
 from where it's perceived to where it's acted on, because the perceiver and the
 actor never share enough channels.
 
 ### The three archetypes the matrix creates
 
 - **Deaf = the Scout / "eyes that broadcast."** Sees the world and can talk, but is
-  deaf to every reply. Pure *outbound* — narrates what they see ("crystal on the
+  deaf to every reply. Pure _outbound_ — narrates what they see ("crystal on the
   north tower, dragon diving left!") and cannot receive corrections. Best kept at
   range, never in blind melee, because nobody can warn them.
 - **Blind = the Coordinator / "switchboard in the dark."** The only role that both
-  **hears** *and* **speaks**, but sees nothing. Receives the Deaf's narration plus
+  **hears** _and_ **speaks**, but sees nothing. Receives the Deaf's narration plus
   all the dragon's audio cues (wingbeats, roar, crystal-beam hum, hostile growls —
   the Blind player leans hardest on sound), fuses it, and issues spoken orders. The
   hub everything routes through — and the one who can never personally verify a thing.
@@ -246,11 +252,11 @@ The dragon fight is the perfect stress test because it demands three things at o
 each gated behind a different channel:
 
 1. **Find & destroy the End Crystals** (on top of the obsidian towers). They must be
-   *seen* to be targeted → only **Deaf** or **Muted** can spot them. The Deaf can
-   *also* shout their location; the Muted can only see them.
+   _seen_ to be targeted → only **Deaf** or **Muted** can spot them. The Deaf can
+   _also_ shout their location; the Muted can only see them.
 2. **Survive the dragon's dives & breath.** The telegraph is largely audio (the
    roar / wing-whoosh) → **Blind** and **Muted** hear it coming; the **Deaf** player
-   gets *no* warning and must be told where to stand.
+   gets _no_ warning and must be told where to stand.
 3. **Land hits on the dragon** (perch melee + ranged) → requires sight → **Deaf** or
    **Muted**, but the Deaf can't hear "behind you," so the **Muted** is the safest
    sustained damage dealer.
@@ -270,13 +276,13 @@ Deaf SEES the result  ──speaks──▶  closes the loop back to Blind
 ```
 
 No shortcut exists: the Deaf can't hear whether anyone acted, the Blind can't see
-whether the crystal is gone, and the Muted — who can confirm both — can't *say* so.
+whether the crystal is gone, and the Muted — who can confirm both — can't _say_ so.
 Each player is permanently dependent on the other two.
 
 ### The Muted's non-verbal channel (the crux to design well)
 
 Because the Muted has the best awareness but no voice, the fun hinges on giving them
-expressive **in-game** ways to signal that *don't* go through chat/voice:
+expressive **in-game** ways to signal that _don't_ go through chat/voice:
 
 - **Sneak toggling** as yes/no or a beat code (crouch = confirmed).
 - **Block placement / breaking** in agreed patterns (a torch = "done"; an arrow built
@@ -299,12 +305,12 @@ whoever can **speak+hear** (Blind), which keeps the relay intact.
 
 ### Difficulty knobs (config, later)
 
-- **Rotate roles mid-run** (the existing `/monkeys set` command) so no one settles
+- **Rotate roles mid-run** (the existing `/bdm set` command) so no one settles
   into one job — forces re-learning the relay.
 - **Comms mode** (§4) changes the loop's integrity: in-game voice = fully enforced;
   Discord = Deaf/Muted become honor-system, so the loop is softer.
 - Optional **2-player degenerate check:** with only Blind+Deaf (no Muted) nobody can
-  both see *and* hear, so the loop is even harsher — note this when balancing for 3+.
+  both see _and_ hear, so the loop is even harsher — note this when balancing for 3+.
 
 ---
 
@@ -339,15 +345,15 @@ Nothing here is blocked or impossible.
 
 - [ ] Final mod name (current working title: "Monkeys").
 - [x] **Role/communication loop design** — who can do what, and how the three roles
-  are *forced* to relay information to beat the dragon (the heart of the fun). See §4b.
+      are _forced_ to relay information to beat the dragon (the heart of the fun). See §4b.
 - [ ] **Muted + signs** — embrace in-game signs as the Muted's slow "written note"
-  channel (leaning yes), or suppress sign text too? See §4b.
+      channel (leaning yes), or suppress sign text too? See §4b.
 - [ ] Random events design.
 - [x] **Loader: Fabric** (both pieces) — decided, backed by 2026 comparison (§2b).
 - [x] **Server runs in Docker** (Fabric server container) — decided (§2c).
 - [ ] Command syntax & permissions.
 - [x] **Simple Voice Chat for in-game voice** — decided & implemented. Integrated via
-  its server plugin API to *enforce* DEAF/MUTED over voice; optional soft-dependency. See §4.
+      its server plugin API to _enforce_ DEAF/MUTED over voice; optional soft-dependency. See §4.
 
 ---
 

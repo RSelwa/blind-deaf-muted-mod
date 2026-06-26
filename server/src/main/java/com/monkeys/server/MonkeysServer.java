@@ -39,7 +39,7 @@ import java.util.Set;
  * <p>Responsibilities:
  * <ol>
  *   <li>Register the {@link RolePayload} so we can send roles to clients.</li>
- *   <li>Register the {@code /monkeys} admin command (assign/move players).</li>
+ *   <li>Register the {@code /bdm} admin command (assign/move players).</li>
  *   <li>Push the current role to a player when they join.</li>
  * </ol>
  * Random events come later and will hook in here too.
@@ -50,7 +50,7 @@ public class MonkeysServer implements ModInitializer {
     /** In-memory role store. TODO: persist to world save so roles survive restarts. */
     private final RoleManager roleManager = new RoleManager();
 
-    /** Optional shared-health mode (off by default; toggled via /monkeys health). */
+    /** Optional shared-health mode (off by default; toggled via /bdm health). */
     private final SharedHealthManager sharedHealth = new SharedHealthManager();
 
     /** Push teammate positions every N server ticks (20 ticks = 1s). 4/sec is smooth
@@ -118,10 +118,10 @@ public class MonkeysServer implements ModInitializer {
         });
 
         // Shared-health mode: listen for damage and mirror it across the team.
-        // Inert until an op runs /monkeys health on.
+        // Inert until an op runs /bdm health on.
         sharedHealth.register();
 
-        // Admin command: /monkeys set <player> <blind|deaf|muted|none>, etc.
+        // Admin command: /bdm set <player> <blind|deaf|muted|none>, etc.
         CommandRegistrationCallback.EVENT.register((dispatcher, access, env) ->
                 MonkeysCommand.register(dispatcher, roleManager, sharedHealth));
 

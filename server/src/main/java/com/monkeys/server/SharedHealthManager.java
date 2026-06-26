@@ -28,7 +28,7 @@ import net.minecraft.server.world.ServerWorld;
  * and route it through {@link #propagateHeal} (the seam is stubbed below) — no
  * other part of this class needs to change.
  *
- * <p>Off by default; flipped live via {@code /monkeys health <on|off>}. Because the
+ * <p>Off by default; flipped live via {@code /bdm health <on|off>}. Because the
  * feature is purely server-side (health is server-authoritative; the client only
  * draws the bar), turning it off is instant and leaves no client state behind.
  */

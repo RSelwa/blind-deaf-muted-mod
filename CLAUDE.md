@@ -23,8 +23,8 @@ Full detail lives in **`DESIGN.md`** (read it for the complete picture).
 - **Effects are client-side** (not server-enforced): makes "deaf" complete & clean,
   avoids server performance issues, keeps shader compatibility.
 - **Loader: Fabric** for both pieces (latest-version + shader/Sodium/Iris friendly).
-  Backed by a 2026 comparison: NeoForge now leads *content modpacks*, Forge is
-  legacy, but Fabric remains best for a *small custom mod* needing shader compat +
+  Backed by a 2026 comparison: NeoForge now leads _content modpacks_, Forge is
+  legacy, but Fabric remains best for a _small custom mod_ needing shader compat +
   fast version updates. See `DESIGN.md` §2b.
 - **Server runs in Docker** (Fabric server container, e.g. `itzg/minecraft-server`
   with `TYPE=FABRIC`; mod jar in the mounted `mods/` volume). Clients still install
@@ -50,7 +50,7 @@ Full detail lives in **`DESIGN.md`** (read it for the complete picture).
   in-game comms; over Discord they become honor-system + soft HUD cues. Blind is
   always enforceable.
 - **In-game voice: Simple Voice Chat — decided & implemented.** Integrated via its
-  server plugin API (`server/MonkeysVoicechatPlugin.java`); we *enforce* DEAF (cancel
+  server plugin API (`server/MonkeysVoicechatPlugin.java`); we _enforce_ DEAF (cancel
   inbound sound packets) and MUTED (cancel the speaker's mic packet) server-side, so
   in-game voice is truly enforced, not honor-system. Optional soft-dependency
   (`voicechat` entrypoint + `suggests`); server auto-downloads it + opens UDP 24454,
@@ -82,15 +82,17 @@ Compile fixes applied: `SoundCategory` import was `net.minecraft.client.option`
 → `onInitializeClient()` (the `ClientModInitializer` contract).
 
 Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODOs):
+
 - `common/` — `Role` enum, `RolePayload` (S2C packet), `ModConstants` (protocol version).
 - `server/` — `MonkeysServer` (entrypoint), `RoleManager` (in-memory store + sync),
-  `MonkeysCommand` (`/monkeys set <player> <role>`, op-only).
+  `MonkeysCommand` (`/bdm set <player> <role>`, op-only).
 - `client/` — `MonkeysClient` (entrypoint + packet receiver), `RoleState`, and effect
   handlers `BlindOverlay` / `DeafHandler` / `MuteHandler` (functional stubs w/ TODOs).
   HUD: `TrackerHud` (teammate tracker, key `K`) + `RosterHud` (who-is-what
   leaderboard top-right, key `L`), both drawn from `InGameHudMixin` TAIL.
 
 ### Recent additions (idea pass 1)
+
 - **Blind arm pose:** `PlayerEntityModelMixin` overrides the BLIND player's left-arm
   rotation (`setAngles` TAIL) to hold it out forward (`BLIND_LEFT_ARM_PITCH ≈ -1.2`),
   so they sweep the cane ahead of them. Client-side cosmetic; the cane follows the arm
@@ -130,13 +132,13 @@ Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODO
   the reveal — anti-spoiler) and is **visible even when blind** (out-of-character meta
   info; renders white-on-black over the blackout). The teammate tracker stays hidden
   while blind.
-- **Roulette reveal animation (idea #4 bis):** `/monkeys random` now calls
+- **Roulette reveal animation (idea #4 bis):** `/bdm random` now calls
   `RoleManager.setAnimated()` → sends a new `RollPayload` (S2C) instead of applying
   instantly. Client `RouletteAnimation` spins a slot machine through the roles
   (ease-out, lands on the rolled role), holds "You're now X", then applies the effect
   at the reveal (so a blind player watches their own roll before blacking out). The
   role is still stored server-side immediately (roster + voice enforcement correct
-  right away). Manual `/monkeys set` stays instant (no animation). Protocol → **v4**.
+  right away). Manual `/bdm set` stays instant (no animation). Protocol → **v4**.
   Sounds: rising-pitch `UI_BUTTON_CLICK` per reel step + `UI_TOAST_CHALLENGE_COMPLETE`
   fanfare at the reveal.
 - **Randomizer bottle (idea #3):** a throwable item (`ModItems.RANDOMIZER`) +
@@ -148,7 +150,7 @@ Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODO
   Lootable in structure chests via `LootTableEvents.MODIFY` (10% in dungeon/mineshaft/
   weaponsmith/stronghold/jungle/desert/nether-bridge/bastion-treasure) — works on
   already-generated worlds since chests only roll loot on first open. Test helper:
-  `/monkeys randomizer` gives 4 bottles. Item renders as the vanilla XP-bottle texture
+  `/bdm randomizer` gives 4 bottles. Item renders as the vanilla XP-bottle texture
   (no PNG shipped); 1.21.4 item-model defs under `assets/monkeys/items|models`.
   No protocol change (reuses RollPayload). `RoleRoller` also de-duplicates the random
   logic that used to live in `MonkeysCommand`.
@@ -161,6 +163,7 @@ Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODO
 no-comments rule.
 
 ### Must-verify before first build
+
 - Fabric version strings in `gradle.properties` (minecraft/yarn/loader/fabric-api)
   against https://fabricmc.net/develop — they must match exactly.
 - No Gradle wrapper committed yet — run `gradle wrapper` (or rely on system Gradle).
