@@ -11,8 +11,10 @@ import com.monkeys.common.TrackerPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
+import net.minecraft.client.render.entity.PlayerEntityRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +40,17 @@ public class MonkeysClient implements ClientModInitializer {
         // The thrown bottle renders as its flat item, like a splash potion / XP bottle.
         EntityRendererRegistry.register(ModEntities.RANDOMIZER_BOTTLE,
                 ctx -> new FlyingItemEntityRenderer<>(ctx));
+
+        // Add the blind cane as a feature layer on every player renderer. It decides
+        // per-player (from the roster) whether to actually draw, so one registration
+        // covers everyone.
+        LivingEntityFeatureRendererRegistrationCallback.EVENT.register(
+                (entityType, renderer, helper, ctx) -> {
+                    if (renderer instanceof PlayerEntityRenderer playerRenderer) {
+                        helper.register(new BlindCaneFeatureRenderer(playerRenderer));
+                        helper.register(new RoleHeadAccessoryFeatureRenderer(playerRenderer));
+                    }
+                });
 
         // Must match the server-side registration in MonkeysServer.
         PayloadTypeRegistry.playS2C().register(RolePayload.ID, RolePayload.CODEC);

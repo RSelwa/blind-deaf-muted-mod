@@ -1,5 +1,6 @@
 package com.monkeys.client;
 
+import com.monkeys.common.Role;
 import com.monkeys.common.RosterPayload;
 
 import java.util.List;
@@ -38,6 +39,19 @@ public final class RosterState {
 
     public static List<RosterPayload.Entry> getEntries() {
         return entries;
+    }
+
+    /**
+     * The role of the player with this name, per the latest roster, or {@link Role#NONE}
+     * if unknown. Used by render code (e.g. the blind cane) that only has a render
+     * state's player name, not the role directly. Reads the displayed (possibly frozen)
+     * roster — fine, since the cane should reveal in step with the leaderboard.
+     */
+    public static Role roleOf(String playerName) {
+        for (RosterPayload.Entry e : entries) {
+            if (e.name().equals(playerName)) return e.role();
+        }
+        return Role.NONE;
     }
 
     static void setEntries(List<RosterPayload.Entry> latest) {

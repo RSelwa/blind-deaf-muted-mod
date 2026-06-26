@@ -6,6 +6,7 @@
   "client": [
     "BackgroundRendererMixin",
     "InGameHudMixin",
+    "PlayerEntityModelMixin",
     "SoundSystemMixin"
   ],
   "injectors": {

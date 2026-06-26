@@ -91,6 +91,27 @@ Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODO
   leaderboard top-right, key `L`), both drawn from `InGameHudMixin` TAIL.
 
 ### Recent additions (idea pass 1)
+- **Blind arm pose:** `PlayerEntityModelMixin` overrides the BLIND player's left-arm
+  rotation (`setAngles` TAIL) to hold it out forward (`BLIND_LEFT_ARM_PITCH ≈ -1.2`),
+  so they sweep the cane ahead of them. Client-side cosmetic; the cane follows the arm
+  automatically. Tweakable constant.
+- **Blind cane accessory (idea #2, first one):** `BlindCaneFeatureRenderer` draws a
+  real 3D cane (a `ModelPart` cuboid 1×24×1 px, NOT a flat texture) in a blind
+  player's LEFT hand, visible to everyone. Registered on all player renderers via
+  Fabric `LivingEntityFeatureRendererRegistrationCallback`; draws per-player by
+  looking up the role from the roster (`RosterState.roleOf(state.name)`). Texture:
+  `assets/monkeys/textures/entity/blind_cane.png` (16×32, base = white shaft + red
+  tip, editable; UV = 4 side strips at x0-7/y2-25, caps at top). Hand position/angle
+  are constants (`HAND_DOWN`, `FORWARD_TILT_DEGREES`) — **may need visual tuning**.
+  This establishes the pattern for the other accessories (glasses/bandage/hard-hat →
+  attach to `head` instead of `leftArm`).
+- **Head accessories (idea #2, rest):** `RoleHeadAccessoryFeatureRenderer` — one
+  renderer, switches on role: BLIND → dark glasses (2 lenses + bridge), MUTED → beige
+  plaster in an X (two strips rotated ±45° over the mouth), DEAF → orange hard-hat
+  (dome + front brim). All real 3D cuboids attached to `head`; role looked up from the
+  roster. Base textures are flat colours (`glasses/bandage/hard_hat.png`, repaintable);
+  cuboid coords are in head space (x[-4,4] y[-8,0] z[-4,4], face on -Z) so positions
+  are easy to tweak. **All accessory positions likely need visual tuning.**
 - **Tight blind fog (VANILLA mode):** `BackgroundRendererMixin` uses MixinExtras
   `@ModifyReturnValue` on `BackgroundRenderer.applyFog` to rewrite the returned `Fog`
   to a ~2-block start/end while the local player is BLIND in VANILLA mode (so you only
