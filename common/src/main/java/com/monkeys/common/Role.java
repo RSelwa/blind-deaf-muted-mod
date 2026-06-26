@@ -1,5 +1,7 @@
 package com.monkeys.common;
 
+import net.minecraft.util.Formatting;
+
 /**
  * The disability role a player is currently assigned.
  *
@@ -13,12 +15,38 @@ package com.monkeys.common;
  *   <li>{@link #DEAF}  — client mutes all audio locally.</li>
  *   <li>{@link #MUTED} — client blocks chat / voice output.</li>
  * </ul>
+ *
+ * <p>Each role also carries a {@link Formatting color} and a human-readable
+ * {@link #label() label}, used for the "You're now …" join message, the
+ * roster/leaderboard HUD, and the re-roll animation. Keeping them on the enum
+ * makes it the single source of truth for both the game logic and the UI.
  */
 public enum Role {
-    NONE,
-    BLIND,
-    DEAF,
-    MUTED;
+    NONE("None", Formatting.GRAY),
+    BLIND("Blind", Formatting.RED),
+    DEAF("Deaf", Formatting.GOLD),
+    MUTED("Muted", Formatting.LIGHT_PURPLE);
+
+    /** Human-readable name shown in the UI (e.g. "Blind"), as opposed to {@link #name()}. */
+    private final String label;
+
+    /** Minecraft named colour used to render this role in chat and on the HUD. */
+    private final Formatting color;
+
+    Role(String label, Formatting color) {
+        this.label = label;
+        this.color = color;
+    }
+
+    /** The display label, e.g. {@code "Blind"} (vs the all-caps {@link #name()}). */
+    public String label() {
+        return label;
+    }
+
+    /** The Minecraft named colour for this role (red = blind, gold = deaf, …). */
+    public Formatting color() {
+        return color;
+    }
 
     /**
      * The disabilities eligible for <em>random</em> assignment, in a stable index

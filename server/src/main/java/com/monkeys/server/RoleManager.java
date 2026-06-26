@@ -5,6 +5,8 @@ import com.monkeys.common.Role;
 import com.monkeys.common.RolePayload;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,10 +37,33 @@ public class RoleManager {
         return roles.getOrDefault(uuid, Role.NONE);
     }
 
-    /** Set a player's role and immediately sync it to their client. */
+    /** Set a player's role, tell them about it, and immediately sync it to their client. */
     public void set(ServerPlayerEntity player, Role role) {
         roles.put(player.getUuid(), role);
+        announce(player, role);
         sync(player);
+    }
+
+    /**
+     * Send the player a coloured "You're now …" chat message announcing their new
+     * role (e.g. <span style="color:red">You're now BLIND</span>). Clearing back to
+     * {@link Role#NONE} reads as a recovery message instead.
+     *
+     * <p>This is the personal, in-your-face announcement; the admin who ran the
+     * command gets a separate confirmation via the command's own feedback.
+     */
+    private void announce(ServerPlayerEntity player, Role role) {
+        Text message;
+        if (role == Role.NONE) {
+            message = Text.literal("Your disability has been cleared — you're back to normal.")
+                    .formatted(Formatting.GRAY);
+        } else {
+            message = Text.literal("You're now ")
+                    .formatted(Formatting.WHITE)
+                    .append(Text.literal(role.name())
+                            .formatted(role.color(), Formatting.BOLD));
+        }
+        player.sendMessage(message, false); // false = chat line, not the action bar
     }
 
     /** Send the player's current role to their client. */

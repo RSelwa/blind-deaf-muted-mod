@@ -65,7 +65,8 @@ public final class MonkeysCommand {
             ServerPlayerEntity target = EntityArgumentType.getPlayer(ctx, "target");
             roles.set(target, role);
             ctx.getSource().sendFeedback(
-                    () -> Text.literal("Set " + target.getName().getString() + " -> " + role.name()),
+                    () -> Text.literal("Set " + target.getName().getString() + " -> ")
+                            .append(Text.literal(role.name()).formatted(role.color())),
                     true);
             return 1;
         } catch (Exception e) {
