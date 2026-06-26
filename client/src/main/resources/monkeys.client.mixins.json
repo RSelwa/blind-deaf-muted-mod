@@ -4,6 +4,7 @@
   "package": "com.monkeys.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "BackgroundRendererMixin",
     "InGameHudMixin",
     "SoundSystemMixin"
   ],

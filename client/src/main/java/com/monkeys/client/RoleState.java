@@ -17,9 +17,10 @@ public final class RoleState {
     /**
      * How the BLIND role is rendered. Purely a client-side visual style of the same
      * disability (the player can't see the environment either way), so it's safe to
-     * let the player pick it — see {@link BlindMode}. Default: {@link BlindMode#BLACKOUT_HUD}.
+     * let the player pick it — see {@link BlindMode}. Default: {@link BlindMode#VANILLA}
+     * (the tight closing-in fog where you only see your feet; toggle to BLACKOUT with B).
      */
-    private static volatile BlindMode blindMode = BlindMode.BLACKOUT_HUD;
+    private static volatile BlindMode blindMode = BlindMode.VANILLA;
 
     public static Role get() {
         return current;

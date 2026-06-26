@@ -91,6 +91,11 @@ Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODO
   leaderboard top-right, key `L`), both drawn from `InGameHudMixin` TAIL.
 
 ### Recent additions (idea pass 1)
+- **Tight blind fog (VANILLA mode):** `BackgroundRendererMixin` uses MixinExtras
+  `@ModifyReturnValue` on `BackgroundRenderer.applyFog` to rewrite the returned `Fog`
+  to a ~2-block start/end while the local player is BLIND in VANILLA mode (so you only
+  see your feet). Gated on our blind state+mode; BLACKOUT mode and other blindness
+  sources untouched. Tweak `BLIND_FOG_END` in the mixin.
 - **Role colours + "You're now …" message (idea #1):** each `Role` now carries a
   Minecraft `Formatting` colour + a `label()` (BLIND=`RED`, DEAF=`GOLD`,
   MUTED=`LIGHT_PURPLE`, NONE=`GRAY`; `AQUA` reserved for a future INVISIBLE).
