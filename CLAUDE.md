@@ -100,6 +100,13 @@ Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODO
 - **Who-is-what leaderboard (idea #4):** new `RosterPayload` (S2C) broadcast once/sec
   from `MonkeysServer`; `RosterState` + `RosterHud` draw a right-aligned roster using
   the role colours (self shown bold). Protocol bumped to **v3**.
+- **Roulette reveal animation (idea #4 bis):** `/monkeys random` now calls
+  `RoleManager.setAnimated()` → sends a new `RollPayload` (S2C) instead of applying
+  instantly. Client `RouletteAnimation` spins a slot machine through the roles
+  (ease-out, lands on the rolled role), holds "You're now X", then applies the effect
+  at the reveal (so a blind player watches their own roll before blacking out). The
+  role is still stored server-side immediately (roster + voice enforcement correct
+  right away). Manual `/monkeys set` stays instant (no animation). Protocol → **v4**.
 - Fixed a pre-existing compile break in `TrackerHud` (undefined `elevation` var left
   by the compass-HUD commit) — now shows a ↑/↓ elevation hint past the threshold.
 - `docker/` — multi-stage `Dockerfile` + `docker-compose.yml`.

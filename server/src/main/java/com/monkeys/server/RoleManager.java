@@ -3,6 +3,7 @@ package com.monkeys.server;
 import com.monkeys.common.ModConstants;
 import com.monkeys.common.Role;
 import com.monkeys.common.RolePayload;
+import com.monkeys.common.RollPayload;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -42,6 +43,20 @@ public class RoleManager {
         roles.put(player.getUuid(), role);
         announce(player, role);
         sync(player);
+    }
+
+    /**
+     * Like {@link #set} but plays the client-side roulette reveal instead of applying
+     * the role instantly. Used by the random roll (and the future re-roll bottle).
+     *
+     * <p>The role is stored immediately — so the roster HUD and voice-chat enforcement
+     * are correct right away — but the client defers the visual effect to the end of
+     * the animation and shows its own "You're now …" reveal, so we skip both the chat
+     * {@link #announce} and the instant {@link #sync} here.
+     */
+    public void setAnimated(ServerPlayerEntity player, Role role) {
+        roles.put(player.getUuid(), role);
+        ServerPlayNetworking.send(player, new RollPayload(role));
     }
 
     /**

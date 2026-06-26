@@ -2,6 +2,7 @@ package com.monkeys.server;
 
 import com.monkeys.common.ModConstants;
 import com.monkeys.common.RolePayload;
+import com.monkeys.common.RollPayload;
 import com.monkeys.common.RosterPayload;
 import com.monkeys.common.TrackerPayload;
 import net.fabricmc.api.ModInitializer;
@@ -52,6 +53,7 @@ public class MonkeysServer implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(RolePayload.ID, RolePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(TrackerPayload.ID, TrackerPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(RosterPayload.ID, RosterPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(RollPayload.ID, RollPayload.CODEC);
 
         // Admin command: /monkeys set <player> <blind|deaf|muted|none>, etc.
         CommandRegistrationCallback.EVENT.register((dispatcher, access, env) ->

@@ -3,6 +3,7 @@ package com.monkeys.client;
 import com.monkeys.common.ModConstants;
 import com.monkeys.common.Role;
 import com.monkeys.common.RolePayload;
+import com.monkeys.common.RollPayload;
 import com.monkeys.common.RosterPayload;
 import com.monkeys.common.TrackerPayload;
 import net.fabricmc.api.ClientModInitializer;
@@ -31,6 +32,7 @@ public class MonkeysClient implements ClientModInitializer {
         PayloadTypeRegistry.playS2C().register(RolePayload.ID, RolePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(TrackerPayload.ID, TrackerPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(RosterPayload.ID, RosterPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(RollPayload.ID, RollPayload.CODEC);
 
         ClientPlayNetworking.registerGlobalReceiver(RolePayload.ID, (payload, context) -> {
             // Networking callbacks run off-thread; touch game state on the client thread.
@@ -43,6 +45,11 @@ public class MonkeysClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(RosterPayload.ID, (payload, context) ->
                 context.client().execute(() -> RosterState.setEntries(payload.entries())));
 
+        // The roulette reveal: spin the slot machine, then RouletteAnimation applies
+        // the role itself at the end (so we deliberately don't touch RoleState here).
+        ClientPlayNetworking.registerGlobalReceiver(RollPayload.ID, (payload, context) ->
+                context.client().execute(() -> RouletteAnimation.start(payload.role())));
+
         // Wire up the effect handlers. (BLIND's BLACKOUT_HUD draw and DEAF's muting
         // live in mixins — InGameHudMixin / SoundSystemMixin — and need no registration.)
         BlindHandler.register();  // blind-mode keybind + vanilla Blindness effect
@@ -50,6 +57,7 @@ public class MonkeysClient implements ClientModInitializer {
         MuteHandler.register();   // blocks outgoing chat
         TrackerHud.register();    // teammate tracker keybind (HUD draw is in InGameHudMixin)
         RosterHud.register();     // who-is-what leaderboard keybind (HUD draw is in InGameHudMixin)
+        RouletteAnimation.register(); // roulette reveal countdown (HUD draw is in InGameHudMixin)
 
         LOGGER.info("Monkeys client ready (protocol v{})", ModConstants.PROTOCOL_VERSION);
     }

@@ -102,7 +102,9 @@ public final class MonkeysCommand {
 
         int poolSize = Role.ASSIGNABLE.length;
         for (int i = 0; i < players.size(); i++) {
-            roles.set(players.get(i), pool.get(i % poolSize));
+            // setAnimated: each client plays the roulette reveal and applies the effect
+            // at the end, instead of snapping to the new role instantly.
+            roles.setAnimated(players.get(i), pool.get(i % poolSize));
         }
 
         final int count = players.size();
