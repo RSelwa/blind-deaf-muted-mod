@@ -2,6 +2,7 @@ package com.monkeys.server;
 
 import com.monkeys.common.ModConstants;
 import com.monkeys.common.RolePayload;
+import com.monkeys.common.RosterPayload;
 import com.monkeys.common.TrackerPayload;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -38,6 +39,11 @@ public class MonkeysServer implements ModInitializer {
     private static final int TRACKER_INTERVAL_TICKS = 5;
     private int tickCounter = 0;
 
+    /** Push the who-is-what roster once per second; it changes rarely, so this is plenty
+     *  fresh for joins/leaves/role-swaps without being chatty. */
+    private static final int ROSTER_INTERVAL_TICKS = 20;
+    private int rosterTickCounter = 0;
+
     @Override
     public void onInitialize() {
         LOGGER.info("Monkeys server starting (protocol v{})", ModConstants.PROTOCOL_VERSION);
@@ -45,6 +51,7 @@ public class MonkeysServer implements ModInitializer {
         // Tell the networking layer our payloads exist (must also be done client-side).
         PayloadTypeRegistry.playS2C().register(RolePayload.ID, RolePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(TrackerPayload.ID, TrackerPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(RosterPayload.ID, RosterPayload.CODEC);
 
         // Admin command: /monkeys set <player> <blind|deaf|muted|none>, etc.
         CommandRegistrationCallback.EVENT.register((dispatcher, access, env) ->
@@ -64,6 +71,11 @@ public class MonkeysServer implements ModInitializer {
         // so their client can draw the teammate tracker HUD. The client decides
         // whether to show it (toggle + never while blind).
         ServerTickEvents.END_SERVER_TICK.register(this::broadcastTrackerPositions);
+
+        // Once per second, send everyone the full who-is-what roster for the
+        // leaderboard HUD. The list is identical for every recipient, so it's built
+        // once and sent to all.
+        ServerTickEvents.END_SERVER_TICK.register(this::broadcastRoster);
     }
 
     /** Send each online player a {@link TrackerPayload} of every other player's position. */
@@ -83,6 +95,26 @@ public class MonkeysServer implements ModInitializer {
                         other.getX(), other.getY(), other.getZ()));
             }
             ServerPlayNetworking.send(recipient, new TrackerPayload(entries));
+        }
+    }
+
+    /** Build the who-is-what roster once and broadcast it to every online player. */
+    private void broadcastRoster(net.minecraft.server.MinecraftServer server) {
+        if (++rosterTickCounter < ROSTER_INTERVAL_TICKS) return;
+        rosterTickCounter = 0;
+
+        List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
+        if (players.isEmpty()) return;
+
+        List<RosterPayload.Entry> entries = new ArrayList<>(players.size());
+        for (ServerPlayerEntity player : players) {
+            entries.add(new RosterPayload.Entry(
+                    player.getName().getString(), roleManager.get(player)));
+        }
+
+        RosterPayload payload = new RosterPayload(entries);
+        for (ServerPlayerEntity recipient : players) {
+            ServerPlayNetworking.send(recipient, payload);
         }
     }
 }

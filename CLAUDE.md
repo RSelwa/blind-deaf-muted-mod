@@ -87,6 +87,21 @@ Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODO
   `MonkeysCommand` (`/monkeys set <player> <role>`, op-only).
 - `client/` — `MonkeysClient` (entrypoint + packet receiver), `RoleState`, and effect
   handlers `BlindOverlay` / `DeafHandler` / `MuteHandler` (functional stubs w/ TODOs).
+  HUD: `TrackerHud` (teammate tracker, key `K`) + `RosterHud` (who-is-what
+  leaderboard top-right, key `L`), both drawn from `InGameHudMixin` TAIL.
+
+### Recent additions (idea pass 1)
+- **Role colours + "You're now …" message (idea #1):** each `Role` now carries a
+  Minecraft `Formatting` colour + a `label()` (BLIND=`RED`, DEAF=`GOLD`,
+  MUTED=`LIGHT_PURPLE`, NONE=`GRAY`; `AQUA` reserved for a future INVISIBLE).
+  `RoleManager.set()` now sends the player a coloured "You're now BLIND" chat line
+  (and a "cleared" line for NONE), so every assignment path (set/random/future
+  bottle) announces automatically. Admin command feedback is coloured too.
+- **Who-is-what leaderboard (idea #4):** new `RosterPayload` (S2C) broadcast once/sec
+  from `MonkeysServer`; `RosterState` + `RosterHud` draw a right-aligned roster using
+  the role colours (self shown bold). Protocol bumped to **v3**.
+- Fixed a pre-existing compile break in `TrackerHud` (undefined `elevation` var left
+  by the compass-HUD commit) — now shows a ↑/↓ elevation hint past the threshold.
 - `docker/` — multi-stage `Dockerfile` + `docker-compose.yml`.
 - Root Gradle multi-project (`settings.gradle`, `build.gradle`, `gradle.properties`).
 

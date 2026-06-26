@@ -2,6 +2,7 @@ package com.monkeys.client.mixin;
 
 import com.monkeys.client.BlindMode;
 import com.monkeys.client.RoleState;
+import com.monkeys.client.RosterHud;
 import com.monkeys.client.TrackerHud;
 import com.monkeys.common.Role;
 import net.minecraft.client.gui.DrawContext;
@@ -48,5 +49,6 @@ public class InGameHudMixin {
             at = @At("TAIL"))
     private void monkeys$drawTracker(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
         TrackerHud.render(context);
+        RosterHud.render(context);
     }
 }

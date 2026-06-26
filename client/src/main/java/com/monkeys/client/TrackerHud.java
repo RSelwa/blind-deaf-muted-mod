@@ -104,6 +104,11 @@ public final class TrackerHud {
         int sector = Math.floorMod((int) Math.round(rel / 45.0), 8);
         String arrow = ARROWS[sector];
 
+        // Elevation hint: only once the vertical gap is meaningful, so flat terrain
+        // stays uncluttered. Space-separated from the heading arrow to avoid confusion.
+        String elevation = "";
+        if (dy > ELEVATION_THRESHOLD) elevation = " ↑";
+        else if (dy < -ELEVATION_THRESHOLD) elevation = " ↓";
 
         return e.name() + "  " + blocks + "b  " + arrow + elevation;
     }
