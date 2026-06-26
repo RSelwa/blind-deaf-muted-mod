@@ -2,6 +2,10 @@
 // Owns roles, admin commands, and (later) random events.
 apply plugin: 'fabric-loom'
 
+base {
+    archivesName = "server-bdm"
+}
+
 repositories {
     // Simple Voice Chat plugin API lives here (not on Maven Central).
     maven {

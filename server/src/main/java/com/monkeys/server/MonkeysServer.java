@@ -50,6 +50,9 @@ public class MonkeysServer implements ModInitializer {
     /** In-memory role store. TODO: persist to world save so roles survive restarts. */
     private final RoleManager roleManager = new RoleManager();
 
+    /** Optional shared-health mode (off by default; toggled via /monkeys health). */
+    private final SharedHealthManager sharedHealth = new SharedHealthManager();
+
     /** Push teammate positions every N server ticks (20 ticks = 1s). 4/sec is smooth
      *  for a direction arrow without being chatty. */
     private static final int TRACKER_INTERVAL_TICKS = 5;
@@ -114,9 +117,13 @@ public class MonkeysServer implements ModInitializer {
             }
         });
 
+        // Shared-health mode: listen for damage and mirror it across the team.
+        // Inert until an op runs /monkeys health on.
+        sharedHealth.register();
+
         // Admin command: /monkeys set <player> <blind|deaf|muted|none>, etc.
         CommandRegistrationCallback.EVENT.register((dispatcher, access, env) ->
-                MonkeysCommand.register(dispatcher, roleManager));
+                MonkeysCommand.register(dispatcher, roleManager, sharedHealth));
 
         // When a player joins, immediately sync whatever role they have.
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->

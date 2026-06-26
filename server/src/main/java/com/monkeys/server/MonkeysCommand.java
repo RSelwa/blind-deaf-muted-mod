@@ -8,6 +8,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
@@ -34,7 +35,7 @@ public final class MonkeysCommand {
     private MonkeysCommand() {}
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher,
-                                RoleManager roles) {
+                                RoleManager roles, SharedHealthManager sharedHealth) {
         // One <target> argument node, with a literal per role hung off it so
         // tab-completion offers /monkeys set <player> blind|deaf|muted|none.
         var target = argument("target", EntityArgumentType.player());
@@ -52,6 +53,10 @@ public final class MonkeysCommand {
                         .then(literal("clear").executes(ctx -> clear(ctx, roles)))
                         .then(literal("status").executes(ctx -> status(ctx, roles)))
                         .then(literal("randomizer").executes(MonkeysCommand::giveRandomizer))
+                        .then(literal("health")
+                                .then(literal("on").executes(ctx -> setSharedHealth(ctx, sharedHealth, true)))
+                                .then(literal("off").executes(ctx -> setSharedHealth(ctx, sharedHealth, false)))
+                                .executes(ctx -> healthStatus(ctx, sharedHealth)))
                         .then(literal("help").executes(MonkeysCommand::help))
         );
     }
@@ -117,6 +122,30 @@ public final class MonkeysCommand {
         return 1;
     }
 
+    /**
+     * Turn shared-health mode on or off. While on, damage to any one player is
+     * mirrored onto the whole team (healing stays individual for now).
+     */
+    private static int setSharedHealth(CommandContext<ServerCommandSource> ctx,
+                                       SharedHealthManager sharedHealth, boolean on) {
+        sharedHealth.setEnabled(on);
+        ctx.getSource().sendFeedback(
+                () -> Text.literal("Shared health is now " + (on ? "ON" : "OFF") + ".")
+                        .formatted(on ? Formatting.RED : Formatting.GRAY),
+                true);
+        return 1;
+    }
+
+    /** Report whether shared-health mode is currently on. */
+    private static int healthStatus(CommandContext<ServerCommandSource> ctx,
+                                    SharedHealthManager sharedHealth) {
+        boolean on = sharedHealth.isEnabled();
+        ctx.getSource().sendFeedback(
+                () -> Text.literal("Shared health is " + (on ? "ON" : "OFF") + "."),
+                false);
+        return 1;
+    }
+
     /** Reset every online player back to {@link Role#NONE}. */
     private static int clear(CommandContext<ServerCommandSource> ctx, RoleManager roles) {
         List<ServerPlayerEntity> players =
@@ -165,6 +194,7 @@ public final class MonkeysCommand {
                   /monkeys clear                                 - reset everyone to NONE
                   /monkeys status                                - list every player's current role
                   /monkeys randomizer                            - give yourself Randomizer bottles (test)
+                  /monkeys health <on|off>                       - toggle shared-health mode (damage mirrored across the team)
                   /monkeys help                                  - show this help
                 Random assignment gives every disability out once before any repeats.""";
         ctx.getSource().sendFeedback(() -> Text.literal(text), false);
