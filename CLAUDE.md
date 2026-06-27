@@ -1,4 +1,4 @@
-# CLAUDE.md — minecraft-mod-monkeys
+# CLAUDE.md — minecraft-mod-blind-deaf-muted
 
 > **Note to Claude:** You may write to and update this file as the project evolves.
 > Keep it as a living summary. When decisions change or new ones are made, update
@@ -8,7 +8,7 @@
 
 ## What this project is
 
-A cooperative Minecraft challenge mod (working title **"Monkeys"**). 3+ friends are
+A cooperative Minecraft challenge mod (working title **"Blind Deaf Muted"**). 3+ friends are
 each assigned a **disability** — **blind**, **deaf**, or **muted** — and must
 communicate around their limitations to **beat the Ender Dragon**, hardcore or normal.
 Admins can move players between roles live via commands. Random events planned later.
@@ -50,7 +50,7 @@ Full detail lives in **`DESIGN.md`** (read it for the complete picture).
   in-game comms; over Discord they become honor-system + soft HUD cues. Blind is
   always enforceable.
 - **In-game voice: Simple Voice Chat — decided & implemented.** Integrated via its
-  server plugin API (`server/MonkeysVoicechatPlugin.java`); we _enforce_ DEAF (cancel
+  server plugin API (`server/BlindDeafMutedVoicechatPlugin.java`); we _enforce_ DEAF (cancel
   inbound sound packets) and MUTED (cancel the speaker's mic packet) server-side, so
   in-game voice is truly enforced, not honor-system. Optional soft-dependency
   (`voicechat` entrypoint + `suggests`); server auto-downloads it + opens UDP 24454,
@@ -84,9 +84,9 @@ Compile fixes applied: `SoundCategory` import was `net.minecraft.client.option`
 Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODOs):
 
 - `common/` — `Role` enum, `RolePayload` (S2C packet), `ModConstants` (protocol version).
-- `server/` — `MonkeysServer` (entrypoint), `RoleManager` (in-memory store + sync),
-  `MonkeysCommand` (`/bdm set <player> <role>`, op-only).
-- `client/` — `MonkeysClient` (entrypoint + packet receiver), `RoleState`, and effect
+- `server/` — `BlindDeafMutedServer` (entrypoint), `RoleManager` (in-memory store + sync),
+  `BlindDeafMutedCommand` (`/bdm set <player> <role>`, op-only).
+- `client/` — `BlindDeafMutedClient` (entrypoint + packet receiver), `RoleState`, and effect
   handlers `BlindOverlay` / `DeafHandler` / `MuteHandler` (functional stubs w/ TODOs).
   HUD: `TrackerHud` (teammate tracker, key `K`) + `RosterHud` (who-is-what
   leaderboard top-right, key `L`), both drawn from `InGameHudMixin` TAIL.
@@ -102,7 +102,7 @@ Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODO
   player's LEFT hand, visible to everyone. Registered on all player renderers via
   Fabric `LivingEntityFeatureRendererRegistrationCallback`; draws per-player by
   looking up the role from the roster (`RosterState.roleOf(state.name)`). Texture:
-  `assets/monkeys/textures/entity/blind_cane.png` (16×32, base = white shaft + red
+  `assets/blind-deaf-muted/textures/entity/blind_cane.png` (16×32, base = white shaft + red
   tip, editable; UV = 4 side strips at x0-7/y2-25, caps at top). Hand position/angle
   are constants (`HAND_DOWN`, `FORWARD_TILT_DEGREES`) — **may need visual tuning**.
   This establishes the pattern for the other accessories (glasses/bandage/hard-hat →
@@ -126,7 +126,7 @@ Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODO
   (and a "cleared" line for NONE), so every assignment path (set/random/future
   bottle) announces automatically. Admin command feedback is coloured too.
 - **Who-is-what leaderboard (idea #4):** new `RosterPayload` (S2C) broadcast once/sec
-  from `MonkeysServer`; `RosterState` + `RosterHud` draw a right-aligned roster using
+  from `BlindDeafMutedServer`; `RosterState` + `RosterHud` draw a right-aligned roster using
   the role colours (self shown bold). Protocol bumped to **v3**. Refinements: the
   roster is **frozen during the roulette** (shows old roles, flips to new exactly at
   the reveal — anti-spoiler) and is **visible even when blind** (out-of-character meta
@@ -151,9 +151,9 @@ Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODO
   weaponsmith/stronghold/jungle/desert/nether-bridge/bastion-treasure) — works on
   already-generated worlds since chests only roll loot on first open. Test helper:
   `/bdm randomizer` gives 4 bottles. Item renders as the vanilla XP-bottle texture
-  (no PNG shipped); 1.21.4 item-model defs under `assets/monkeys/items|models`.
+  (no PNG shipped); 1.21.4 item-model defs under `assets/blind-deaf-muted/items|models`.
   No protocol change (reuses RollPayload). `RoleRoller` also de-duplicates the random
-  logic that used to live in `MonkeysCommand`.
+  logic that used to live in `BlindDeafMutedCommand`.
 - Fixed a pre-existing compile break in `TrackerHud` (undefined `elevation` var left
   by the compass-HUD commit) — now shows a ↑/↓ elevation hint past the threshold.
 - `docker/` — multi-stage `Dockerfile` + `docker-compose.yml`.

@@ -11,12 +11,12 @@
 # (The build-from-source compose used during development is docker-compose.yml.)
 # ─────────────────────────────────────────────────────────────────────────────
 services:
-  monkeys:
+  blind-deaf-muted:
     # Prebuilt image published by CI to GitHub Container Registry. No `build:`
     # block on purpose — nothing is compiled on the host, the image is just pulled.
     # Pin to a version that matches the client modpack players install (version
     # lock-step — see DESIGN.md §2f). Use :latest only if you accept auto-updates.
-    image: ghcr.io/rselwa/monkeys-server:0.1.0
+    image: ghcr.io/rselwa/blind-deaf-muted-server:0.1.0
     container_name: blind-deaf-muted-server
     environment:
       EULA: "TRUE"

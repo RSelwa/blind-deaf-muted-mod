@@ -1,4 +1,4 @@
-# Minecraft Mod — "Monkeys" (working title)
+# Minecraft Mod — "Blind Deaf Muted" (working title)
 
 A cooperative challenge mod where players are assigned **disabilities** (blind, deaf,
 muted) and must communicate around their limitations to **beat the Ender Dragon**,
@@ -76,7 +76,7 @@ Clients still install the thin client jar locally (Docker is server-side only).
 ### 2d. Monorepo layout (Fabric multi-project Gradle)
 
 ```
-minecraft-mod-monkeys/
+minecraft-mod-blind-deaf-muted/
 ├── common/              # shared: role enum, the network packet, version constant
 ├── client/              # client mod jar (blind/deaf/mute effects)
 ├── server/              # server mod jar (roles, commands, game logic)
@@ -100,11 +100,11 @@ Multi-stage so `docker build` is self-contained from source:
 ```dockerfile
 FROM gradle:8-jdk21 AS build
 COPY . /src
-RUN gradle :server:build           # -> server/build/libs/monkeys-server.jar
+RUN gradle :server:build           # -> server/build/libs/blind-deaf-muted-server.jar
 
 FROM itzg/minecraft-server:latest
 ENV EULA=TRUE TYPE=FABRIC VERSION=LATEST
-COPY --from=build /src/server/build/libs/monkeys-server.jar /mods/
+COPY --from=build /src/server/build/libs/blind-deaf-muted-server.jar /mods/
 ```
 
 `docker compose up` → downloads vanilla + Fabric, drops in our mod, runs. One command.
@@ -126,14 +126,14 @@ Client and server MUST match. Three cheap defenses:
   The image does everything internally (vanilla download, Fabric, mod install, EULA,
   world persistence). **Only the host runs anything, and it's one command.**
 - **Players** install Fabric Loader + Fabric API (one-time) and drop the matching
-  `monkeys-client.jar` in `mods/`. Minimal, not zero.
+  `blind-deaf-muted-client.jar` in `mods/`. Minimal, not zero.
 - **Networking** is the only non-automatic part (inherent to any MC server, not our
   mod): LAN = share local IP; over internet = port-forward 25565, use a tunnel like
   `playit.gg`, or run on a VPS.
 
 **Lowest-friction delivery (recommended):** CI builds the jars and publishes a
 prebuilt server image to GHCR, so the host's `docker-compose.yml` just references
-`image: ghcr.io/you/monkeys-server:<version>` — no source, no Gradle, no build.
+`image: ghcr.io/you/blind-deaf-muted-server:<version>` — no source, no Gradle, no build.
 
 **Future "click-and-play" client option:** ship the client as a Modrinth modpack
 (one-click install in Prism/Modrinth launcher, auto-pulls the right MC + Fabric +
@@ -343,7 +343,7 @@ Nothing here is blocked or impossible.
 
 ## 7. Open / next decisions
 
-- [ ] Final mod name (current working title: "Monkeys").
+- [ ] Final mod name (current working title: "Blind Deaf Muted").
 - [x] **Role/communication loop design** — who can do what, and how the three roles
       are _forced_ to relay information to beat the dragon (the heart of the fun). See §4b.
 - [ ] **Muted + signs** — embrace in-game signs as the Muted's slow "written note"

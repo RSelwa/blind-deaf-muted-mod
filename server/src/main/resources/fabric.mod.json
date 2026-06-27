@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "id": "monkeys_server",
+  "id": "blind-deaf-muted-server",
   "version": "${version}",
-  "name": "Monkeys (Server)",
+  "name": "Blind Deaf Muted (Server)",
   "description": "Assigns disability roles (blind/deaf/muted) and runs the Ender Dragon co-op challenge. Server side.",
   "environment": "server",
   "entrypoints": {
     "main": [
-      "com.monkeys.server.MonkeysServer"
+      "com.blinddeafmuted.server.BlindDeafMutedServer"
     ],
     "voicechat": [
-      "com.monkeys.server.MonkeysVoicechatPlugin"
+      "com.blinddeafmuted.server.BlindDeafMutedVoicechatPlugin"
     ]
   },
   "depends": {

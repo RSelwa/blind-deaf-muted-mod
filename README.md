@@ -1,4 +1,4 @@
-# Monkeys — a co-op Minecraft disability challenge
+# Blind Deaf Muted — a co-op Minecraft disability challenge
 
 > 3+ friends are each given a **disability** — **blind**, **deaf**, or **muted** —
 > and have to communicate around their limits to **beat the Ender Dragon** (hardcore
@@ -35,7 +35,7 @@ information through each other. Full breakdown in [`DESIGN.md` §4b](DESIGN.md).
 - **The host** (one person): runs the server. Easiest path is **Docker** — one
   command, no Java or Minecraft install required (see deployment sections below).
 - **Every player** (including the host, if they also play): installs **Fabric Loader**
-  - **Fabric API**, then drops the matching `monkeys-client.jar` into their `mods/`
+  - **Fabric API**, then drops the matching `blind-deaf-muted-client.jar` into their `mods/`
     folder. One-time setup. See [Player setup](#player-setup-everyone).
 
 The server jar and the client jars **must be the same version** — they're built and
@@ -92,7 +92,7 @@ Each player does this once:
 2. Download **[Fabric API](https://modrinth.com/mod/fabric-api)** for 1.21.4.
 3. Put **both** of these into your Minecraft `mods/` folder:
    - `fabric-api-*.jar`
-   - `monkeys-client.jar` (must match the server's version)
+   - `blind-deaf-muted-client.jar` (must match the server's version)
 4. Launch Minecraft with the Fabric profile, then connect to the host's address
    (see the deployment section the host used).
 
@@ -121,7 +121,7 @@ Best when players aren't on the same network. You rent a small Linux server.
 3. **Get the repo onto the VPS** and build + start the server:
 
    ```bash
-   git clone <your-repo-url> monkeys && cd monkeys/docker
+   git clone <your-repo-url> blind-deaf-muted && cd blind-deaf-muted/docker
    docker compose up -d --build
    ```
 
@@ -160,7 +160,7 @@ Best for a couch/Wi-Fi session. No internet exposure, no port-forwarding.
 1. On the **host machine** (a PC on the LAN with Docker installed):
 
    ```bash
-   git clone <your-repo-url> monkeys && cd monkeys/docker
+   git clone <your-repo-url> blind-deaf-muted && cd blind-deaf-muted/docker
    docker compose up -d --build
    ```
 
@@ -211,7 +211,7 @@ To **op yourself**, run in the server console (`docker compose logs` won't accep
 input — attach instead):
 
 ```bash
-docker attach monkeys-server      # then type:  op <yourname>     (Ctrl-P Ctrl-Q to detach)
+docker attach blind-deaf-muted-server      # then type:  op <yourname>     (Ctrl-P Ctrl-Q to detach)
 ```
 
 **Hardcore mode** is the vanilla setting — enable it via the `HARDCORE` env var
@@ -232,7 +232,7 @@ environment:
   EULA: "TRUE"
   DIFFICULTY: "hard" # peaceful | easy | normal | hard
   HARDCORE: "true" # the mod supports hardcore — set before first launch
-  MOTD: "Monkeys challenge!" # server list description
+  MOTD: "Blind Deaf Muted challenge!" # server list description
   MAX_PLAYERS: "8"
   WHITELIST: "Alice,Bob,Carol" # lock the server to your group
   OPS: "Alice" # auto-op the admin who assigns roles
@@ -258,7 +258,7 @@ the "Must-verify before first build" notes in `CLAUDE.md`.
 
 ### Tweak the disability effects
 
-Each effect is a small, self-contained handler in `client/src/main/java/com/monkeys/client/`:
+Each effect is a small, self-contained handler in `client/src/main/java/com/blind-deaf-muted/client/`:
 
 | File                | Controls         | Easy tweaks                                                                                               |
 | ------------------- | ---------------- | --------------------------------------------------------------------------------------------------------- |
@@ -266,14 +266,14 @@ Each effect is a small, self-contained handler in `client/src/main/java/com/monk
 | `DeafHandler.java`  | muting audio     | Silence only _some_ sound categories (e.g. keep music); snapshot/restore real volumes (TODO in the file). |
 | `MuteHandler.java`  | blocking chat    | Add an on-screen "you are MUTED" toast; decide whether to also block command-style messages.              |
 
-Roles themselves live in `common/src/main/java/com/monkeys/common/Role.java` — add a
+Roles themselves live in `common/src/main/java/com/blind-deaf-muted/common/Role.java` — add a
 new role here and it automatically appears in the command's tab-completion. You'd
 then add a matching handler on the client.
 
 ### Rename the command
 
 The command literal `bdm` is defined in
-`server/src/main/java/com/monkeys/server/MonkeysCommand.java`. Change the
+`server/src/main/java/com/blind-deaf-muted/server/BlindDeafMutedCommand.java`. Change the
 `literal("bdm")` call to rename it.
 
 ### Network port

@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "id": "monkeys_client",
+  "id": "blind-deaf-muted-client",
   "version": "${version}",
-  "name": "Monkeys (Client)",
+  "name": "Blind Deaf Muted (Client)",
   "description": "Applies your assigned disability (blind/deaf/muted) locally. Client side. Shader-compatible.",
   "environment": "client",
   "entrypoints": {
     "client": [
-      "com.monkeys.client.MonkeysClient"
+      "com.blinddeafmuted.client.BlindDeafMutedClient"
     ]
   },
   "mixins": [
-    "monkeys.client.mixins.json"
+    "blind-deaf-muted.client.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.16.0",

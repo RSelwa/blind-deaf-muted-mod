@@ -1,4 +1,4 @@
-// Fabric multi-project monorepo for the "Monkeys" disability-challenge mod.
+// Fabric multi-project monorepo for the "Blind Deaf Muted" disability-challenge mod.
 // One build, three subprojects:
 //   :common — shared code (Role enum, network packet, version constant)
 //   :client — client mod jar (applies blind/deaf/mute effects locally)
@@ -11,7 +11,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'minecraft-mod-monkeys'
+rootProject.name = 'minecraft-mod-blind-deaf-muted'
 
 include 'common'
 include 'client'

@@ -1,18 +1,18 @@
 # Host runs: `docker compose up -d` from this folder. That's the whole server.
 services:
-  monkeys:
+  blind-deaf-muted:
     build:
       context: .. # repo root, so the Dockerfile can reach :server + :common
       dockerfile: docker/Dockerfile
     # Once CI publishes a prebuilt image, the host can skip `build` entirely and use:
-    #   image: ghcr.io/you/monkeys-server:0.1.0
+    #   image: ghcr.io/you/blind-deaf-muted-server:0.1.0
     container_name: blind-deaf-muted-server
     environment:
       EULA: "TRUE"
       # Mods our server needs, auto-downloaded from Modrinth (matched to the
       # FABRIC loader + 1.21.4 set in the Dockerfile). No local files needed:
       #   fabric-api        — our jar's hard dependency
-      #   simple-voice-chat — provides the voice API our MonkeysVoicechatPlugin
+      #   simple-voice-chat — provides the voice API our BlindDeafMutedVoicechatPlugin
       #                       enforces DEAF/MUTED against. Must also be installed
       #                       by every player on their client.
       MODRINTH_PROJECTS: "fabric-api,simple-voice-chat"

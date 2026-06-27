@@ -1,4 +1,4 @@
-# DEVELOPER.md — Monkeys
+# DEVELOPER.md — Blind Deaf Muted
 
 Developer-facing notes: how the effects are implemented, and a running TODO list.
 High-level design lives in `DESIGN.md`; project status in `CLAUDE.md`.
@@ -31,9 +31,9 @@ build, which runs Gradle inside the container):
 ### Watching / driving the running server
 
 ```bash
-docker compose logs -f monkeys             # tail the server log (Ctrl-C to stop tailing)
-docker compose exec monkeys rcon-cli       # interactive server console (RCON)
-docker compose exec monkeys rcon-cli op <name>   # one-off console command, e.g. grant op
+docker compose logs -f blind-deaf-muted             # tail the server log (Ctrl-C to stop tailing)
+docker compose exec blind-deaf-muted rcon-cli       # interactive server console (RCON)
+docker compose exec blind-deaf-muted rcon-cli op <name>   # one-off console command, e.g. grant op
 ```
 
 World data and op status live in the `./world` volume, so they survive rebuilds and
@@ -54,7 +54,7 @@ restarts — you only `op` yourself once.
 Deaf/Muted are *also* enforced over **voice** (server side) — see the Voice section below.
 
 ### Blind — two modes (`BlindMode`)
-Toggle live with the **`B`** keybind (rebindable; category "Monkeys"). Mode is a
+Toggle live with the **`B`** keybind (rebindable; category "Blind Deaf Muted"). Mode is a
 client-side visual style only — the player can't see the environment either way.
 
 - **`BLACKOUT_HUD`** (default) — `InGameHudMixin` injects at the HEAD of
@@ -80,7 +80,7 @@ is relayed through the server, cancelling packets there enforces the rules for
 everyone with no client cooperation — this is what makes DEAF/MUTED *enforced* over
 voice (not just honor-system as the original `DESIGN.md` note assumed).
 
-- **File:** `server/MonkeysVoicechatPlugin.java` (a `VoicechatPlugin`).
+- **File:** `server/BlindDeafMutedVoicechatPlugin.java` (a `VoicechatPlugin`).
 - **Registration:** the `voicechat` entrypoint in `server/fabric.mod.json`. Only the
   voice-chat mod reads that key, so if it isn't installed the class is never loaded —
   that's why SVC stays an **optional soft dependency** (`suggests`, not `depends`).
@@ -90,7 +90,7 @@ voice (not just honor-system as the original `DESIGN.md` note assumed).
   is deaf (covers proximity, group, entity, spectator audio).
 - **Role lookup:** `RoleManager.get(UUID)` — the voice connection only exposes a UUID,
   not a `ServerPlayerEntity`. The plugin gets the `RoleManager` via the static
-  `MonkeysVoicechatPlugin.bind(...)` call in `MonkeysServer#onInitialize` (SVC builds
+  `BlindDeafMutedVoicechatPlugin.bind(...)` call in `BlindDeafMutedServer#onInitialize` (SVC builds
   the plugin itself, so we can't constructor-inject it).
 
 ### Build & deploy notes
@@ -110,11 +110,11 @@ above the health/food bar, one per teammate — `Name  142b  ↗` (name, distanc
 blocks, direction arrow relative to where you're looking, `↑` = dead ahead; a `▲`/`▼`
 is appended when the teammate is well above/below you).
 
-- **On by default**, toggled with a keybind (default **`K`**, category "Monkeys").
+- **On by default**, toggled with a keybind (default **`K`**, category "Blind Deaf Muted").
   State lives in `TrackerState` (`enabled` boolean + latest positions).
 - **Why server-driven:** a client only knows positions of *loaded* players, so the
   server pushes everyone's positions to everyone via `TrackerPayload` (`:common`),
-  every `TRACKER_INTERVAL_TICKS` (5 ticks ≈ 4×/sec) from `MonkeysServer`. Bumped
+  every `TRACKER_INTERVAL_TICKS` (5 ticks ≈ 4×/sec) from `BlindDeafMutedServer`. Bumped
   `PROTOCOL_VERSION` → 2.
 - **Render:** `TrackerHud.render()`, called from `InGameHudMixin` at the **TAIL** of
   `InGameHud#render` (draws on top of the finished HUD). Direction math:
@@ -131,7 +131,7 @@ is appended when the teammate is well above/below you).
 - [ ] **Muted UX** — show a "🔇 you are MUTED" toast when a chat message is swallowed
       (`MuteHandler` TODO).
 - [ ] **Protocol-mismatch UX** — surface the version-mismatch warning to the player as
-      an on-screen toast instead of only a log line (`MonkeysClient#handleRole`).
+      an on-screen toast instead of only a log line (`BlindDeafMutedClient#handleRole`).
 - [ ] **Persist roles** — `RoleManager` is in-memory only; roles are lost on server
       restart. Persist to world save / player data.
 - [ ] **Blind mode selection** — currently a client keybind. Decide whether the admin
