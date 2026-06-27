@@ -74,19 +74,21 @@ public final class TrackerHud {
 
         TextRenderer font = mc.textRenderer;
         int centerX = context.getScaledWindowWidth() / 2;
-        int bottomY = context.getScaledWindowHeight() - BOTTOM_OFFSET;
-        int startY = bottomY - (entries.size() - 1) * LINE_HEIGHT;
+        int y = context.getScaledWindowHeight() - BOTTOM_OFFSET;
 
         double px = mc.player.getX();
         double py = mc.player.getY();
         double pz = mc.player.getZ();
         float yaw = mc.player.getYaw();
 
+        // All teammates on one horizontal row, separated by spaced bars.
+        StringBuilder row = new StringBuilder();
         for (int i = 0; i < entries.size(); i++) {
-            String line = format(entries.get(i), px, py, pz, yaw);
-            context.drawCenteredTextWithShadow(font, Text.literal(line),
-                    centerX, startY + i * LINE_HEIGHT, 0xFFFFFFFF);
+            if (i > 0) row.append("   |   ");
+            row.append(format(entries.get(i), px, py, pz, yaw));
         }
+        context.drawCenteredTextWithShadow(font, Text.literal(row.toString()),
+                centerX, y, 0xFFFFFFFF);
     }
 
     private static String format(TrackerPayload.Entry e, double px, double py, double pz, float yaw) {
