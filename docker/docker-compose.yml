@@ -2,11 +2,11 @@
 services:
   monkeys:
     build:
-      context: ..            # repo root, so the Dockerfile can reach :server + :common
+      context: .. # repo root, so the Dockerfile can reach :server + :common
       dockerfile: docker/Dockerfile
     # Once CI publishes a prebuilt image, the host can skip `build` entirely and use:
     #   image: ghcr.io/you/monkeys-server:0.1.0
-    container_name: monkeys-server
+    container_name: blind-deaf-muted-server
     environment:
       EULA: "TRUE"
       # Mods our server needs, auto-downloaded from Modrinth (matched to the
@@ -18,11 +18,11 @@ services:
       MODRINTH_PROJECTS: "fabric-api,simple-voice-chat"
       MODRINTH_DOWNLOAD_DEPENDENCIES: "required"
     ports:
-      - "25565:25565"        # share host IP:25565 with players (see DESIGN.md §2g)
-      - "24454:24454/udp"    # Simple Voice Chat voice traffic (UDP). REQUIRED, or
-                             # players connect but voice silently fails to start.
+      - "25565:25565" # share host IP:25565 with players (see DESIGN.md §2g)
+      - "24454:24454/udp" # Simple Voice Chat voice traffic (UDP). REQUIRED, or
+        # players connect but voice silently fails to start.
     volumes:
-      - ./world:/data        # persists the world + server files across restarts
+      - ./data:/data # persists the world + server files across restarts
     stdin_open: true
     tty: true
     restart: unless-stopped
