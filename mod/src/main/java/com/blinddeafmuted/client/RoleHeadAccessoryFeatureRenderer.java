@@ -82,10 +82,10 @@ public final class RoleHeadAccessoryFeatureRenderer
         // (front of the face) and rotates it ±45° around Z to form the X.
         root.addChild("strip_a",
                 ModelPartBuilder.create().uv(0, 0).cuboid(-2.5F, -0.5F, -0.3F, 5.0F, 1.0F, 0.6F),
-                ModelTransform.of(0.0F, -2.5F, -4.6F, pitch, yaw, (float) Math.toRadians(20.0)));
+                ModelTransform.of(0.0F, -1.5F, -4.6F, pitch, yaw, (float) Math.toRadians(20.0)));
         root.addChild("strip_b",
                 ModelPartBuilder.create().uv(0, 0).cuboid(-2.5F, -0.5F, -0.3F, 5.0F, 1.0F, 0.6F),
-                ModelTransform.of(0.0F, -2.5F, -4.6F, pitch, yaw, (float) Math.toRadians(-20.0)));
+                ModelTransform.of(0.0F, -1.5F, -4.6F, pitch, yaw, (float) Math.toRadians(-20.0)));
         return TexturedModelData.of(data, 16, 16);
     }
 
