@@ -79,8 +79,15 @@ public class BlindDeafMutedServer implements ModInitializer {
             LootTables.NETHER_BRIDGE_CHEST,
             LootTables.BASTION_TREASURE_CHEST);
 
-    /** Roughly how often a qualifying chest yields a Randomizer (1 = 10%). */
-    private static final float RANDOMIZER_CHANCE = 0.10F;
+    /** Roughly how often a qualifying chest yields a Randomizer (0.15 = 15%). Bumped
+     *  from 0.10 because the rarest source (village weaponsmith — not every village
+     *  has one, single chest) made it almost never show up. */
+    private static final float RANDOMIZER_CHANCE = 0.15F;
+
+    /** Chance a single Piglin barter ALSO yields a Randomizer. A reliable, farmable
+     *  source (trade gold to piglins) on top of the rare structure chests. Kept low
+     *  so it's a treat, not spam — piglins barter fast. */
+    private static final float PIGLIN_BARTER_CHANCE = 0.05F;
 
     @Override
     public void onInitialize() {
@@ -119,6 +126,14 @@ public class BlindDeafMutedServer implements ModInitializer {
                 tableBuilder.pool(LootPool.builder()
                         .rolls(ConstantLootNumberProvider.create(1))
                         .conditionally(RandomChanceLootCondition.builder(RANDOMIZER_CHANCE))
+                        .with(ItemEntry.builder(ModItems.RANDOMIZER)));
+            }
+            // Piglin bartering: a reliable Nether source. Adds an independent pool that
+            // rolls once per barter at PIGLIN_BARTER_CHANCE, on top of the normal barter.
+            if (source.isBuiltin() && key.equals(LootTables.PIGLIN_BARTERING_GAMEPLAY)) {
+                tableBuilder.pool(LootPool.builder()
+                        .rolls(ConstantLootNumberProvider.create(1))
+                        .conditionally(RandomChanceLootCondition.builder(PIGLIN_BARTER_CHANCE))
                         .with(ItemEntry.builder(ModItems.RANDOMIZER)));
             }
         });
