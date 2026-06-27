@@ -1,7 +1,7 @@
 // Root build script — shared config applied to every subproject.
 // Each subproject (common/client/server) adds only what's specific to it.
 plugins {
-    id 'fabric-loom' version '1.9-SNAPSHOT' apply false
+    id 'fabric-loom' version '1.9.2' apply false
 }
 
 subprojects {

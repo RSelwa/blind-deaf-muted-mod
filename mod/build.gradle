@@ -36,7 +36,17 @@ dependencies {
 
     // Share the common code and bundle it INTO this jar (jar-in-jar), so the one
     // published file is fully self-contained.
-    implementation project(':common')
+    //
+    // Use common's `namedElements` configuration, NOT the bare project(':common').
+    // A loom project's DEFAULT artifact is its remapped (intermediary) remapJar —
+    // pulling that onto the dev classpath makes common's classes reference
+    // intermediary names (e.g. class_2378 = Registry), which a NAMED dev runtime
+    // can't resolve (NoClassDefFoundError: net/minecraft/class_2378 at first use).
+    // `namedElements` is the dev/named jar loom exposes exactly for inter-project
+    // deps. `include project(':common')` still bundles the remapped (intermediary)
+    // jar-in-jar for the published artifact, which IS correct in production
+    // (prod runtime is intermediary).
+    implementation project(path: ':common', configuration: 'namedElements')
     include project(':common')
 }
 

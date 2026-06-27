@@ -6,6 +6,16 @@ apply plugin: 'fabric-loom'
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    // COMPILE-ONLY on purpose. `common` is never run on its own — it is bundled
+    // jar-in-jar inside `:mod`, and `:mod` supplies the loom-remapped (named)
+    // fabric-loader + fabric-api at runtime. If these were `modImplementation`,
+    // `:mod`'s `implementation project(':common')` would drag the RAW
+    // (intermediary) fabric-api onto the run classpath transitively — loom only
+    // remaps a project's own modImplementation, not mod-deps inherited from a
+    // project dependency. The raw jars then collide with the remapped ones and
+    // Fabric loader crashes reading an intermediary accessWidener in a named
+    // runtime ("Namespace (intermediary) does not match ... named"). compileOnly
+    // keeps them off the runtime classpath while still remapped for compilation.
+    modCompileOnly "net.fabricmc:fabric-loader:${project.loader_version}"
+    modCompileOnly "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 }

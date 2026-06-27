@@ -10,6 +10,7 @@ import com.blinddeafmuted.common.RosterPayload;
 import com.blinddeafmuted.common.SkinVisibilityPayload;
 import com.blinddeafmuted.common.TrackerPayload;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.loot.v2.LootTableEvents;
@@ -134,11 +135,18 @@ public class BlindDeafMutedServer implements ModInitializer {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
                 roleManager.sync(handler.getPlayer()));
 
-        // Hand the role store to the Simple Voice Chat integration. Safe even if
-        // that mod isn't installed: the plugin class is only loaded via the
-        // `voicechat` entrypoint (read solely by the voice-chat mod), and this
-        // call only sets a static reference — it touches no voice-chat classes.
-        BlindDeafMutedVoicechatPlugin.bind(roleManager);
+        // Hand the role store to the Simple Voice Chat integration — but ONLY if
+        // the voice-chat mod is actually installed. SVC is an optional soft
+        // dependency. Touching BlindDeafMutedVoicechatPlugin (even a static call)
+        // forces the JVM to load+link that class, and because it
+        // `implements VoicechatPlugin`, linking needs the SVC API on the runtime
+        // classpath. Without SVC that's a NoClassDefFoundError that crashes the
+        // whole `main` entrypoint. The isModLoaded gate keeps the plugin class
+        // untouched (so never loaded) when SVC is absent. The `voicechat`
+        // entrypoint itself is still only invoked by SVC when present.
+        if (FabricLoader.getInstance().isModLoaded("voicechat")) {
+            BlindDeafMutedVoicechatPlugin.bind(roleManager);
+        }
 
         // A few times per second, send every player the positions of all the others,
         // so their client can draw the teammate tracker HUD. The client decides

@@ -7,6 +7,9 @@ build/
 # Loom
 .loom-cache/
 run/
+run*/
+*/run/
+*/run*/
 
 # Docker world data
 docker/world/
