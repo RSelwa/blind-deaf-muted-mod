@@ -66,6 +66,7 @@ public final class BlindCaneFeatureRenderer
     @Override
     public void render(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light,
                        PlayerEntityRenderState state, float limbAngle, float limbDistance) {
+        if (!SkinVisibilityState.isEnabled()) return; // op toggled accessories off
         if (RosterState.roleOf(state.name) != Role.BLIND) return;
 
         PlayerEntityModel model = getContextModel();

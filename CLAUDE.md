@@ -154,6 +154,16 @@ Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODO
   (no PNG shipped); 1.21.4 item-model defs under `assets/blind-deaf-muted/items|models`.
   No protocol change (reuses RollPayload). `RoleRoller` also de-duplicates the random
   logic that used to live in `BlindDeafMutedCommand`.
+- **Skin (accessory) visibility toggle:** `/bdm skin <on|off>` (op-only) hides/shows
+  the mod's custom role accessories — the blind cane/glasses, muted bandage, deaf
+  headset — for everyone (it does NOT touch Minecraft player skins). Server owns the
+  flag (`SkinVisibilityManager`, on by default) and broadcasts it via a new
+  `SkinVisibilityPayload` (S2C `boolean`) riding the once/sec roster tick, so a
+  late-joiner syncs within a second. Client mirrors it in `SkinVisibilityState`
+  (volatile); both feature renderers (`BlindCaneFeatureRenderer`,
+  `RoleHeadAccessoryFeatureRenderer`) early-return in `render()` when disabled.
+  Protocol bumped to **v5**. Not persisted across restarts (defaults ON, like the
+  shared-health toggle).
 - Fixed a pre-existing compile break in `TrackerHud` (undefined `elevation` var left
   by the compass-HUD commit) — now shows a ↑/↓ elevation hint past the threshold.
 - `docker/` — multi-stage `Dockerfile` + `docker-compose.yml`.

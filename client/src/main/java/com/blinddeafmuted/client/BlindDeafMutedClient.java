@@ -7,6 +7,7 @@ import com.blinddeafmuted.common.Role;
 import com.blinddeafmuted.common.RolePayload;
 import com.blinddeafmuted.common.RollPayload;
 import com.blinddeafmuted.common.RosterPayload;
+import com.blinddeafmuted.common.SkinVisibilityPayload;
 import com.blinddeafmuted.common.TrackerPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -57,6 +58,7 @@ public class BlindDeafMutedClient implements ClientModInitializer {
         PayloadTypeRegistry.playS2C().register(TrackerPayload.ID, TrackerPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(RosterPayload.ID, RosterPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(RollPayload.ID, RollPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(SkinVisibilityPayload.ID, SkinVisibilityPayload.CODEC);
 
         ClientPlayNetworking.registerGlobalReceiver(RolePayload.ID, (payload, context) -> {
             // Networking callbacks run off-thread; touch game state on the client thread.
@@ -68,6 +70,9 @@ public class BlindDeafMutedClient implements ClientModInitializer {
 
         ClientPlayNetworking.registerGlobalReceiver(RosterPayload.ID, (payload, context) ->
                 context.client().execute(() -> RosterState.setEntries(payload.entries())));
+
+        ClientPlayNetworking.registerGlobalReceiver(SkinVisibilityPayload.ID, (payload, context) ->
+                context.client().execute(() -> SkinVisibilityState.set(payload.enabled())));
 
         // The roulette reveal: spin the slot machine, then RouletteAnimation applies
         // the role itself at the end (so we deliberately don't touch RoleState here).

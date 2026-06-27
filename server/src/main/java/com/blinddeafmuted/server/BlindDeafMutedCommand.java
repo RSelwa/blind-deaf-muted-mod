@@ -35,7 +35,7 @@ public final class BlindDeafMutedCommand {
     private BlindDeafMutedCommand() {}
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher,
-                                RoleManager roles, SharedHealthManager sharedHealth) {
+                                RoleManager roles, SharedHealthManager sharedHealth, SkinVisibilityManager skinVisibility) {
         // One <target> argument node, with a literal per role hung off it so
         // tab-completion offers /bdm set <player> blind|deaf|muted|none.
         var target = argument("target", EntityArgumentType.player());
@@ -58,6 +58,10 @@ public final class BlindDeafMutedCommand {
                                 .then(literal("off").executes(ctx -> setSharedHealth(ctx, sharedHealth, false)))
                                 .executes(ctx -> healthStatus(ctx, sharedHealth)))
                         .then(literal("help").executes(BlindDeafMutedCommand::help))
+                        .then(literal("skin")
+                                .then(literal("on").executes(ctx -> setSkins(ctx, skinVisibility, true)))
+                                .then(literal("off").executes(ctx -> setSkins(ctx, skinVisibility, false)))
+                                .executes(ctx -> skinsStatus(ctx, skinVisibility)))
         );
     }
 
@@ -146,6 +150,29 @@ public final class BlindDeafMutedCommand {
         return 1;
     }
 
+    /** Turn skin-visibility mode on or off. */
+    private static int setSkins(CommandContext<ServerCommandSource> ctx,
+                                SkinVisibilityManager skinVisibility, boolean on) {
+        skinVisibility.setSkinsEnabled(on);
+        ctx.getSource().sendFeedback(
+                () -> Text.literal("Skins are now " + (on ? "ON" : "OFF") + ".")
+                        .formatted(on ? Formatting.GREEN : Formatting.GRAY),
+                true);
+        return 1;
+    }
+
+    /** Report whether Skins modes is currently on. */
+    private static int skinsStatus(CommandContext<ServerCommandSource> ctx,
+                                    SkinVisibilityManager skinVisibility) {
+        boolean on = skinVisibility.isEnabled();
+        ctx.getSource().sendFeedback(
+                () -> Text.literal("Skins are " + (on ? "ON" : "OFF") + "."),
+                false);
+        return 1;
+    }
+
+
+
     /** Reset every online player back to {@link Role#NONE}. */
     private static int clear(CommandContext<ServerCommandSource> ctx, RoleManager roles) {
         List<ServerPlayerEntity> players =
@@ -195,6 +222,7 @@ public final class BlindDeafMutedCommand {
                   /bdm status                                - list every player's current role
                   /bdm randomizer                            - give yourself Randomizer bottles (test)
                   /bdm health <on|off>                       - toggle shared-health mode (damage mirrored across the team)
+                  /bdm skin <on|off>                         - toggle the custom role accessories (cane/glasses/bandage/headset)
                   /bdm help                                  - show this help
                 Random assignment gives every disability out once before any repeats.""";
         ctx.getSource().sendFeedback(() -> Text.literal(text), false);

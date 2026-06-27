@@ -7,6 +7,7 @@ import com.blinddeafmuted.common.RandomizerBottleEntity;
 import com.blinddeafmuted.common.RolePayload;
 import com.blinddeafmuted.common.RollPayload;
 import com.blinddeafmuted.common.RosterPayload;
+import com.blinddeafmuted.common.SkinVisibilityPayload;
 import com.blinddeafmuted.common.TrackerPayload;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -53,6 +54,9 @@ public class BlindDeafMutedServer implements ModInitializer {
     /** Optional shared-health mode (off by default; toggled via /bdm health). */
     private final SharedHealthManager sharedHealth = new SharedHealthManager();
 
+    /** Optional skin-visibility mode (on by default; toggled via /bdm skin). */
+    private final SkinVisibilityManager skinVisibility = new SkinVisibilityManager();
+
     /** Push teammate positions every N server ticks (20 ticks = 1s). 4/sec is smooth
      *  for a direction arrow without being chatty. */
     private static final int TRACKER_INTERVAL_TICKS = 5;
@@ -90,6 +94,7 @@ public class BlindDeafMutedServer implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(TrackerPayload.ID, TrackerPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(RosterPayload.ID, RosterPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(RollPayload.ID, RollPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(SkinVisibilityPayload.ID, SkinVisibilityPayload.CODEC);
 
         // When a Randomizer bottle shatters, re-roll EVERY online player's role.
         RandomizerBottleEntity.SHATTER_HANDLER = bottle -> {
@@ -123,7 +128,7 @@ public class BlindDeafMutedServer implements ModInitializer {
 
         // Admin command: /bdm set <player> <blind|deaf|muted|none>, etc.
         CommandRegistrationCallback.EVENT.register((dispatcher, access, env) ->
-                BlindDeafMutedCommand.register(dispatcher, roleManager, sharedHealth));
+                BlindDeafMutedCommand.register(dispatcher, roleManager, sharedHealth, skinVisibility));
 
         // When a player joins, immediately sync whatever role they have.
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
@@ -181,8 +186,13 @@ public class BlindDeafMutedServer implements ModInitializer {
         }
 
         RosterPayload payload = new RosterPayload(entries);
+        // The skin-visibility flag is the same for everyone, so it rides along on the
+        // same slow tick as the roster (cheap, and keeps a late-joiner / re-login in sync
+        // within a second of connecting).
+        SkinVisibilityPayload skinPayload = new SkinVisibilityPayload(skinVisibility.isEnabled());
         for (ServerPlayerEntity recipient : players) {
             ServerPlayNetworking.send(recipient, payload);
+            ServerPlayNetworking.send(recipient, skinPayload);
         }
     }
 }

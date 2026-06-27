@@ -129,6 +129,7 @@ public final class RoleHeadAccessoryFeatureRenderer
     @Override
     public void render(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light,
                        PlayerEntityRenderState state, float limbAngle, float limbDistance) {
+        if (!SkinVisibilityState.isEnabled()) return; // op toggled accessories off
         Role role = RosterState.roleOf(state.name);
         if (role == Role.NONE) return;
 
