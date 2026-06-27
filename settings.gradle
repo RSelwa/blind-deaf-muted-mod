@@ -1,8 +1,13 @@
-// Fabric multi-project monorepo for the "Blind Deaf Muted" disability-challenge mod.
-// One build, three subprojects:
-//   :common — shared code (Role enum, network packet, version constant)
-//   :client — client mod jar (applies blind/deaf/mute effects locally)
-//   :server — server mod jar (assigns roles, commands, game logic)
+// Fabric monorepo for the "Blind Deaf Muted" disability-challenge mod.
+// One build, two subprojects:
+//   :common — shared code (Role enum, network payloads, version constant),
+//             bundled into :mod via jar-in-jar so it ships inside the one jar.
+//   :mod    — the single shippable mod jar. Carries BOTH the server logic
+//             (main + voicechat entrypoints) and the client effects (client
+//             entrypoint). Fabric only runs the client entrypoint on a physical
+//             client and skips the client-only mixins on a dedicated server, so
+//             the same jar is correct everywhere — players install it, the Docker
+//             server runs it.
 pluginManagement {
     repositories {
         maven { name = 'Fabric'; url = 'https://maven.fabricmc.net/' }
@@ -14,5 +19,4 @@ pluginManagement {
 rootProject.name = 'minecraft-mod-blind-deaf-muted'
 
 include 'common'
-include 'client'
-include 'server'
+include 'mod'

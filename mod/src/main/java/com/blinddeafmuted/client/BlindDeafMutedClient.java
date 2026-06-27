@@ -2,7 +2,6 @@ package com.blinddeafmuted.client;
 
 import com.blinddeafmuted.common.ModConstants;
 import com.blinddeafmuted.common.ModEntities;
-import com.blinddeafmuted.common.ModItems;
 import com.blinddeafmuted.common.Role;
 import com.blinddeafmuted.common.RolePayload;
 import com.blinddeafmuted.common.RollPayload;
@@ -13,7 +12,6 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
 import net.minecraft.client.render.entity.PlayerEntityRenderer;
 import org.slf4j.Logger;
@@ -35,9 +33,12 @@ public class BlindDeafMutedClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        // Register our shared item + entity (the server does the same; same ids both sides).
-        ModItems.register();
-        ModEntities.register();
+        // NOTE: the shared item/entity AND the S2C payload type registrations are
+        // done once in the `main` entrypoint (BlindDeafMutedServer). In this unified
+        // jar `main` runs on BOTH sides and BEFORE this client entrypoint, so doing
+        // them here too would double-register and crash. By the time we run, the
+        // item/entity already exist — we only add the client-only renderers + receivers.
+
         // The thrown bottle renders as its flat item, like a splash potion / XP bottle.
         EntityRendererRegistry.register(ModEntities.RANDOMIZER_BOTTLE,
                 ctx -> new FlyingItemEntityRenderer<>(ctx));
@@ -53,13 +54,8 @@ public class BlindDeafMutedClient implements ClientModInitializer {
                     }
                 });
 
-        // Must match the server-side registration in BlindDeafMutedServer.
-        PayloadTypeRegistry.playS2C().register(RolePayload.ID, RolePayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(TrackerPayload.ID, TrackerPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(RosterPayload.ID, RosterPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(RollPayload.ID, RollPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(SkinVisibilityPayload.ID, SkinVisibilityPayload.CODEC);
-
+        // The payload TYPES are registered in BlindDeafMutedServer (main, runs on
+        // both sides). Here we only register the client's RECEIVERS for them.
         ClientPlayNetworking.registerGlobalReceiver(RolePayload.ID, (payload, context) -> {
             // Networking callbacks run off-thread; touch game state on the client thread.
             context.client().execute(() -> handleRole(payload));

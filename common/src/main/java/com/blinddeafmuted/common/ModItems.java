@@ -20,6 +20,10 @@ public final class ModItems {
     public static Item RANDOMIZER;
 
     public static void register() {
+        // Idempotent: in the unified jar this can be reached from more than one
+        // entrypoint on a physical client. Registering twice would throw, so bail
+        // if we've already run.
+        if (RANDOMIZER != null) return;
         RANDOMIZER = register("randomizer",
                 RandomizerItem::new,
                 new Item.Settings().maxCount(16));

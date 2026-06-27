@@ -1,9 +1,17 @@
-// :server — the server-side mod jar. Goes into the Docker image's /mods folder.
-// Owns roles, admin commands, and (later) random events.
+// :mod — the single shippable mod jar (client + server in one file).
+//
+// Why one jar: Modrinth's client/server environment flag is per-PROJECT, not
+// per-file, so two jars in one project can't be tagged correctly. A unified jar
+// sidesteps that entirely. Fabric runs the `main` (+ `voicechat`) entrypoints on
+// any side and the `client` entrypoint only on a physical client; the client-only
+// mixin config is marked `"environment": "client"` in fabric.mod.json so a
+// dedicated server never touches client classes. Same file works everywhere.
 apply plugin: 'fabric-loom'
 
 base {
-    archivesName = "server-bdm"
+    // Produces blind-deaf-muted-<version>.jar — the name players + the Docker
+    // image reference. Single source of truth in gradle.properties.
+    archivesName = project.archives_base_name
 }
 
 repositories {
@@ -23,13 +31,11 @@ dependencies {
     // Simple Voice Chat plugin API — COMPILE-ONLY. The real classes are supplied
     // at runtime by the installed Simple Voice Chat mod (an optional soft
     // dependency). If it isn't installed, our `voicechat` entrypoint is simply
-    // never invoked, so nothing breaks. It is a plain API jar, so plain
-    // `compileOnly` (not loom's `modCompileOnly`) is correct.
+    // never invoked, so nothing breaks. Plain API jar → plain `compileOnly`.
     compileOnly "de.maxhenkel.voicechat:voicechat-api:${project.voicechat_api_version}"
 
-    // Share the common code. For a shipped jar you'll likely want loom's
-    // `include project(':common')` (jar-in-jar) so the classes ride along;
-    // `implementation` is enough for dev runs.
+    // Share the common code and bundle it INTO this jar (jar-in-jar), so the one
+    // published file is fully self-contained.
     implementation project(':common')
     include project(':common')
 }

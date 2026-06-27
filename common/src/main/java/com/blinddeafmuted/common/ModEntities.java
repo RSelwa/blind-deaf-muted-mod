@@ -18,6 +18,8 @@ public final class ModEntities {
     public static EntityType<RandomizerBottleEntity> RANDOMIZER_BOTTLE;
 
     public static void register() {
+        // Idempotent — see ModItems.register() for why (unified jar, two entrypoints).
+        if (RANDOMIZER_BOTTLE != null) return;
         RegistryKey<EntityType<?>> key =
                 RegistryKey.of(RegistryKeys.ENTITY_TYPE, ModConstants.id("randomizer_bottle"));
         RANDOMIZER_BOTTLE = Registry.register(Registries.ENTITY_TYPE, key,

@@ -17,9 +17,11 @@ Full detail lives in **`DESIGN.md`** (read it for the complete picture).
 
 ## Decisions made so far
 
-- **Architecture:** two pieces — a **server component** (assigns roles, commands,
-  game logic) + a **thin Fabric client mod** (applies blind/deaf/mute locally,
-  driven by the server via a small custom packet).
+- **Architecture:** logically two roles — **server logic** (assigns roles, commands,
+  game logic) + **client effects** (applies blind/deaf/mute locally, driven by the
+  server via a small custom packet) — but shipped as **ONE unified jar** (see the
+  "Single unified jar" decision below). Fabric runs the `main`/`voicechat`
+  entrypoints on any side and the `client` entrypoint only on a physical client.
 - **Effects are client-side** (not server-enforced): makes "deaf" complete & clean,
   avoids server performance issues, keeps shader compatibility.
 - **Loader: Fabric** for both pieces (latest-version + shader/Sodium/Iris friendly).
@@ -29,12 +31,27 @@ Full detail lives in **`DESIGN.md`** (read it for the complete picture).
 - **Server runs in Docker** (Fabric server container, e.g. `itzg/minecraft-server`
   with `TYPE=FABRIC`; mod jar in the mounted `mods/` volume). Clients still install
   the thin client jar locally. See `DESIGN.md` §2c.
-- **Monorepo layout:** `common/` (shared role enum + packet + version), `client/`,
-  `server/`, `docker/`, single `gradle.properties` as source of truth. `common`
-  keeps client/server versions in lockstep. See `DESIGN.md` §2d–2e.
-- **Dockerfile:** multi-stage — build server jar with Gradle, then `COPY` it into
-  `/mods` of `itzg/minecraft-server` (`TYPE=FABRIC`). `docker compose up` = one
-  command, fully self-contained.
+- **Monorepo layout:** `common/` (shared role enum + packets + version) + `mod/`
+  (the single shippable jar: client effects AND server logic) + `docker/`, single
+  `gradle.properties` as source of truth. `common` is bundled into `mod` via loom
+  `include` (jar-in-jar), so the one published file is self-contained. See
+  `DESIGN.md` §2d–2e.
+- **Single unified jar (decided & implemented):** client + server were merged into
+  one `mod/` module producing `blind-deaf-muted-<version>.jar`. Reason: **Modrinth's
+  client/server environment flag is per-PROJECT, not per-file**, so two jars in one
+  project can't be tagged correctly (and a zip-of-jars isn't installable). One jar
+  with `environment: "*"` and three entrypoints (`main` + `client` + `voicechat`)
+  sidesteps this — players install it, the Docker server runs the same file.
+  Critical detail: shared registrations (items/entities + S2C payload types) live
+  ONLY in the `main` entrypoint (runs on both sides, before `client`); the `client`
+  entrypoint does only client-only work (receivers, renderers, keybinds). The
+  client mixin config is marked `"environment": "client"` so a dedicated server
+  never loads client classes. `ModItems/ModEntities.register()` are also idempotent
+  as insurance. (Pre-merge there were separate `client/` + `server/` modules.)
+- **Dockerfile:** multi-stage — build the unified jar with `gradle :mod:remapJar`,
+  then `COPY` `mod/build/libs/blind-deaf-muted-*.jar` into `/mods` of
+  `itzg/minecraft-server` (`TYPE=FABRIC`). `docker compose up` = one command, fully
+  self-contained.
 - **Version sync** (main friction risk): single source of truth + release jars as a
   pair + version handshake on join. See `DESIGN.md` §2f.
 - **Who does what:** host = the server (one command, no separate setup); players
@@ -65,9 +82,10 @@ Full detail lives in **`DESIGN.md`** (read it for the complete picture).
 
 ## Status
 
-**Builds clean.** All three modules compile and produce jars
-(`{common,server,client}/build/libs/*-0.1.0.jar`) via
-`./gradlew :common:build :server:build :client:build`.
+**Builds clean.** Both modules compile and produce one shippable jar
+(`mod/build/libs/blind-deaf-muted-0.1.0.jar`, with `common-0.1.0.jar` nested via
+jar-in-jar) via `./gradlew :mod:build`. On Windows: set `JAVA_HOME` to the
+Adoptium JDK 21 and run `.\gradlew.bat :mod:build --no-daemon`.
 
 Toolchain: Gradle wrapper pinned to **8.12** (fabric-loom 1.9.2 doesn't support
 Gradle 9), Java **21** (`org.gradle.java.installations.paths` in `gradle.properties`
@@ -83,13 +101,19 @@ Compile fixes applied: `SoundCategory` import was `net.minecraft.client.option`
 
 Monorepo structure + skeleton code (effect handlers are functional stubs w/ TODOs):
 
+All gameplay code lives in the single `mod/` module (packages keep the logical
+split: `com.blinddeafmuted.server.*` and `com.blinddeafmuted.client.*`); `common/`
+is the shared library bundled in via jar-in-jar.
+
 - `common/` — `Role` enum, `RolePayload` (S2C packet), `ModConstants` (protocol version).
-- `server/` — `BlindDeafMutedServer` (entrypoint), `RoleManager` (in-memory store + sync),
-  `BlindDeafMutedCommand` (`/bdm set <player> <role>`, op-only).
-- `client/` — `BlindDeafMutedClient` (entrypoint + packet receiver), `RoleState`, and effect
-  handlers `BlindOverlay` / `DeafHandler` / `MuteHandler` (functional stubs w/ TODOs).
-  HUD: `TrackerHud` (teammate tracker, key `K`) + `RosterHud` (who-is-what
-  leaderboard top-right, key `L`), both drawn from `InGameHudMixin` TAIL.
+- `mod/` (`…server.*` package) — `BlindDeafMutedServer` (`main` entrypoint), `RoleManager`
+  (in-memory store + sync), `BlindDeafMutedCommand` (`/bdm set <player> <role>`, op-only),
+  `BlindDeafMutedVoicechatPlugin` (`voicechat` entrypoint). Shared item/entity + payload
+  registration happens here.
+- `mod/` (`…client.*` package) — `BlindDeafMutedClient` (`client` entrypoint + packet
+  receivers), `RoleState`, and effect handlers `BlindOverlay` / `DeafHandler` / `MuteHandler`
+  (functional stubs w/ TODOs). HUD: `TrackerHud` (teammate tracker, key `K`) + `RosterHud`
+  (who-is-what leaderboard top-right, key `L`), both drawn from `InGameHudMixin` TAIL.
 
 ### Recent additions (idea pass 1)
 

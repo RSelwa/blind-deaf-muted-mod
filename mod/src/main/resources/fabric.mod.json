@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "blind-deaf-muted",
+  "version": "${version}",
+  "name": "Blind Deaf Muted",
+  "description": "A co-op challenge: each player is blind, deaf, or muted and must work around it to beat the Ender Dragon. One jar for both client and server.",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.blinddeafmuted.server.BlindDeafMutedServer"
+    ],
+    "client": [
+      "com.blinddeafmuted.client.BlindDeafMutedClient"
+    ],
+    "voicechat": [
+      "com.blinddeafmuted.server.BlindDeafMutedVoicechatPlugin"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "blind-deaf-muted.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "voicechat": "*"
+  }
+}
