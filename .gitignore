@@ -10,6 +10,7 @@ run/
 
 # Docker world data
 docker/world/
+docker/data/
 
 # IDE
 .idea/
