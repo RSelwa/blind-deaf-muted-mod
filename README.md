@@ -12,17 +12,26 @@ see [`CLAUDE.md`](CLAUDE.md).
 
 ## How it works (30-second version)
 
-The mod ships as **two jars** built from one repo:
+The mod ships as **one unified jar** (`blind-deaf-muted-<version>.jar`). The same
+file is installed by every player AND run by the server — there is no separate
+client/server download. Fabric runs the right code on each side automatically:
 
-| Jar      | Runs on                     | Job                                                                                                                      |
-| -------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `server` | the host's server           | Stores everyone's role, exposes the admin command, tells each client its role over a custom network packet.              |
-| `client` | **each player's** Minecraft | Receives that packet and applies the effect locally — black screen (blind), silenced audio (deaf), blocked chat (muted). |
+| Entrypoint  | Runs on              | Job                                                                                                                |
+| ----------- | -------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `main`      | server **and** client | Registers roles, the admin command, the shared item/entity + network packets. Stores who is what; syncs each client. |
+| `client`    | each player's client | Receives the role packet and applies the effect locally — black screen / fog (blind), silenced audio (deaf), blocked chat + voice (muted). |
+| `voicechat` | server (if SVC present) | Enforces deaf/muted on real in-game voice via the Simple Voice Chat plugin API. |
 
-A third module, `common`, holds the shared role list + packet format so the two
-sides can never disagree. Effects are **client-side on purpose**: only the player's
-own game can mute _all_ their audio or paint _their_ screen — and it keeps the mod
-shader-compatible. See [`DESIGN.md` §3](DESIGN.md).
+Why one jar: Modrinth's client/server environment flag is **per-project, not
+per-file**, so two jars can't be tagged correctly. One jar with three entrypoints
+sidesteps that — see [`CLAUDE.md`](CLAUDE.md). A `common` module (shared role list +
+packets) is bundled **inside** the jar via jar-in-jar, so the one file is
+self-contained.
+
+Effects are **client-side on purpose**: only the player's own game can mute _all_
+their audio or paint _their_ screen — and it keeps the mod shader-compatible. The
+exception is in-game **voice**, which is enforced server-side through Simple Voice
+Chat. See [`DESIGN.md` §3–4](DESIGN.md).
 
 The **fun** is structural: each role is missing exactly one of _see / hear / speak_,
 so no one player can perceive, report, and act alone — they're forced to relay
@@ -33,13 +42,14 @@ information through each other. Full breakdown in [`DESIGN.md` §4b](DESIGN.md).
 ## What each person needs
 
 - **The host** (one person): runs the server. Easiest path is **Docker** — one
-  command, no Java or Minecraft install required (see deployment sections below).
-- **Every player** (including the host, if they also play): installs **Fabric Loader**
-  - **Fabric API**, then drops the matching `blind-deaf-muted-client.jar` into their `mods/`
-    folder. One-time setup. See [Player setup](#player-setup-everyone).
+  command, no Java or Minecraft install required (see deployment sections below). The
+  server auto-downloads Fabric API + Simple Voice Chat.
+- **Every player** (including the host, if they also play): installs **Fabric Loader**,
+  **Fabric API**, **Simple Voice Chat**, then drops the `blind-deaf-muted-<version>.jar`
+  into their `mods/` folder. One-time setup. See [Player setup](#player-setup-everyone).
 
-The server jar and the client jars **must be the same version** — they're built and
-released as a pair. A mismatched client gets a "please update" warning, not a crash.
+The mod version players install **must match the server's** — they're built and
+released together. A mismatched client gets a "please update" warning, not a crash.
 
 ---
 
@@ -50,35 +60,36 @@ released as a pair. A mismatched client gets a "please update" warning, not a cr
 - [Docker](https://docs.docker.com/get-docker/) + Docker Compose (recommended), **or**
 - a manual Fabric server + JDK 21 if you prefer not to use Docker (not covered here).
 
-**To build the jars from source (only if you're modifying the mod):**
+**To build the jar from source (only if you're modifying the mod):**
 
 - **JDK 21** (the build targets Java 21 — Minecraft 1.21.x requires it).
 - That's it — the repo ships a Gradle wrapper (`./gradlew`), so you don't need Gradle
-  installed. Docker also builds the server jar itself, so for a plain server run you
-  don't need Java at all.
+  installed. Docker also builds the jar itself, so for a plain server run you don't
+  need Java at all.
 
 ---
 
-## Quick start (build the jars)
+## Quick start (build the jar)
 
 > Skip this if you're using Docker for the server and only need the **client** jar —
-> grab a prebuilt client jar from the project's releases instead.
+> grab a prebuilt jar from the project's releases instead.
 
 ```bash
 # from the repo root
-./gradlew :common:build :server:build :client:build
+./gradlew :mod:build
 ```
 
-Outputs:
+Output:
 
-- `server/build/libs/server-0.1.0.jar` → goes on the **server**
-- `client/build/libs/client-0.1.0.jar` → goes in **each player's** `mods/`
+- `mod/build/libs/blind-deaf-muted-0.1.0.jar` → install on the **server** AND in
+  **each player's** `mods/` (it's the same file). `common` is bundled inside it via
+  jar-in-jar; you don't ship `common` separately.
 
 > **JDK 21 note:** the build needs a Java 21 toolchain. `gradle.properties` contains
-> an `org.gradle.java.installations.paths` line pointing at a macOS Homebrew JDK 21.
-> **Edit that path to your own JDK 21** (or remove the line if Gradle can auto-detect
-> yours). On Linux it's often `/usr/lib/jvm/java-21-openjdk`. The Docker build is
-> unaffected — it uses its own JDK 21 image.
+> an `org.gradle.java.installations.paths` line listing JDK 21 locations.
+> **Edit it to your own JDK 21** if Gradle can't auto-detect yours. On Windows set
+> `JAVA_HOME` to your Adoptium JDK 21 and run `.\gradlew.bat :mod:build --no-daemon`.
+> The Docker build is unaffected — it uses its own JDK 21 image.
 
 ---
 
@@ -89,14 +100,19 @@ Each player does this once:
 1. Install the **Fabric Loader** for Minecraft **1.21.4** — use the
    [official installer](https://fabricmc.net/use/installer/) or a launcher like
    [Prism](https://prismlauncher.org/) that does it for you.
-2. Download **[Fabric API](https://modrinth.com/mod/fabric-api)** for 1.21.4.
-3. Put **both** of these into your Minecraft `mods/` folder:
+2. Download **[Fabric API](https://modrinth.com/mod/fabric-api)** and
+   **[Simple Voice Chat](https://modrinth.com/mod/simple-voice-chat)** for 1.21.4.
+3. Put **all** of these into your Minecraft `mods/` folder:
    - `fabric-api-*.jar`
-   - `blind-deaf-muted-client.jar` (must match the server's version)
+   - `voicechat-fabric-*.jar`
+   - `blind-deaf-muted-*.jar` (must match the server's version)
 4. Launch Minecraft with the Fabric profile, then connect to the host's address
    (see the deployment section the host used).
 
 `mods/` lives in `.minecraft/mods/` (or your launcher's instance folder).
+
+> Simple Voice Chat is an optional soft dependency: the mod still loads without it
+> (in-game voice just isn't enforced), but the intended experience installs it.
 
 ---
 
@@ -125,18 +141,22 @@ Best when players aren't on the same network. You rent a small Linux server.
    docker compose up -d --build
    ```
 
-   The image downloads vanilla 1.21.4, installs Fabric, drops in our mod, and runs.
-   First boot takes a minute or two. Check it with `docker compose logs -f`.
+   The image downloads vanilla 1.21.4, installs Fabric, drops in our mod,
+   auto-downloads Fabric API + Simple Voice Chat, and runs. First boot takes a minute
+   or two. Check it with `docker compose logs -f`.
 
-4. **Open the firewall** for the Minecraft port (TCP **25565**):
+4. **Open the firewall** for the Minecraft port (TCP **25565**) **and** the Simple
+   Voice Chat port (UDP **24454**):
 
    ```bash
    # ufw (Ubuntu/Debian)
    sudo ufw allow 25565/tcp
+   sudo ufw allow 24454/udp
    ```
 
-   Also open it in your provider's web control panel if they have a separate
-   firewall/security-group.
+   Also open them in your provider's web control panel if they have a separate
+   firewall/security-group. **Without UDP 24454, players connect but voice silently
+   fails to start.**
 
 5. **Find the VPS's public IP** (your provider shows it; or `curl ifconfig.me` on the
    box). Players connect to **`<VPS_PUBLIC_IP>:25565`** (the `:25565` is optional —
@@ -145,8 +165,7 @@ Best when players aren't on the same network. You rent a small Linux server.
 6. Players follow [Player setup](#player-setup-everyone) and join.
 
 **Stop / update:** `docker compose down` to stop; `git pull && docker compose up -d --build`
-to update after a code change. The world persists in `docker/world/` (a Docker
-volume) across restarts.
+to update after a code change. The world persists in `docker/data/` across restarts.
 
 > **Security:** a VPS is exposed to the internet. Keep the OS updated, consider a
 > whitelist (`WHITELIST` env var, below), and don't run other untrusted services on
@@ -169,9 +188,9 @@ Best for a couch/Wi-Fi session. No internet exposure, no port-forwarding.
    - **Linux:** `hostname -I` (take the first address)
    - **Windows:** `ipconfig` → "IPv4 Address" under your active adapter
 
-3. **Allow the port through the host's local firewall** if it has one (Windows
-   Defender Firewall will usually prompt the first time; allow TCP 25565). Docker
-   already publishes `25565` to the host via the compose `ports:` mapping.
+3. **Allow the ports through the host's local firewall** if it has one (Windows
+   Defender Firewall will usually prompt the first time; allow TCP 25565 and UDP
+   24454). Docker already publishes both to the host via the compose `ports:` mapping.
 
 4. Players on the **same network** follow [Player setup](#player-setup-everyone) and
    connect to **`<HOST_LOCAL_IP>:25565`**.
@@ -182,7 +201,7 @@ That's it — nothing leaves your network.
 > run the server locally (as above) and expose it with [`playit.gg`](https://playit.gg/)
 > or [Tailscale](https://tailscale.com/) (a private mesh VPN — everyone joins the
 > same virtual LAN, then connects to the host's Tailscale IP). No port-forwarding,
-> no rented server.
+> no rented server. Remember the voice chat also needs UDP 24454 tunnelled.
 
 ---
 
@@ -192,7 +211,11 @@ The host (or any opped player) assigns roles. The command requires **op /
 permission level 2**.
 
 ```
-/bdm set <player> <blind|deaf|muted|none>
+/bdm set <player> <blind|deaf|muted|none>   # assign / clear a role (instant)
+/bdm random                                 # roulette-reveal a random role to everyone
+/bdm randomizer                             # give yourself 4 Randomizer bottles (test)
+/bdm health <on|off>                        # shared-health mode
+/bdm skin <on|off>                          # show/hide the role accessories
 ```
 
 Examples:
@@ -204,8 +227,12 @@ Examples:
 /bdm set Alice none     # clear a role
 ```
 
-The change applies **instantly** on that player's client. Roles currently reset on
+`/bdm set` applies **instantly** on that player's client. Roles currently reset on
 server restart (persistence is a planned TODO — see `CLAUDE.md`).
+
+A throwable **Randomizer bottle** re-rolls everyone's role when it shatters; it's
+found in structure chests (dungeon, mineshaft, village weaponsmith, stronghold,
+jungle/desert temple, nether bridge, bastion treasure) and from **Piglin bartering**.
 
 To **op yourself**, run in the server console (`docker compose logs` won't accept
 input — attach instead):
@@ -244,36 +271,38 @@ Full list: the itzg image docs. Change them, then `docker compose up -d` to appl
 ### Change the Minecraft version
 
 Versions are centralized in [`gradle.properties`](gradle.properties) — the single
-source of truth for **both** jars. To retarget another MC version, update there
-**and** in two places:
+source of truth. To retarget another MC version, update there **and** in two places:
 
 1. `gradle.properties` — `minecraft_version`, `yarn_mappings`, `loader_version`,
    `fabric_version` (get the exact strings from <https://fabricmc.net/develop>).
 2. `docker/Dockerfile` — the `VERSION=1.21.4` line.
-3. `client/` and `server/` `fabric.mod.json` — the `minecraft` dependency range.
+3. `mod/src/main/resources/fabric.mod.json` — the `minecraft` dependency range.
 
 Then rebuild. Note: Minecraft's internal APIs change between versions, so the
-effect code (e.g. `RolePayload`, `SoundCategory` usage) may need small fixes — see
-the "Must-verify before first build" notes in `CLAUDE.md`.
+effect code may need small fixes — see the "Must-verify before first build" notes in
+`CLAUDE.md`.
 
 ### Tweak the disability effects
 
-Each effect is a small, self-contained handler in `client/src/main/java/com/blind-deaf-muted/client/`:
+The gameplay code lives in `mod/` (packages keep the logical split:
+`com.blinddeafmuted.client.*` and `com.blinddeafmuted.server.*`):
 
-| File                | Controls         | Easy tweaks                                                                                               |
-| ------------------- | ---------------- | --------------------------------------------------------------------------------------------------------- |
-| `BlindOverlay.java` | the black screen | Leave the hotbar/hand visible instead of pure black; tint instead of full black.                          |
-| `DeafHandler.java`  | muting audio     | Silence only _some_ sound categories (e.g. keep music); snapshot/restore real volumes (TODO in the file). |
-| `MuteHandler.java`  | blocking chat    | Add an on-screen "you are MUTED" toast; decide whether to also block command-style messages.              |
+| File                                                | Controls                | Easy tweaks                                                            |
+| --------------------------------------------------- | ----------------------- | --------------------------------------------------------------------- |
+| `client/mixin/InGameHudMixin.java` + `BlindHandler` | the blind black screen / fog | Switch blind mode (key `B`); tweak the fog distance.            |
+| `client/DeafHandler.java`                           | muting audio            | Silence only some sound categories (e.g. keep music).                 |
+| `client/MuteHandler.java`                           | blocking chat           | Add an on-screen "you are MUTED" toast.                               |
+| `client/RoleHeadAccessoryFeatureRenderer.java`      | glasses/bandage/headset | Move/restyle the 3D role accessories.                                 |
+| `server/BlindDeafMutedVoicechatPlugin.java`         | in-game voice enforcement | Adjust how deaf/muted cancel voice packets.                         |
 
-Roles themselves live in `common/src/main/java/com/blind-deaf-muted/common/Role.java` — add a
-new role here and it automatically appears in the command's tab-completion. You'd
-then add a matching handler on the client.
+Roles themselves live in `common/src/main/java/com/blinddeafmuted/common/Role.java` —
+add a new role here and it automatically appears in the command's tab-completion.
+You'd then add a matching handler on the client.
 
 ### Rename the command
 
 The command literal `bdm` is defined in
-`server/src/main/java/com/blind-deaf-muted/server/BlindDeafMutedCommand.java`. Change the
+`mod/src/main/java/com/blinddeafmuted/server/BlindDeafMutedCommand.java`. Change the
 `literal("bdm")` call to rename it.
 
 ### Network port
@@ -281,22 +310,25 @@ The command literal `bdm` is defined in
 Change the left side of the `ports:` mapping in `docker-compose.yml`
 (`"25565:25565"` → e.g. `"25570:25565"`) to expose the server on a different host
 port; players then use that port. Keep the **right** side `25565` (the in-container
-port) unchanged.
+port) unchanged. The voice port `24454/udp` works the same way.
 
 ---
 
 ## Troubleshooting
 
-- **Client won't connect / "outdated" or protocol warning** — the client jar and
-  server jar versions don't match. Rebuild/redistribute as a pair.
+- **Client won't connect / "outdated" or protocol warning** — the mod version on the
+  client and server don't match. Rebuild/redistribute as a pair.
 - **Player has Fabric but the mod does nothing** — Fabric API (`fabric-api-*.jar`)
   is missing from their `mods/`, or they launched the vanilla profile instead of the
   Fabric one.
+- **No voice / crossed-out mic** — Simple Voice Chat isn't installed on that client,
+  the server is missing it, the client/server SVC versions don't match, or UDP 24454
+  isn't open/reachable.
 - **`docker compose up` fails to build** — make sure you ran it from the `docker/`
   folder (the compose file sets the build context to the repo root).
-- **Effects don't apply after `/bdm set`** — confirm the target player has the
-  **client** jar installed; the server can store a role for anyone but only a modded
-  client renders the effect.
+- **Effects don't apply after `/bdm set`** — confirm the target player has the mod
+  jar installed; the server can store a role for anyone but only a modded client
+  renders the effect.
 - **Roles vanished after a restart** — expected for now; role persistence is a
   planned feature.
 
@@ -305,9 +337,8 @@ port) unchanged.
 ## Project layout
 
 ```
-common/   shared Role enum + network packet + version  (depended on by both)
-client/   the player-side jar (blind/deaf/mute effects)
-server/   the host-side jar (roles, /bdm command)
+common/   shared Role enum + network packets + version  (bundled into mod via jar-in-jar)
+mod/      the single shippable jar — client effects AND server logic
 docker/   Dockerfile + docker-compose.yml (one-command server)
 DESIGN.md the full design doc and rationale
 CLAUDE.md project status, decisions, and build notes
