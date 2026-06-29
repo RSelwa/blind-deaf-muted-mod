@@ -184,8 +184,8 @@ sudo ufw allow 24454/udp</code></pre>
 /bdm randomizer                              # te donne 4 fioles Randomizer (test)
 /bdm health &lt;on|off&gt;                         # mode vie partagée
 /bdm skin &lt;on|off&gt;                           # afficher/cacher les accessoires de rôle
-/bdm events &lt;on|off&gt;                         # minuteur d'événements aléatoires (re-tirage / potion)
-/bdm events now                              # déclenche un événement maintenant (test / vidéo)</code></pre>
+/bdm events &lt;on|off&gt;                         # re-tirage automatique des rôles à intervalle aléatoire
+/bdm events now                              # force un re-tirage maintenant (test / vidéo)</code></pre>
       <p class="my-2">Exemples :</p>
       <pre class="${pre}"><code>/bdm set Alice blind
 /bdm set Bob deaf

@@ -188,14 +188,13 @@ is the shared library bundled in via jar-in-jar.
   `RoleHeadAccessoryFeatureRenderer`) early-return in `render()` when disabled.
   Protocol bumped to **v5**. Not persisted across restarts (defaults ON, like the
   shared-health toggle).
-- **Random events timer (idea #5):** `server/RandomEventManager.java` — a server-tick
-  timer (off by default) that fires every 3–8 min while enabled and picks one event:
-  re-roll all roles (reuses `RoleRoller.rollAll` → roulette) or a random non-lethal
-  potion effect on a random player for 20s. Toggle `/bdm events <on|off>`; `/bdm events
-  now` force-fires one immediately (testing/recording). No protocol change (re-roll uses
-  the existing role-sync path, potions use vanilla effects). Tunable constants: interval
-  bounds, `REROLL_PERCENT`, `POTION_DURATION_TICKS`, and the `POTION_EFFECTS` pool
-  (LEVITATION/HARM/BLINDNESS deliberately excluded — lethal or role-overlapping).
+- **Auto-randomizer timer (idea #5):** `server/RandomEventManager.java` — a server-tick
+  timer (off by default) that re-rolls every online player's role every 3–8 min while
+  enabled (reuses `RoleRoller.rollAll` → roulette, same as a shattered Randomizer bottle).
+  Toggle `/bdm events <on|off>`; `/bdm events now` force-fires a re-roll immediately
+  (testing/recording). No protocol change (re-roll uses the existing role-sync path).
+  Tunable constants: `MIN/MAX_INTERVAL_TICKS`. (Potion-effect events were considered then
+  dropped — the timer is re-roll only.)
 - A **Vite + TypeScript + Tailwind v4** showcase site lives in `site/` (French tutorial +
   downloadable jar served from `site/public/downloads/`, kept tracked via a `.gitignore`
   exception). Tailwind via `@tailwindcss/vite` (no config file; theme in `@theme` block in
