@@ -35,11 +35,19 @@ public final class BlindHandler {
             GLFW.GLFW_KEY_B,
             "key.categories.blind-deaf-muted");
 
+    /** DEBUG: suppress the local blind effect (see your own accessories). Default N. */
+    private static final KeyBinding TOGGLE_EFFECT = new KeyBinding(
+            "key.blind-deaf-muted.toggle_blind_effect",
+            InputUtil.Type.KEYSYM,
+            GLFW.GLFW_KEY_N,
+            "key.categories.blind-deaf-muted");
+
     /** Did we apply the vanilla Blindness effect last tick? (so we can clear it cleanly). */
     private static boolean appliedVanilla = false;
 
     public static void register() {
         KeyBindingHelper.registerKeyBinding(TOGGLE_MODE);
+        KeyBindingHelper.registerKeyBinding(TOGGLE_EFFECT);
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (TOGGLE_MODE.wasPressed()) {
@@ -51,9 +59,19 @@ public final class BlindHandler {
                 }
             }
 
+            while (TOGGLE_EFFECT.wasPressed()) {
+                RoleState.toggleBlindEffect();
+                if (client.player != null) {
+                    client.player.sendMessage(
+                            net.minecraft.text.Text.literal("Blind effect: "
+                                    + (RoleState.isBlindEffectSuppressed() ? "OFF (debug)" : "ON")),
+                            true); // action-bar message
+                }
+            }
+
             if (client.player == null) return;
 
-            boolean wantVanilla = RoleState.is(Role.BLIND)
+            boolean wantVanilla = RoleState.blindEffectActive()
                     && RoleState.getBlindMode() == BlindMode.VANILLA;
 
             if (wantVanilla) {

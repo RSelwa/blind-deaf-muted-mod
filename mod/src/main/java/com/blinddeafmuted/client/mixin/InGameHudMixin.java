@@ -37,7 +37,7 @@ public class InGameHudMixin {
             method = "render(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/client/render/RenderTickCounter;)V",
             at = @At("HEAD"))
     private void blinddeafmuted$blackoutBeforeHud(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
-        if (!RoleState.is(Role.BLIND)) return;
+        if (!RoleState.blindEffectActive()) return;
         if (RoleState.getBlindMode() != BlindMode.BLACKOUT_HUD) return;
 
         int w = context.getScaledWindowWidth();

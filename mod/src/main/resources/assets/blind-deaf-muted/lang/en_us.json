@@ -1,6 +1,7 @@
 {
   "key.categories.blind-deaf-muted": "Blind Deaf Muted",
   "key.blind-deaf-muted.toggle_blind_mode": "Toggle blind mode (vanilla / blackout)",
+  "key.blind-deaf-muted.toggle_blind_effect": "DEBUG: toggle blind effect (see own accessories)",
   "key.blind-deaf-muted.toggle_tracker": "Toggle teammate tracker HUD",
   "key.blind-deaf-muted.toggle_roster": "Toggle who-is-what leaderboard HUD",
   "item.blind-deaf-muted.randomizer": "Randomizer"

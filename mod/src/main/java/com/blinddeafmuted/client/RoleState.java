@@ -22,6 +22,15 @@ public final class RoleState {
      */
     private static volatile BlindMode blindMode = BlindMode.VANILLA;
 
+    /**
+     * DEBUG/TEST flag: when true, the local BLIND visual effect (vanilla Blindness +
+     * fog + blackout HUD) is suppressed even though the role is still BLIND. Lets you
+     * see your own blind accessories (cane/glasses) for screenshots without going dark.
+     * Does NOT change the role on the server or in the roster, so the accessories stay
+     * on. Toggle with the keybind wired in {@link BlindHandler} (default N).
+     */
+    private static volatile boolean blindEffectSuppressed = false;
+
     public static Role get() {
         return current;
     }
@@ -32,6 +41,25 @@ public final class RoleState {
 
     public static boolean is(Role role) {
         return current == role;
+    }
+
+    /**
+     * True when the BLIND vision effect should actually apply: role is BLIND and the
+     * debug suppress flag is off. The three effect sites (vanilla Blindness in
+     * {@link BlindHandler}, fog in {@code BackgroundRendererMixin}, blackout in
+     * {@code InGameHudMixin}) gate on this instead of {@code is(Role.BLIND)}.
+     */
+    public static boolean blindEffectActive() {
+        return current == Role.BLIND && !blindEffectSuppressed;
+    }
+
+    public static boolean isBlindEffectSuppressed() {
+        return blindEffectSuppressed;
+    }
+
+    /** Toggle the debug blind-effect suppression (wired to a keybind for testing). */
+    public static void toggleBlindEffect() {
+        blindEffectSuppressed = !blindEffectSuppressed;
     }
 
     public static BlindMode getBlindMode() {

@@ -20,6 +20,17 @@ repositories {
         name = 'Henkelmax (Simple Voice Chat)'
         url = 'https://maven.maxhenkel.de/repository/public'
     }
+    // Modrinth maven — serves the full Simple Voice Chat MOD jar (not just the
+    // API) so we can load it in dev runs to actually test in-game voice.
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'Modrinth'
+                url = 'https://api.modrinth.com/maven'
+            }
+        }
+        filter { includeGroup 'maven.modrinth' }
+    }
 }
 
 dependencies {
@@ -33,6 +44,15 @@ dependencies {
     // dependency). If it isn't installed, our `voicechat` entrypoint is simply
     // never invoked, so nothing breaks. Plain API jar → plain `compileOnly`.
     compileOnly "de.maxhenkel.voicechat:voicechat-api:${project.voicechat_api_version}"
+
+    // DEV-ONLY: the full Simple Voice Chat mod, loaded into `runClient*`/`runServer`
+    // so we can actually test in-game voice locally. `modLocalRuntime` keeps it
+    // off the compile classpath and OUT of the published jar — players still
+    // install SVC themselves (it stays an optional soft dependency). Without this
+    // the dev client has no SVC mod, so no mic icon appears.
+    // 2.5.36 matches our compileOnly API version and was built with an older
+    // Loom (newer SVC builds use Loom 1.17+, which Loom 1.9.2 refuses to load).
+    modLocalRuntime "maven.modrinth:simple-voice-chat:fabric-1.21.4-2.5.36"
 
     // Share the common code and bundle it INTO this jar (jar-in-jar), so the one
     // published file is fully self-contained.
@@ -48,6 +68,38 @@ dependencies {
     // (prod runtime is intermediary).
     implementation project(path: ':common', configuration: 'namedElements')
     include project(':common')
+}
+
+loom {
+    runs {
+        // Default client gets a distinct offline username too, so it and client2
+        // can both join the Docker server without a duplicate-name kick.
+        client {
+            client()
+            programArgs '--username', 'Alex'
+        }
+        // Second client so two instances can join one world for multiplayer
+        // testing (blind <-> deaf <-> muted relay). Each gets its own runDir so
+        // configs/saves don't collide. Loom builds the dev classpath with the
+        // correct (named) mappings, avoiding the intermediary/named namespace
+        // mismatch you hit launching java by hand. Distinct --username avoids the
+        // server kicking the second login as a duplicate.
+        client2 {
+            client()
+            configName = 'Minecraft Client 2'
+            ideConfigGenerated = true
+            runDir = 'run2'
+            programArgs '--username', 'Bob'
+        }
+        // Third client — third player for blind/deaf/muted triangle testing.
+        client3 {
+            client()
+            configName = 'Minecraft Client 3'
+            ideConfigGenerated = true
+            runDir = 'run3'
+            programArgs '--username', 'Alice'
+        }
+    }
 }
 
 processResources {
