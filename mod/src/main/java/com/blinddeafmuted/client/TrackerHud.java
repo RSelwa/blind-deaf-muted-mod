@@ -37,9 +37,6 @@ public final class TrackerHud {
     private static final int BOTTOM_OFFSET = 55;
     private static final int LINE_HEIGHT = 10;
 
-    /** Show an elevation marker only past this vertical gap (blocks), to avoid noise. */
-    private static final double ELEVATION_THRESHOLD = 3.0;
-
     private static final KeyBinding TOGGLE = new KeyBinding(
             "key.blind-deaf-muted.toggle_tracker",
             InputUtil.Type.KEYSYM,
@@ -96,6 +93,8 @@ public final class TrackerHud {
         double dy = e.y() - py;
         double dz = e.z() - pz;
 
+        // 3D distance (still counts the vertical gap), but we no longer show an
+        // elevation marker — the heading arrow alone keeps the row clean.
         long blocks = Math.round(Math.sqrt(dx * dx + dy * dy + dz * dz));
 
         // Yaw (degrees) that would face the target, then how far that is from where
@@ -106,13 +105,7 @@ public final class TrackerHud {
         int sector = Math.floorMod((int) Math.round(rel / 45.0), 8);
         String arrow = ARROWS[sector];
 
-        // Elevation hint: only once the vertical gap is meaningful, so flat terrain
-        // stays uncluttered. Space-separated from the heading arrow to avoid confusion.
-        String elevation = "";
-        if (dy > ELEVATION_THRESHOLD) elevation = " ↑";
-        else if (dy < -ELEVATION_THRESHOLD) elevation = " ↓";
-
-        return e.name() + "  " + blocks + "b  " + arrow + elevation;
+        return e.name() + "  " + blocks + "b  " + arrow;
     }
 
     /** Normalize an angle to the range (-180, 180]. */
