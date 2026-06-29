@@ -58,6 +58,9 @@ public class BlindDeafMutedServer implements ModInitializer {
     /** Optional skin-visibility mode (on by default; toggled via /bdm skin). */
     private final SkinVisibilityManager skinVisibility = new SkinVisibilityManager();
 
+    /** Periodic random-events engine (off by default; toggled via /bdm events). */
+    private final RandomEventManager randomEvents = new RandomEventManager(roleManager);
+
     /** Push teammate positions every N server ticks (20 ticks = 1s). 4/sec is smooth
      *  for a direction arrow without being chatty. */
     private static final int TRACKER_INTERVAL_TICKS = 5;
@@ -142,9 +145,12 @@ public class BlindDeafMutedServer implements ModInitializer {
         // Inert until an op runs /bdm health on.
         sharedHealth.register();
 
+        // Random-events timer: inert until an op runs /bdm events on.
+        randomEvents.register();
+
         // Admin command: /bdm set <player> <blind|deaf|muted|none>, etc.
         CommandRegistrationCallback.EVENT.register((dispatcher, access, env) ->
-                BlindDeafMutedCommand.register(dispatcher, roleManager, sharedHealth, skinVisibility));
+                BlindDeafMutedCommand.register(dispatcher, roleManager, sharedHealth, skinVisibility, randomEvents));
 
         // When a player joins, immediately sync whatever role they have.
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->

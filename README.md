@@ -216,7 +216,14 @@ permission level 2**.
 /bdm randomizer                             # give yourself 4 Randomizer bottles (test)
 /bdm health <on|off>                        # shared-health mode
 /bdm skin <on|off>                          # show/hide the role accessories
+/bdm events <on|off>                        # periodic random-events timer (re-roll / random potion)
+/bdm events now                             # force-fire one random event now (testing/recording)
 ```
+
+The **random-events timer** (off by default) fires every 3–8 minutes while on: it
+either re-rolls everyone's role (roulette, like a Randomizer bottle) or drops a random
+potion effect on a random player for 20s. `/bdm events now` triggers one on demand —
+handy when recording. Tune intervals/effects in `server/RandomEventManager.java`.
 
 Examples:
 
