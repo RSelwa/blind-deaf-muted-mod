@@ -21,10 +21,12 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li><b>MUTED → {@link #distort}</b>: bit-crush + downsample so a muted player's
  *       voice still leaks through but is garbled and barely intelligible (not full
  *       silence like the old cancel).</li>
- *   <li><b>DEAF → {@link #forDeaf}</b>: scale the samples right down so a deaf
- *       listener can only just hear voices — unless the <em>speaker</em> is holding
- *       a megaphone, in which case we drive the gain up and hard-clip, giving the
- *       saturated bullhorn / radio timbre that cuts through.</li>
+ *   <li><b>DEAF → {@link #forDeaf}</b>: a non-muted speaker is amplified, dusted with
+ *       white noise and hard-clipped — loud enough that a deaf player can hear it, but
+ *       a crunchy mess that's still hard to understand. A <em>muted</em> speaker is kept
+ *       faint + muffled instead (their mic was already garbled at the source). A speaker
+ *       holding a megaphone overrides both: driven up and clipped into the saturated
+ *       bullhorn timbre that cuts clean through the deafness.</li>
  * </ul>
  *
  * <p><b>Opus is a stateful stream codec</b> — a decoder/encoder carries state between
@@ -72,6 +74,25 @@ final class VoiceFx {
      *  player's voice barely leaks through and isn't clearly intelligible. */
     private static final float MUTED_VOLUME = 0.35f;
 
+    /** MUTED + megaphone: a LIGHTER garble than the bare {@link #MUTED_KEEP_BITS}/
+     *  {@link #MUTED_DOWNSAMPLE}, so the muted player becomes vaguely intelligible — you
+     *  can sort of make out words if they speak slowly and clearly, but it's still hard. */
+    private static final int MUTED_MEGAPHONE_KEEP_BITS = 9;
+    private static final int MUTED_MEGAPHONE_DOWNSAMPLE = 1;
+
+    /** MUTED + megaphone gain + clip ceiling: loud enough to cut through, not a full
+     *  saturation blast like the DEAF megaphone path. */
+    private static final float MUTED_MEGAPHONE_GAIN = 2.0f;
+    private static final float MUTED_MEGAPHONE_CEILING = 0.9f;
+
+    /** DEAF normal (non-muted speaker, no megaphone): drive the voice up so the deaf
+     *  player CAN hear it... */
+    private static final float DEAF_AMPLIFY_GAIN = 3.0f;
+    /** ...but pile on white noise (fraction of full scale)... */
+    private static final float DEAF_NOISE = 0.06f;
+    /** ...and hard-clip, so it's loud-and-crunchy but still hard to actually understand. */
+    private static final float DEAF_CRUNCH_CEILING = 0.9f;
+
     /** One-pole low-pass coefficient derived from {@link #DEAF_LOWPASS_HZ}:
      *  alpha = w / (w + 1), w = 2π·fc/sr. Smaller alpha = heavier muffle. */
     private static final float DEAF_LOWPASS_ALPHA = lowpassAlpha(DEAF_LOWPASS_HZ);
@@ -113,12 +134,15 @@ final class VoiceFx {
         OpusEncoder encoder = micEncoders.computeIfAbsent(sender, k -> api.createEncoder());
         short[] pcm = decode(decoder, opus);
         if (pcm == null) return null;
-        garble(pcm); // always crunchy/unintelligible
         if (megaphone) {
-            // Megaphone in hand: still garbled, but loud + saturated so it cuts through.
-            saturate(pcm, MEGAPHONE_GAIN, (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
+            // Megaphone in hand: light garble (vaguely intelligible if they speak slowly
+            // and clearly) + loud-ish so it cuts through.
+            garble(pcm, MUTED_MEGAPHONE_KEEP_BITS, MUTED_MEGAPHONE_DOWNSAMPLE);
+            saturate(pcm, MUTED_MEGAPHONE_GAIN, (int) (Short.MAX_VALUE * MUTED_MEGAPHONE_CEILING));
         } else {
-            scale(pcm, MUTED_VOLUME); // faint AND garbled
+            // No megaphone: heavy garble + faint — basically impossible to understand.
+            garble(pcm, MUTED_KEEP_BITS, MUTED_DOWNSAMPLE);
+            scale(pcm, MUTED_VOLUME);
         }
         return encoder.encode(pcm);
     }
@@ -129,7 +153,7 @@ final class VoiceFx {
      * new Opus bytes for a rebuilt sound packet, or {@code null} on decode failure
      * (caller should fall back to cancelling).
      */
-    byte[] forDeaf(UUID receiver, UUID sender, byte[] opus, boolean megaphone) {
+    byte[] forDeaf(UUID receiver, UUID sender, byte[] opus, boolean megaphone, boolean speakerMuted) {
         String key = receiver + "|" + sender;
         OpusDecoder decoder = deafDecoders.computeIfAbsent(key, k -> api.createDecoder());
         OpusEncoder encoder = deafEncoders.computeIfAbsent(receiver, k -> api.createEncoder());
@@ -138,10 +162,16 @@ final class VoiceFx {
         if (megaphone) {
             // Loud and clear-ish — no muffle, so the megaphone cuts through the deafness.
             saturate(pcm, MEGAPHONE_GAIN, (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
-        } else {
-            // Faint dull rumble: muffle the highs, then drop the volume.
+        } else if (speakerMuted) {
+            // A muted speaker stays muted even to a deaf ear: their mic was already garbled
+            // at the source, so just keep it faint + muffled — don't amplify the garble.
             lowpass(pcm, key);
             scale(pcm, DEAF_VOLUME);
+        } else {
+            // Everyone else: amplified + noisy + saturated. The deaf player CAN hear them,
+            // but it's a loud crunchy mess that's still hard to actually understand.
+            addNoise(pcm, DEAF_NOISE);
+            saturate(pcm, DEAF_AMPLIFY_GAIN, (int) (Short.MAX_VALUE * DEAF_CRUNCH_CEILING));
         }
         return encoder.encode(pcm);
     }
@@ -187,15 +217,27 @@ final class VoiceFx {
         }
     }
 
-    /** Bit-crush + sample-and-hold downsample, in place, for the MUTED garble. */
-    private static void garble(short[] pcm) {
-        int mask = ~((1 << (16 - MUTED_KEEP_BITS)) - 1); // zero the low bits
+    /** Bit-crush ({@code keepBits} high bits) + sample-and-hold downsample (÷{@code factor}),
+     *  in place. Higher keepBits and lower factor = lighter, more intelligible garble. */
+    private static void garble(short[] pcm, int keepBits, int factor) {
+        int mask = ~((1 << (16 - keepBits)) - 1); // zero the low bits
         short held = 0;
         for (int i = 0; i < pcm.length; i++) {
-            if (i % MUTED_DOWNSAMPLE == 0) {
+            if (i % factor == 0) {
                 held = (short) (pcm[i] & mask);
             }
             pcm[i] = held;
+        }
+    }
+
+    /** Add uniform white noise of amplitude {@code amount}·full-scale, in place — the
+     *  hiss that makes the amplified DEAF voice loud yet hard to parse. */
+    private static void addNoise(short[] pcm, float amount) {
+        int amp = (int) (Short.MAX_VALUE * amount);
+        if (amp <= 0) return;
+        java.util.concurrent.ThreadLocalRandom rnd = java.util.concurrent.ThreadLocalRandom.current();
+        for (int i = 0; i < pcm.length; i++) {
+            pcm[i] = clamp(pcm[i] + rnd.nextInt(-amp, amp + 1));
         }
     }
 

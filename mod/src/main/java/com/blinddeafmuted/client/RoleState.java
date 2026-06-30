@@ -79,6 +79,10 @@ public final class RoleState {
      * sites gate on this instead of {@link #getBlindMode()}.
      */
     public static BlindMode effectiveBlindMode() {
+        // MYOPIA is a manual test look (B-cycle): show it as-is, no cane upgrade.
+        if (blindMode == BlindMode.MYOPIA) {
+            return BlindMode.MYOPIA;
+        }
         if (blindMode == BlindMode.VANILLA || localHoldsCane()) {
             return BlindMode.VANILLA;
         }

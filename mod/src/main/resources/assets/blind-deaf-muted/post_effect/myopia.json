@@ -1,0 +1,29 @@
+{
+    "targets": {
+        "temp": {}
+    },
+    "passes": [
+        {
+            "program": "blind-deaf-muted:post/myopia",
+            "inputs": [
+                { "sampler_name": "In", "target": "minecraft:main", "bilinear": true },
+                { "sampler_name": "InDepth", "target": "minecraft:main", "use_depth_buffer": true }
+            ],
+            "output": "temp",
+            "uniforms": [
+                { "name": "BlurDir", "values": [ 1.0, 0.0 ] }
+            ]
+        },
+        {
+            "program": "blind-deaf-muted:post/myopia",
+            "inputs": [
+                { "sampler_name": "In", "target": "temp", "bilinear": true },
+                { "sampler_name": "InDepth", "target": "minecraft:main", "use_depth_buffer": true }
+            ],
+            "output": "minecraft:main",
+            "uniforms": [
+                { "name": "BlurDir", "values": [ 0.0, 1.0 ] }
+            ]
+        }
+    ]
+}

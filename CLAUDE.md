@@ -208,6 +208,29 @@ is the shared library bundled in via jar-in-jar.
 **Comments ARE allowed in this project** (user opted in) — overrides the global
 no-comments rule.
 
+### Recent additions (idea pass 2 — sensory tuning)
+
+- **MYOPIA blind mode (3rd `BlindMode`):** depth-aware blur post-effect. Near blocks
+  (~2-3) stay sharp, everything past smears into shapes (see "a wall", not which block).
+  Files: `assets/blind-deaf-muted/post_effect/myopia.json` (pipeline, 2-pass separable),
+  `shaders/post/myopia.json` (program def, reuses vanilla `minecraft:post/blur` vsh),
+  `shaders/post/myopia.fsh` (per-fragment blur radius from linearized depth). Driven by
+  `MyopiaController` (client tick) which installs/clears the processor via
+  `GameRendererAccessor` (`@Invoker setPostProcessor`). VANILLA (fog) + BLACKOUT_HUD kept;
+  cycle all three with `B`. **Blur falloff constants (SHARP_BLOCKS / FULL_BLUR_BLOCKS /
+  MAX_TEXEL_RADIUS) need in-game calibration** — not visually tested yet.
+- **Voice rebalance (`VoiceFx`):**
+  - MUTED + megaphone → *lighter* garble (KEEP_BITS 9 / no downsample) + moderate gain:
+    vaguely intelligible if they speak slowly, still hard. Without megaphone unchanged
+    (heavy garble + faint = unintelligible).
+  - DEAF, non-muted speaker, no megaphone → amplified + white noise + hard-clip: audible
+    but a crunchy mess. Muted speaker stays faint+muffled (mic already garbled at source).
+    Megaphone still overrides both (loud + clear). Speaker role passed via
+    `forDeaf(..., speakerMuted)` from the voicechat plugin.
+- **Build note (macOS):** `gradle.properties` pins a Windows JDK path; on mac build with
+  `JAVA_HOME=/opt/homebrew/opt/openjdk@21/.../Home ./gradlew :mod:build --no-daemon
+  -Porg.gradle.java.installations.paths=/opt/homebrew/opt/openjdk@21/.../Home`.
+
 ### Must-verify before first build
 
 - Fabric version strings in `gradle.properties` (minecraft/yarn/loader/fabric-api)

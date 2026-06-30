@@ -166,7 +166,8 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     }
 
     /** Decode→effect→encode a packet for a deaf receiver, picking the megaphone path when
-     *  the speaker holds one. Returns null on decode failure (caller then just drops it). */
+     *  the speaker holds one. A muted speaker is kept faint instead of amplified.
+     *  Returns null on decode failure (caller then just drops it). */
     private byte[] renderForDeaf(VoicechatConnection receiver, VoicechatConnection sender, SoundPacket packet) {
         UUID receiverId = uuidOf(receiver);
         UUID senderId = packet.getSender();
@@ -175,10 +176,11 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         }
         // Megaphone is on if the speaker holds the item OR is pressing the megaphone key.
         boolean megaphone = megaphoneKeyDown(senderId) || holdsMegaphone(sender);
+        boolean speakerMuted = roleOf(sender) == Role.MUTED;
         // Mark re-entrancy across the resend in case it re-fires the sound-packet event.
         rebuilding.set(Boolean.TRUE);
         try {
-            return fx.forDeaf(receiverId, senderId, packet.getOpusEncodedData(), megaphone);
+            return fx.forDeaf(receiverId, senderId, packet.getOpusEncodedData(), megaphone, speakerMuted);
         } finally {
             rebuilding.set(Boolean.FALSE);
         }

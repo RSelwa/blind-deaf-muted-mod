@@ -83,6 +83,7 @@ public class BlindDeafMutedClient implements ClientModInitializer {
         // Wire up the effect handlers. (BLIND's BLACKOUT_HUD draw and DEAF's muting
         // live in mixins — InGameHudMixin / SoundSystemMixin — and need no registration.)
         BlindHandler.register();  // blind-mode keybind + vanilla Blindness effect
+        MyopiaController.register(); // installs the MYOPIA blur post-effect while blind
         DeafHandler.register();   // stops in-flight sounds on going deaf
         MuteHandler.register();   // blocks outgoing chat
         TrackerHud.register();    // teammate tracker keybind (HUD draw is in InGameHudMixin)
