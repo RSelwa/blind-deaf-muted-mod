@@ -42,10 +42,19 @@ final class VoiceFx {
 
     // ---- Tunables (tweak by ear) -------------------------------------------
 
-    /** Deaf listener hears everyone at this fraction of normal volume (near-inaudible). */
+    /** Simple Voice Chat decodes to 48 kHz mono PCM. */
+    private static final float SAMPLE_RATE = 48_000f;
+
+    /** Deaf listener hears everyone at this fraction of normal volume, AND through a
+     *  low-pass muffle ({@link #DEAF_LOWPASS_HZ}) — a faint, dull rumble of voices. */
     private static final float DEAF_VOLUME = 0.12f;
 
-    /** Extra gain applied before clipping when a speaker uses a megaphone (saturation drive). */
+    /** Low-pass cutoff for the deaf muffle: frequencies above this are rolled off, so
+     *  consonants blur and voices read as a distant murmur. */
+    private static final float DEAF_LOWPASS_HZ = 500f;
+
+    /** Extra gain applied before clipping when a speaker uses a megaphone (saturation drive).
+     *  The megaphone path is deliberately NOT muffled — that's how it cuts through. */
     private static final float MEGAPHONE_GAIN = 6.0f;
 
     /** Post-megaphone output is clamped to this fraction of full scale, so the clipped
@@ -58,6 +67,19 @@ final class VoiceFx {
     /** MUTED sample-and-hold factor: repeat 1 sample for this many, dropping the
      *  effective sample rate to ~1/N — adds the crunchy aliased garble. */
     private static final int MUTED_DOWNSAMPLE = 3;
+
+    /** MUTED is also dropped to this fraction of volume — faint AND garbled, so a muted
+     *  player's voice barely leaks through and isn't clearly intelligible. */
+    private static final float MUTED_VOLUME = 0.35f;
+
+    /** One-pole low-pass coefficient derived from {@link #DEAF_LOWPASS_HZ}:
+     *  alpha = w / (w + 1), w = 2π·fc/sr. Smaller alpha = heavier muffle. */
+    private static final float DEAF_LOWPASS_ALPHA = lowpassAlpha(DEAF_LOWPASS_HZ);
+
+    private static float lowpassAlpha(float cutoffHz) {
+        double w = 2.0 * Math.PI * cutoffHz / SAMPLE_RATE;
+        return (float) (w / (w + 1.0));
+    }
 
     // ------------------------------------------------------------------------
 
@@ -72,6 +94,9 @@ final class VoiceFx {
     private final Map<String, OpusDecoder> deafDecoders = new ConcurrentHashMap<>();
     /** One encoder per receiver, for the deaf rebuild path. */
     private final Map<UUID, OpusEncoder> deafEncoders = new ConcurrentHashMap<>();
+    /** Per-(receiver,sender) low-pass filter memory ({@code [prevOutput]}), so the muffle
+     *  is continuous across the 20 ms frames of a stream instead of resetting each frame. */
+    private final Map<String, float[]> deafLowpassState = new ConcurrentHashMap<>();
 
     VoiceFx(VoicechatApi api) {
         this.api = api;
@@ -88,6 +113,7 @@ final class VoiceFx {
         short[] pcm = decode(decoder, opus);
         if (pcm == null) return null;
         garble(pcm);
+        scale(pcm, MUTED_VOLUME); // faint AND garbled
         return encoder.encode(pcm);
     }
 
@@ -104,8 +130,11 @@ final class VoiceFx {
         short[] pcm = decode(decoder, opus);
         if (pcm == null) return null;
         if (megaphone) {
+            // Loud and clear-ish — no muffle, so the megaphone cuts through the deafness.
             saturate(pcm, MEGAPHONE_GAIN, (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
         } else {
+            // Faint dull rumble: muffle the highs, then drop the volume.
+            lowpass(pcm, key);
             scale(pcm, DEAF_VOLUME);
         }
         return encoder.encode(pcm);
@@ -127,6 +156,18 @@ final class VoiceFx {
         for (int i = 0; i < pcm.length; i++) {
             pcm[i] = clamp((int) (pcm[i] * factor));
         }
+    }
+
+    /** One-pole IIR low-pass, in place, with state carried per stream so the muffle is
+     *  continuous across frames: {@code y += alpha·(x − y)}. */
+    private void lowpass(short[] pcm, String streamKey) {
+        float[] state = deafLowpassState.computeIfAbsent(streamKey, k -> new float[1]);
+        float y = state[0];
+        for (int i = 0; i < pcm.length; i++) {
+            y += DEAF_LOWPASS_ALPHA * (pcm[i] - y);
+            pcm[i] = clamp((int) y);
+        }
+        state[0] = y;
     }
 
     /** Boost then hard-clip to {@code ceiling} — the overdrive/saturation that gives
