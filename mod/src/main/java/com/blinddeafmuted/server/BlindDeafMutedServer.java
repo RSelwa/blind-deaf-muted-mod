@@ -1,5 +1,7 @@
 package com.blinddeafmuted.server;
 
+import com.blinddeafmuted.common.MegaphonePayload;
+import com.blinddeafmuted.common.MegaphoneStatePayload;
 import com.blinddeafmuted.common.ModConstants;
 import com.blinddeafmuted.common.ModEntities;
 import com.blinddeafmuted.common.ModItems;
@@ -61,6 +63,9 @@ public class BlindDeafMutedServer implements ModInitializer {
     /** Periodic random-events engine (off by default; toggled via /bdm events). */
     private final RandomEventManager randomEvents = new RandomEventManager(roleManager);
 
+    /** Who is currently holding the push-to-megaphone key (fed by MegaphonePayload). */
+    private final MegaphoneState megaphoneState = new MegaphoneState();
+
     /** Push teammate positions every N server ticks (20 ticks = 1s). 4/sec is smooth
      *  for a direction arrow without being chatty. */
     private static final int TRACKER_INTERVAL_TICKS = 5;
@@ -106,6 +111,19 @@ public class BlindDeafMutedServer implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(RosterPayload.ID, RosterPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(RollPayload.ID, RollPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(SkinVisibilityPayload.ID, SkinVisibilityPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(MegaphoneStatePayload.ID, MegaphoneStatePayload.CODEC);
+        // Inbound: clients report their megaphone key press/release.
+        PayloadTypeRegistry.playC2S().register(MegaphonePayload.ID, MegaphonePayload.CODEC);
+
+        // Receive megaphone key transitions. The concurrent set mutation is thread-safe,
+        // but rebroadcasting the visual state touches the player list, so hop to the
+        // server thread for that. Broadcasting on each transition (not just the slow
+        // roster tick) keeps the mouth-model animation snappy on press/release.
+        ServerPlayNetworking.registerGlobalReceiver(MegaphonePayload.ID, (payload, context) -> {
+            ServerPlayerEntity player = context.player();
+            megaphoneState.set(player.getUuid(), payload.active());
+            player.getServer().execute(() -> broadcastMegaphoneState(player.getServer()));
+        });
 
         // When a Randomizer bottle shatters, re-roll EVERY online player's role.
         RandomizerBottleEntity.SHATTER_HANDLER = bottle -> {
@@ -167,7 +185,12 @@ public class BlindDeafMutedServer implements ModInitializer {
         // entrypoint itself is still only invoked by SVC when present.
         if (FabricLoader.getInstance().isModLoaded("voicechat")) {
             BlindDeafMutedVoicechatPlugin.bind(roleManager);
+            BlindDeafMutedVoicechatPlugin.bindMegaphone(megaphoneState);
         }
+
+        // Drop a leaver's megaphone flag so a disconnect mid-press can't leave it stuck on.
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
+                megaphoneState.clear(handler.getPlayer().getUuid()));
 
         // A few times per second, send every player the positions of all the others,
         // so their client can draw the teammate tracker HUD. The client decides
@@ -219,9 +242,33 @@ public class BlindDeafMutedServer implements ModInitializer {
         // same slow tick as the roster (cheap, and keeps a late-joiner / re-login in sync
         // within a second of connecting).
         SkinVisibilityPayload skinPayload = new SkinVisibilityPayload(skinVisibility.isEnabled());
+
         for (ServerPlayerEntity recipient : players) {
             ServerPlayNetworking.send(recipient, payload);
             ServerPlayNetworking.send(recipient, skinPayload);
+        }
+
+        // Megaphone state rides the same slow tick (keeps late-joiners synced); it's also
+        // pushed immediately on each press/release for snappiness.
+        broadcastMegaphoneState(server);
+    }
+
+    /** Broadcast the names of everyone currently megaphoning, so every client can draw the
+     *  megaphone-at-the-mouth model on them. Built from the online players, so a stale uuid
+     *  (leaver) never shows up. */
+    private void broadcastMegaphoneState(net.minecraft.server.MinecraftServer server) {
+        List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
+        if (players.isEmpty()) return;
+
+        List<String> megaphoning = new ArrayList<>();
+        for (ServerPlayerEntity player : players) {
+            if (megaphoneState.isActive(player.getUuid())) {
+                megaphoning.add(player.getName().getString());
+            }
+        }
+        MegaphoneStatePayload megaphonePayload = new MegaphoneStatePayload(megaphoning);
+        for (ServerPlayerEntity recipient : players) {
+            ServerPlayNetworking.send(recipient, megaphonePayload);
         }
     }
 }

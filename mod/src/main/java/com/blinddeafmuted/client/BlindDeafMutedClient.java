@@ -1,5 +1,6 @@
 package com.blinddeafmuted.client;
 
+import com.blinddeafmuted.common.MegaphoneStatePayload;
 import com.blinddeafmuted.common.ModConstants;
 import com.blinddeafmuted.common.ModEntities;
 import com.blinddeafmuted.common.Role;
@@ -51,6 +52,7 @@ public class BlindDeafMutedClient implements ClientModInitializer {
                     if (renderer instanceof PlayerEntityRenderer playerRenderer) {
                         helper.register(new BlindCaneFeatureRenderer(playerRenderer));
                         helper.register(new RoleHeadAccessoryFeatureRenderer(playerRenderer));
+                        helper.register(new MegaphoneFeatureRenderer(playerRenderer));
                     }
                 });
 
@@ -70,6 +72,9 @@ public class BlindDeafMutedClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(SkinVisibilityPayload.ID, (payload, context) ->
                 context.client().execute(() -> SkinVisibilityState.set(payload.enabled())));
 
+        ClientPlayNetworking.registerGlobalReceiver(MegaphoneStatePayload.ID, (payload, context) ->
+                context.client().execute(() -> MegaphoneState.setActive(java.util.Set.copyOf(payload.activeNames()))));
+
         // The roulette reveal: spin the slot machine, then RouletteAnimation applies
         // the role itself at the end (so we deliberately don't touch RoleState here).
         ClientPlayNetworking.registerGlobalReceiver(RollPayload.ID, (payload, context) ->
@@ -83,6 +88,7 @@ public class BlindDeafMutedClient implements ClientModInitializer {
         TrackerHud.register();    // teammate tracker keybind (HUD draw is in InGameHudMixin)
         RosterHud.register();     // who-is-what leaderboard keybind (HUD draw is in InGameHudMixin)
         RouletteAnimation.register(); // roulette reveal countdown (HUD draw is in InGameHudMixin)
+        MegaphoneController.register(); // push-to-megaphone keybind (R) → tells the server
 
         LOGGER.info("Blind Deaf Muted client ready (protocol v{})", ModConstants.PROTOCOL_VERSION);
     }

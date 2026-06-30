@@ -62,6 +62,9 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     /** Set once at server-mod init, read later when voice events fire. */
     private static volatile RoleManager roles;
 
+    /** Set once at server-mod init: who is currently holding the megaphone key. */
+    private static volatile MegaphoneState megaphones;
+
     /** SVC server API + our effect pipeline, set in {@link #initialize}. */
     private VoicechatServerApi serverApi;
     private VoiceFx fx;
@@ -72,6 +75,11 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     /** Wire in the role store. Called from {@link BlindDeafMutedServer#onInitialize()}. */
     public static void bind(RoleManager roleManager) {
         roles = roleManager;
+    }
+
+    /** Wire in the megaphone key-state store. Called from {@link BlindDeafMutedServer#onInitialize()}. */
+    public static void bindMegaphone(MegaphoneState state) {
+        megaphones = state;
     }
 
     @Override
@@ -163,7 +171,8 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         if (receiverId == null || senderId == null) {
             return null;
         }
-        boolean megaphone = holdsMegaphone(sender);
+        // Megaphone is on if the speaker holds the item OR is pressing the megaphone key.
+        boolean megaphone = megaphoneKeyDown(senderId) || holdsMegaphone(sender);
         // Mark re-entrancy across the resend in case it re-fires the sound-packet event.
         rebuilding.set(Boolean.TRUE);
         try {
@@ -171,6 +180,12 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         } finally {
             rebuilding.set(Boolean.FALSE);
         }
+    }
+
+    /** Whether the speaker is currently holding the push-to-megaphone key. */
+    private static boolean megaphoneKeyDown(UUID senderId) {
+        MegaphoneState state = megaphones;
+        return state != null && state.isActive(senderId);
     }
 
     /** Whether the speaker is holding a {@link ModItems#MEGAPHONE} in either hand. */

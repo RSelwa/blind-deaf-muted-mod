@@ -18,8 +18,10 @@ public final class ModConstants {
      *  v2: added {@link TrackerPayload} (teammate HUD tracker).
      *  v3: added {@link RosterPayload} (who-is-what leaderboard HUD).
      *  v4: added {@link RollPayload} (roulette reveal animation trigger).
-     *  v5: added {@link SkinVisibilityPayload} (toggle custom role accessories). */
-    public static final int PROTOCOL_VERSION = 5;
+     *  v5: added {@link SkinVisibilityPayload} (toggle custom role accessories).
+     *  v6: added {@link MegaphonePayload} (C2S push-to-megaphone) +
+     *      {@link MegaphoneStatePayload} (S2C who's megaphoning, for the mouth model). */
+    public static final int PROTOCOL_VERSION = 6;
 
     /** Helper to build identifiers under our namespace. */
     public static Identifier id(String path) {
