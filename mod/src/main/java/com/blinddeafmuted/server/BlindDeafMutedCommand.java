@@ -54,6 +54,7 @@ public final class BlindDeafMutedCommand {
                         .then(literal("clear").executes(ctx -> clear(ctx, roles)))
                         .then(literal("status").executes(ctx -> status(ctx, roles)))
                         .then(literal("randomizer").executes(BlindDeafMutedCommand::giveRandomizer))
+                        .then(literal("megaphone").executes(BlindDeafMutedCommand::giveMegaphone))
                         .then(literal("health")
                                 .then(literal("on").executes(ctx -> setSharedHealth(ctx, sharedHealth, true)))
                                 .then(literal("off").executes(ctx -> setSharedHealth(ctx, sharedHealth, false)))
@@ -129,6 +130,21 @@ public final class BlindDeafMutedCommand {
         }
         player.giveItemStack(new ItemStack(ModItems.RANDOMIZER, 4));
         ctx.getSource().sendFeedback(() -> Text.literal("Gave 4 Randomizer bottles."), false);
+        return 1;
+    }
+
+    /**
+     * Give the command runner a Megaphone — hold it while talking so a DEAF teammate
+     * hears your voice loud and saturated instead of near-silent.
+     */
+    private static int giveMegaphone(CommandContext<ServerCommandSource> ctx) {
+        ServerPlayerEntity player = ctx.getSource().getPlayer();
+        if (player == null) {
+            ctx.getSource().sendError(Text.literal("Run this as a player."));
+            return 0;
+        }
+        player.giveItemStack(new ItemStack(ModItems.MEGAPHONE, 1));
+        ctx.getSource().sendFeedback(() -> Text.literal("Gave 1 Megaphone."), false);
         return 1;
     }
 
@@ -259,6 +275,7 @@ public final class BlindDeafMutedCommand {
                   /bdm clear                                 - reset everyone to NONE
                   /bdm status                                - list every player's current role
                   /bdm randomizer                            - give yourself Randomizer bottles (test)
+                  /bdm megaphone                             - give yourself a Megaphone (talk loud/saturated to deaf players)
                   /bdm health <on|off>                       - toggle shared-health mode (damage mirrored across the team)
                   /bdm skin <on|off>                         - toggle the custom role accessories (cane/glasses/bandage/headset)
                   /bdm events <on|off>                       - toggle the periodic random-events timer (re-roll / random potion)

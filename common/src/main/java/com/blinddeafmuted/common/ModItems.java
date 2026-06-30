@@ -19,6 +19,12 @@ public final class ModItems {
     /** The throwable re-roll bottle. Assigned in {@link #register()}. */
     public static Item RANDOMIZER;
 
+    /** Held item that lets you talk <em>through</em> a DEAF player's near-silence:
+     *  while a speaker holds it, the voice-chat plugin renders their voice loud and
+     *  saturated for deaf listeners instead of near-inaudible. A plain item — its only
+     *  effect is being read from the player's hand server-side. */
+    public static Item MEGAPHONE;
+
     public static void register() {
         // Idempotent: in the unified jar this can be reached from more than one
         // entrypoint on a physical client. Registering twice would throw, so bail
@@ -27,6 +33,9 @@ public final class ModItems {
         RANDOMIZER = register("randomizer",
                 RandomizerItem::new,
                 new Item.Settings().maxCount(16));
+        MEGAPHONE = register("megaphone",
+                Item::new,
+                new Item.Settings().maxCount(1));
     }
 
     private static Item register(String path, Function<Item.Settings, Item> factory, Item.Settings settings) {

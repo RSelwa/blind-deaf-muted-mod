@@ -1,15 +1,25 @@
 package com.blinddeafmuted.server;
 
 import com.blinddeafmuted.common.ModConstants;
+import com.blinddeafmuted.common.ModItems;
 import com.blinddeafmuted.common.Role;
 import de.maxhenkel.voicechat.api.ServerPlayer;
+import de.maxhenkel.voicechat.api.VoicechatApi;
 import de.maxhenkel.voicechat.api.VoicechatConnection;
 import de.maxhenkel.voicechat.api.VoicechatPlugin;
+import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.events.EntitySoundPacketEvent;
 import de.maxhenkel.voicechat.api.events.EventRegistration;
 import de.maxhenkel.voicechat.api.events.LocationalSoundPacketEvent;
 import de.maxhenkel.voicechat.api.events.MicrophonePacketEvent;
 import de.maxhenkel.voicechat.api.events.StaticSoundPacketEvent;
+import de.maxhenkel.voicechat.api.packets.EntitySoundPacket;
+import de.maxhenkel.voicechat.api.packets.LocationalSoundPacket;
+import de.maxhenkel.voicechat.api.packets.MicrophonePacket;
+import de.maxhenkel.voicechat.api.packets.SoundPacket;
+import de.maxhenkel.voicechat.api.packets.StaticSoundPacket;
+import net.minecraft.item.ItemStack;
+import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.util.UUID;
 
@@ -18,32 +28,46 @@ import java.util.UUID;
  * <em>voice</em>, by hooking the <a href="https://modrepo.de/minecraft/voicechat/api">
  * Simple Voice Chat</a> server plugin API.
  *
- * <p><b>Why server-side?</b> Simple Voice Chat relays every voice packet through
- * the server, so cancelling packets here enforces the rules for everyone — no
- * client cooperation needed. This is what upgrades voice comms from the
- * "honor-system" note in {@code DESIGN.md} to actually enforced:
+ * <p><b>Why server-side?</b> Simple Voice Chat relays every voice packet through the
+ * server, so processing packets here enforces the rules for everyone — no client
+ * cooperation needed. Originally both roles simply <em>cancelled</em> packets (full
+ * silence). They now apply graduated audio effects instead, mirroring how BLIND has
+ * a tight-fog variant rather than a pure blackout:
  * <ul>
- *   <li><b>MUTED</b> — we cancel the speaker's {@link MicrophonePacketEvent}, so
- *       their microphone audio is dropped at the server before it reaches anyone.</li>
- *   <li><b>DEAF</b> — we cancel any sound packet whose <em>receiver</em> is deaf
- *       ({@link EntitySoundPacketEvent} / {@link LocationalSoundPacketEvent} /
- *       {@link StaticSoundPacketEvent}, which between them cover proximity, group,
- *       entity and spectator audio), so a deaf player hears no voice.</li>
+ *   <li><b>MUTED</b> — we decode the speaker's {@link MicrophonePacketEvent}, garble
+ *       it ({@link VoiceFx#distort}), and put the mangled audio back, so a muted
+ *       player's voice leaks through distorted instead of being dropped entirely.</li>
+ *   <li><b>DEAF</b> — for every sound packet addressed to a deaf <em>receiver</em>, we
+ *       cancel the original and resend a re-rendered copy: near-silent normally, or
+ *       loud and saturated if the <em>speaker</em> is holding a {@link ModItems#MEGAPHONE
+ *       megaphone}. ({@link SoundPacket} has no opus setter, unlike
+ *       {@link MicrophonePacket}, so DEAF must rebuild + resend rather than edit in
+ *       place.)</li>
  * </ul>
  *
- * <p><b>Soft dependency.</b> Simple Voice Chat is optional. This class is only
- * loaded via the {@code voicechat} entrypoint, which the voice-chat mod alone
- * reads — if it isn't installed, this class is never touched and the server runs
- * normally (voice rules just aren't enforceable, matching the Discord fallback).
+ * <p>If decoding ever fails we fall back to the old behaviour (cancel), so a bad frame
+ * degrades to silence instead of crashing voice.
  *
- * <p>The {@link RoleManager} is provided statically via {@link #bind(RoleManager)}
- * from {@link BlindDeafMutedServer#onInitialize()}, because Simple Voice Chat constructs
- * this plugin itself (no-arg) and can't pass our manager in.
+ * <p><b>Soft dependency.</b> Simple Voice Chat is optional. This class is only loaded
+ * via the {@code voicechat} entrypoint — if the voice mod isn't installed it is never
+ * touched and the server runs normally (voice rules just aren't enforceable).
+ *
+ * <p>The {@link RoleManager} is provided statically via {@link #bind(RoleManager)} from
+ * {@link BlindDeafMutedServer#onInitialize()}, because Simple Voice Chat constructs this
+ * plugin itself (no-arg) and can't pass our manager in. The {@link VoicechatApi} /
+ * {@link VoicechatServerApi} arrive via {@link #initialize(VoicechatApi)}.
  */
 public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
 
     /** Set once at server-mod init, read later when voice events fire. */
     private static volatile RoleManager roles;
+
+    /** SVC server API + our effect pipeline, set in {@link #initialize}. */
+    private VoicechatServerApi serverApi;
+    private VoiceFx fx;
+
+    /** Guards against a resent DEAF packet re-triggering the same sound-packet event. */
+    private final ThreadLocal<Boolean> rebuilding = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
     /** Wire in the role store. Called from {@link BlindDeafMutedServer#onInitialize()}. */
     public static void bind(RoleManager roleManager) {
@@ -56,45 +80,133 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     }
 
     @Override
+    public void initialize(VoicechatApi api) {
+        // On a server, the api handed to a plugin is the server flavour.
+        this.serverApi = (VoicechatServerApi) api;
+        this.fx = new VoiceFx(api);
+    }
+
+    @Override
     public void registerEvents(EventRegistration registration) {
-        // MUTED: drop the speaker's microphone packet at the source.
+        // MUTED: garble the speaker's microphone audio at the source.
         registration.registerEvent(MicrophonePacketEvent.class, this::onMicrophone);
 
-        // DEAF: drop any voice packet addressed to a deaf listener. Each lambda
-        // is typed to its concrete event, so getReceiverConnection() and cancel()
-        // (both inherited from the PacketEvent base) resolve without any casts.
-        registration.registerEvent(EntitySoundPacketEvent.class,
-                e -> cancelIfDeaf(e.getReceiverConnection(), e::cancel));
-        registration.registerEvent(LocationalSoundPacketEvent.class,
-                e -> cancelIfDeaf(e.getReceiverConnection(), e::cancel));
-        registration.registerEvent(StaticSoundPacketEvent.class,
-                e -> cancelIfDeaf(e.getReceiverConnection(), e::cancel));
+        // DEAF: re-render any voice packet addressed to a deaf listener.
+        registration.registerEvent(EntitySoundPacketEvent.class, this::onEntitySound);
+        registration.registerEvent(LocationalSoundPacketEvent.class, this::onLocationalSound);
+        registration.registerEvent(StaticSoundPacketEvent.class, this::onStaticSound);
     }
+
+    // ---- MUTED -------------------------------------------------------------
 
     private void onMicrophone(MicrophonePacketEvent event) {
-        if (roleOf(event.getSenderConnection()) == Role.MUTED) {
-            event.cancel();
+        VoicechatConnection sender = event.getSenderConnection();
+        if (roleOf(sender) != Role.MUTED) {
+            return;
+        }
+        MicrophonePacket packet = event.getPacket();
+        byte[] garbled = fx.distort(uuidOf(sender), packet.getOpusEncodedData());
+        if (garbled != null) {
+            packet.setOpusEncodedData(garbled);
+        } else {
+            event.cancel(); // decode failed → fall back to the old hard mute
         }
     }
 
-    /** Cancel a sound packet (via the supplied {@code cancel} action) if its receiver is deaf. */
-    private void cancelIfDeaf(VoicechatConnection receiver, Runnable cancel) {
-        if (roleOf(receiver) == Role.DEAF) {
-            cancel.run();
+    // ---- DEAF (one handler per concrete sound-packet type) -----------------
+
+    private void onEntitySound(EntitySoundPacketEvent event) {
+        if (skipDeaf(event.getReceiverConnection())) return;
+        EntitySoundPacket p = event.getPacket();
+        byte[] audio = renderForDeaf(event.getReceiverConnection(), event.getSenderConnection(), p);
+        event.cancel();
+        if (audio != null) {
+            serverApi.sendEntitySoundPacketTo(event.getReceiverConnection(),
+                    p.entitySoundPacketBuilder().opusEncodedData(audio).build());
         }
     }
+
+    private void onLocationalSound(LocationalSoundPacketEvent event) {
+        if (skipDeaf(event.getReceiverConnection())) return;
+        LocationalSoundPacket p = event.getPacket();
+        byte[] audio = renderForDeaf(event.getReceiverConnection(), event.getSenderConnection(), p);
+        event.cancel();
+        if (audio != null) {
+            serverApi.sendLocationalSoundPacketTo(event.getReceiverConnection(),
+                    p.locationalSoundPacketBuilder().opusEncodedData(audio).build());
+        }
+    }
+
+    private void onStaticSound(StaticSoundPacketEvent event) {
+        if (skipDeaf(event.getReceiverConnection())) return;
+        StaticSoundPacket p = event.getPacket();
+        byte[] audio = renderForDeaf(event.getReceiverConnection(), event.getSenderConnection(), p);
+        event.cancel();
+        if (audio != null) {
+            serverApi.sendStaticSoundPacketTo(event.getReceiverConnection(),
+                    p.staticSoundPacketBuilder().opusEncodedData(audio).build());
+        }
+    }
+
+    /** True when this sound packet should be left untouched (receiver not deaf, or we're
+     *  inside our own resend). */
+    private boolean skipDeaf(VoicechatConnection receiver) {
+        if (rebuilding.get()) return true;
+        return roleOf(receiver) != Role.DEAF;
+    }
+
+    /** Decode→effect→encode a packet for a deaf receiver, picking the megaphone path when
+     *  the speaker holds one. Returns null on decode failure (caller then just drops it). */
+    private byte[] renderForDeaf(VoicechatConnection receiver, VoicechatConnection sender, SoundPacket packet) {
+        UUID receiverId = uuidOf(receiver);
+        UUID senderId = packet.getSender();
+        if (receiverId == null || senderId == null) {
+            return null;
+        }
+        boolean megaphone = holdsMegaphone(sender);
+        // Mark re-entrancy across the resend in case it re-fires the sound-packet event.
+        rebuilding.set(Boolean.TRUE);
+        try {
+            return fx.forDeaf(receiverId, senderId, packet.getOpusEncodedData(), megaphone);
+        } finally {
+            rebuilding.set(Boolean.FALSE);
+        }
+    }
+
+    /** Whether the speaker is holding a {@link ModItems#MEGAPHONE} in either hand. */
+    private boolean holdsMegaphone(VoicechatConnection sender) {
+        ServerPlayerEntity player = serverPlayer(sender);
+        if (player == null || ModItems.MEGAPHONE == null) {
+            return false;
+        }
+        return isMegaphone(player.getMainHandStack()) || isMegaphone(player.getOffHandStack());
+    }
+
+    private static boolean isMegaphone(ItemStack stack) {
+        return stack != null && stack.isOf(ModItems.MEGAPHONE);
+    }
+
+    // ---- shared helpers ----------------------------------------------------
 
     /** Resolve the role for a voice connection's player, defaulting to NONE. */
     private Role roleOf(VoicechatConnection connection) {
         RoleManager store = roles;
-        if (store == null || connection == null) {
-            return Role.NONE;
-        }
+        UUID uuid = uuidOf(connection);
+        return (store == null || uuid == null) ? Role.NONE : store.get(uuid);
+    }
+
+    private static UUID uuidOf(VoicechatConnection connection) {
+        if (connection == null) return null;
         ServerPlayer player = connection.getPlayer();
-        if (player == null) {
-            return Role.NONE;
-        }
-        UUID uuid = player.getUuid();
-        return uuid == null ? Role.NONE : store.get(uuid);
+        return player == null ? null : player.getUuid();
+    }
+
+    /** The vanilla {@link ServerPlayerEntity} behind an SVC connection, or null. */
+    private static ServerPlayerEntity serverPlayer(VoicechatConnection connection) {
+        if (connection == null) return null;
+        ServerPlayer svc = connection.getPlayer();
+        if (svc == null) return null;
+        Object handle = svc.getPlayer(); // platform player object
+        return (handle instanceof ServerPlayerEntity sp) ? sp : null;
     }
 }
