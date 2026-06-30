@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " E ",
+    "fBg",
+    " o "
+  ],
+  "key": {
+    "E": "minecraft:ender_pearl",
+    "o": "minecraft:bone",
+    "f": "minecraft:rotten_flesh",
+    "g": "minecraft:gunpowder",
+    "B": "minecraft:glass_bottle"
+  },
+  "result": {
+    "id": "blind-deaf-muted:randomizer",
+    "count": 1
+  }
+}
