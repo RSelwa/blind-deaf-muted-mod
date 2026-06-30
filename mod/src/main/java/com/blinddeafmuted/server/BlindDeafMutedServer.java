@@ -262,7 +262,8 @@ public class BlindDeafMutedServer implements ModInitializer {
 
         List<String> megaphoning = new ArrayList<>();
         for (ServerPlayerEntity player : players) {
-            if (megaphoneState.isActive(player.getUuid())) {
+            // Visual triggers on either path: holding the megaphone key (R) OR the item.
+            if (megaphoneState.isActive(player.getUuid()) || holdsMegaphoneItem(player)) {
                 megaphoning.add(player.getName().getString());
             }
         }
@@ -270,5 +271,12 @@ public class BlindDeafMutedServer implements ModInitializer {
         for (ServerPlayerEntity recipient : players) {
             ServerPlayNetworking.send(recipient, megaphonePayload);
         }
+    }
+
+    /** Whether the player is holding the megaphone item in either hand (drives the
+     *  arm-pose + horn visual, same as the push-to-megaphone key). */
+    private static boolean holdsMegaphoneItem(ServerPlayerEntity player) {
+        return player.getMainHandStack().isOf(ModItems.MEGAPHONE)
+                || player.getOffHandStack().isOf(ModItems.MEGAPHONE);
     }
 }
