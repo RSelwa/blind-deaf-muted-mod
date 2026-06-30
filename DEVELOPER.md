@@ -25,8 +25,57 @@ build, which runs Gradle inside the container):
 
 ```bash
 # from repo root — confirms it compiles locally first
-./gradlew :common:build :server:build      # Windows: .\gradlew.bat ...
+./gradlew :mod:build      # Windows: .\gradlew.bat ... (builds :common too)
 ```
+
+### Running dev clients on Mac (multiplayer testing)
+
+Loom's `runClient*` tasks launch dev clients that load the mod from source (no jar
+copy). Three are pre-defined in `mod/build.gradle` `runs {}`, each with its own
+offline username + game dir so they can all join one server without duplicate-name
+kicks and without configs colliding:
+
+| Task                 | Username | Game dir |
+| -------------------- | -------- | -------- |
+| `:mod:runClient`     | `Alex`   | `run/`   |
+| `:mod:runClient2`    | `Bob`    | `run2/`  |
+| `:mod:runClient3`    | `Alice`  | `run3/`  |
+
+Do **not** pass `--args="--username ..."` or `-Dfabric.gameDir=...` — loom ignores
+both (the username comes from the run config; `-D` only sets the Gradle JVM). Just
+run the task.
+
+**Two Mac gotchas** (both bit us once):
+
+1. The system default `java` is **26**, which Gradle 8.12 can't run on
+   (`Type T not present` / `DefaultReportContainer`). You must point `JAVA_HOME` at
+   **JDK 21**.
+2. `gradle.properties` pins `org.gradle.java.installations.paths` to both a Mac and a
+   Windows JDK path. On Mac the Windows entry breaks toolchain resolution
+   (`Illegal character in path`), so override the list with just the Mac JDK via `-P`.
+
+Client 1 (`Alex`):
+
+```bash
+JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home \
+  ./gradlew :mod:runClient \
+  -Porg.gradle.java.installations.paths=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
+```
+
+Client 2 (`Bob`) — second terminal, just swap the task:
+
+```bash
+JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home \
+  ./gradlew :mod:runClient2 \
+  -Porg.gradle.java.installations.paths=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
+```
+
+(`:mod:runClient3` for a third player.) If you hit a stale-daemon JVM error, run
+`./gradlew --stop` once to kill daemons started on the wrong JVM.
+
+All connect to the Docker server at `localhost:25565`. For the offline usernames to
+join, set `online-mode=false` on the server (**testing only**). Voice chat
+(UDP 24454) + offline mode works local-only on one machine.
 
 ### Watching / driving the running server
 
@@ -39,9 +88,10 @@ docker compose exec blind-deaf-muted rcon-cli op <name>   # one-off console comm
 World data and op status live in the `./world` volume, so they survive rebuilds and
 restarts — you only `op` yourself once.
 
-> **Client side:** the client jar is **not** in Docker. After changing client code,
-> rebuild it (`./gradlew :client:build`) and reinstall `client/build/libs/client-*.jar`
-> in your local Minecraft `mods/` folder, then relaunch the game.
+> **Client side:** the same unified jar is **not** auto-installed from Docker. After
+> changing client code, rebuild it (`./gradlew :mod:build`) and reinstall
+> `mod/build/libs/blind-deaf-muted-*.jar` in your local Minecraft `mods/` folder, then
+> relaunch the game.
 
 ## How each effect is implemented (client side)
 

@@ -31,8 +31,8 @@ actually runs against the real game. `remapJar` is that task.
 
 ## 3. Task running (like npm scripts)
 
-Everything is a **task**. `./gradlew :server:build` means "run the `build` task in the
-`server` module." `:common:build`, `:server:remapJar` — same idea as
+Everything is a **task**. `./gradlew :mod:build` means "run the `build` task in the
+`mod` module." `:common:build`, `:mod:remapJar` — same idea as
 `npm run <script>`, with `:module:task` addressing the monorepo module.
 
 ## Mapping to things in this repo

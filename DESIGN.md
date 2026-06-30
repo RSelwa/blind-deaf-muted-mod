@@ -100,11 +100,11 @@ Multi-stage so `docker build` is self-contained from source:
 ```dockerfile
 FROM gradle:8-jdk21 AS build
 COPY . /src
-RUN gradle :server:build           # -> server/build/libs/blind-deaf-muted-server.jar
+RUN gradle :mod:remapJar           # -> mod/build/libs/blind-deaf-muted-*.jar
 
 FROM itzg/minecraft-server:latest
 ENV EULA=TRUE TYPE=FABRIC VERSION=LATEST
-COPY --from=build /src/server/build/libs/blind-deaf-muted-server.jar /mods/
+COPY --from=build /src/mod/build/libs/blind-deaf-muted-*.jar /mods/
 ```
 
 `docker compose up` → downloads vanilla + Fabric, drops in our mod, runs. One command.
