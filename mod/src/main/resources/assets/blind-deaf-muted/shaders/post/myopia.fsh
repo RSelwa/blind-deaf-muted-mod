@@ -11,12 +11,12 @@ out vec4 fragColor;
 // --- Tunables (calibrate in-game) ---------------------------------------------
 // Distance (in blocks) within which everything stays sharp — "the couple of blocks
 // right in front of you". Past FULL_BLUR_BLOCKS the image is fully smeared.
-const float SHARP_BLOCKS    = 2.5;
-const float FULL_BLUR_BLOCKS = 9.0;
+const float SHARP_BLOCKS    = 1.0;
+const float FULL_BLUR_BLOCKS = 4.0;
 // Max per-axis blur spread, in texels, at full strength. Higher = mushier far field.
-const float MAX_TEXEL_RADIUS = 9.0;
+const float MAX_TEXEL_RADIUS = 22.0;
 // How many taps per side. More = smoother blur, slightly more cost.
-const int TAPS = 6;
+const int TAPS = 12;
 // Minecraft's camera near plane. Used to turn the non-linear depth buffer back into
 // an approximate eye-space distance in blocks (far plane is negligible at close range:
 //   depth ~= 1 - near/z   =>   z ~= near / (1 - depth)).
