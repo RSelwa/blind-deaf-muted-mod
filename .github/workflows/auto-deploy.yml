@@ -1,0 +1,27 @@
+name: 🚀 Auto deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ ( github.ref_name == 'main' || github.ref_name == 'develop' || contains(github.event.head_commit.message, '[force_deploy]')) }}
+    steps:
+      - uses: actions/checkout@v4 # needed to access the composite action
+      - name: Deploy
+        uses: ./.github/actions/deploy
+        with:
+          environment: ${{ 'blind-deaf-muted' }}
+          branch: ${{ github.ref_name }}
+          vps_host: ${{ secrets.VPS_HOST }}
+          vps_user: ${{ secrets.VPS_USER }}
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}

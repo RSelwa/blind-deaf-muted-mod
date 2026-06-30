@@ -7,6 +7,10 @@ const MC_VERSION = '1.21.4'
 const JAR = `blind-deaf-muted-${MOD_VERSION}.jar`
 const JAR_URL = `./downloads/${JAR}`
 
+// Injecte par Vite au build (voir vite.config.ts). Date du dernier deploiement.
+declare const __BUILD_DATE__: string
+const BUILD_DATE = __BUILD_DATE__
+
 interface RoleInfo {
   nom: string
   emoji: string
@@ -71,6 +75,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <a class="${btnPrimary}" href="${JAR_URL}" download>⬇ Télécharger le mod (${JAR})</a>
         <a class="${btnGhost}" href="#tuto">Lire le tutoriel</a>
       </div>
+      <p class="mt-3 text-xs text-slate-500">Dernière mise à jour : ${BUILD_DATE}</p>
       <p class="mt-6 text-sm text-slate-400">Le même jar s'installe côté joueur ET tourne côté serveur. Aucun téléchargement séparé.</p>
     </div>
   </header>
