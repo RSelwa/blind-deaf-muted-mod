@@ -25,6 +25,11 @@ public final class ModItems {
      *  effect is being read from the player's hand server-side. */
     public static Item MEGAPHONE;
 
+    /** The blind player's cane: while a BLIND player holds it, their own client upgrades
+     *  the full blackout to the reduced "see your feet" fog. Read locally on the client
+     *  (no networking) — a plain item whose only effect is being held. */
+    public static Item CANE;
+
     public static void register() {
         // Idempotent: in the unified jar this can be reached from more than one
         // entrypoint on a physical client. Registering twice would throw, so bail
@@ -34,6 +39,9 @@ public final class ModItems {
                 RandomizerItem::new,
                 new Item.Settings().maxCount(16));
         MEGAPHONE = register("megaphone",
+                Item::new,
+                new Item.Settings().maxCount(1));
+        CANE = register("cane",
                 Item::new,
                 new Item.Settings().maxCount(1));
     }

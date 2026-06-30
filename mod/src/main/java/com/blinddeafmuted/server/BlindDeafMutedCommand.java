@@ -55,6 +55,7 @@ public final class BlindDeafMutedCommand {
                         .then(literal("status").executes(ctx -> status(ctx, roles)))
                         .then(literal("randomizer").executes(BlindDeafMutedCommand::giveRandomizer))
                         .then(literal("megaphone").executes(BlindDeafMutedCommand::giveMegaphone))
+                        .then(literal("cane").executes(BlindDeafMutedCommand::giveCane))
                         .then(literal("health")
                                 .then(literal("on").executes(ctx -> setSharedHealth(ctx, sharedHealth, true)))
                                 .then(literal("off").executes(ctx -> setSharedHealth(ctx, sharedHealth, false)))
@@ -145,6 +146,21 @@ public final class BlindDeafMutedCommand {
         }
         player.giveItemStack(new ItemStack(ModItems.MEGAPHONE, 1));
         ctx.getSource().sendFeedback(() -> Text.literal("Gave 1 Megaphone."), false);
+        return 1;
+    }
+
+    /**
+     * Give the command runner a Cane — a BLIND player holding it upgrades their full
+     * blackout to the reduced "see your feet" fog.
+     */
+    private static int giveCane(CommandContext<ServerCommandSource> ctx) {
+        ServerPlayerEntity player = ctx.getSource().getPlayer();
+        if (player == null) {
+            ctx.getSource().sendError(Text.literal("Run this as a player."));
+            return 0;
+        }
+        player.giveItemStack(new ItemStack(ModItems.CANE, 1));
+        ctx.getSource().sendFeedback(() -> Text.literal("Gave 1 Cane."), false);
         return 1;
     }
 
@@ -276,6 +292,7 @@ public final class BlindDeafMutedCommand {
                   /bdm status                                - list every player's current role
                   /bdm randomizer                            - give yourself Randomizer bottles (test)
                   /bdm megaphone                             - give yourself a Megaphone (talk loud/saturated to deaf players)
+                  /bdm cane                                  - give yourself a Cane (blind: hold it to swap full blackout for reduced fog)
                   /bdm health <on|off>                       - toggle shared-health mode (damage mirrored across the team)
                   /bdm skin <on|off>                         - toggle the custom role accessories (cane/glasses/bandage/headset)
                   /bdm events <on|off>                       - toggle the periodic random-events timer (re-roll / random potion)

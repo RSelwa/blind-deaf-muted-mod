@@ -29,7 +29,7 @@ public class BackgroundRendererMixin {
 
     @ModifyReturnValue(method = "applyFog", at = @At("RETURN"))
     private static Fog blinddeafmuted$tightenBlindFog(Fog fog) {
-        if (RoleState.blindEffectActive() && RoleState.getBlindMode() == BlindMode.VANILLA) {
+        if (RoleState.blindEffectActive() && RoleState.effectiveBlindMode() == BlindMode.VANILLA) {
             return new Fog(BLIND_FOG_START, BLIND_FOG_END, fog.shape(),
                     fog.red(), fog.green(), fog.blue(), fog.alpha());
         }

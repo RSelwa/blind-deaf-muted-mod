@@ -38,7 +38,7 @@ public class InGameHudMixin {
             at = @At("HEAD"))
     private void blinddeafmuted$blackoutBeforeHud(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
         if (!RoleState.blindEffectActive()) return;
-        if (RoleState.getBlindMode() != BlindMode.BLACKOUT_HUD) return;
+        if (RoleState.effectiveBlindMode() != BlindMode.BLACKOUT_HUD) return;
 
         int w = context.getScaledWindowWidth();
         int h = context.getScaledWindowHeight();

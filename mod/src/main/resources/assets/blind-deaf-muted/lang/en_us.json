@@ -6,5 +6,6 @@
   "key.blind-deaf-muted.toggle_roster": "Toggle who-is-what leaderboard HUD",
   "key.blind-deaf-muted.megaphone": "Megaphone (hold to talk loud to deaf players)",
   "item.blind-deaf-muted.randomizer": "Randomizer",
-  "item.blind-deaf-muted.megaphone": "Megaphone"
+  "item.blind-deaf-muted.megaphone": "Megaphone",
+  "item.blind-deaf-muted.cane": "Cane"
 }

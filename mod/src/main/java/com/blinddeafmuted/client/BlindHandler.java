@@ -72,7 +72,7 @@ public final class BlindHandler {
             if (client.player == null) return;
 
             boolean wantVanilla = RoleState.blindEffectActive()
-                    && RoleState.getBlindMode() == BlindMode.VANILLA;
+                    && RoleState.effectiveBlindMode() == BlindMode.VANILLA;
 
             if (wantVanilla) {
                 // Re-apply each tick with a short duration so it never lapses while blind.

@@ -10,6 +10,12 @@ Build: `JAVA_HOME=.../openjdk@21 ./gradlew :mod:build` → `mod/build/libs/blind
 - [ ] **Megaphone → deaf** — deaf listener + speaker holds **R** (or item) → deaf hears them loud/saturated, cutting through.
 - [ ] **Codec quality** — deaf/muted audio clicky at frame edges? = filter/decoder continuity issue.
 
+## Blind cane
+- [ ] `/bdm set <p> blind` with NO cane → full blackout (default).
+- [ ] Hold **cane** item → swaps to reduced "see your feet" fog. Drop it → back to blackout.
+- [ ] `B` keybind still toggles mode manually (testing).
+- [ ] Double-cane check: blind player holding the item shows arm-cane + held stick — looks OK or suppress cosmetic?
+
 ## Megaphone visuals
 - [ ] Hold **R** → bullhorn at mouth + right arm raises (visible to others / 3rd person). Release → gone.
 - [ ] Up-to-1s lag on appear/disappear acceptable.

@@ -1,6 +1,9 @@
 package com.blinddeafmuted.client;
 
+import com.blinddeafmuted.common.ModItems;
 import com.blinddeafmuted.common.Role;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.player.PlayerEntity;
 
 /**
  * Holds the local player's current {@link Role}.
@@ -17,10 +20,11 @@ public final class RoleState {
     /**
      * How the BLIND role is rendered. Purely a client-side visual style of the same
      * disability (the player can't see the environment either way), so it's safe to
-     * let the player pick it — see {@link BlindMode}. Default: {@link BlindMode#VANILLA}
-     * (the tight closing-in fog where you only see your feet; toggle to BLACKOUT with B).
+     * let the player pick it — see {@link BlindMode}. Default: {@link BlindMode#BLACKOUT_HUD}
+     * (full black). Holding the {@link ModItems#CANE cane} upgrades it to the reduced
+     * "see your feet" fog; the {@code B} keybind also flips it manually for testing.
      */
-    private static volatile BlindMode blindMode = BlindMode.VANILLA;
+    private static volatile BlindMode blindMode = BlindMode.BLACKOUT_HUD;
 
     /**
      * DEBUG/TEST flag: when true, the local BLIND visual effect (vanilla Blindness +
@@ -64,6 +68,30 @@ public final class RoleState {
 
     public static BlindMode getBlindMode() {
         return blindMode;
+    }
+
+    /**
+     * The blind look to actually render right now. Full {@link BlindMode#BLACKOUT_HUD}
+     * by default, upgraded to the {@link BlindMode#VANILLA} reduced fog when the local
+     * player is holding the {@link ModItems#CANE cane} (or has manually toggled VANILLA
+     * with {@code B}). This is the cane mechanic: no cane → blind in the dark; cane in
+     * hand → you can feel out your feet. Read locally — no networking. The three effect
+     * sites gate on this instead of {@link #getBlindMode()}.
+     */
+    public static BlindMode effectiveBlindMode() {
+        if (blindMode == BlindMode.VANILLA || localHoldsCane()) {
+            return BlindMode.VANILLA;
+        }
+        return BlindMode.BLACKOUT_HUD;
+    }
+
+    /** Whether the local player is holding the cane item in either hand. */
+    private static boolean localHoldsCane() {
+        if (ModItems.CANE == null) return false;
+        PlayerEntity player = MinecraftClient.getInstance().player;
+        return player != null
+                && (player.getMainHandStack().isOf(ModItems.CANE)
+                || player.getOffHandStack().isOf(ModItems.CANE));
     }
 
     /** Cycle to the next blind mode (wired to a keybind for live testing). */
