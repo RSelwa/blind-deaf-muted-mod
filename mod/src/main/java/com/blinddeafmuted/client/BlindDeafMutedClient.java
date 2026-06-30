@@ -52,7 +52,8 @@ public class BlindDeafMutedClient implements ClientModInitializer {
                     if (renderer instanceof PlayerEntityRenderer playerRenderer) {
                         helper.register(new BlindCaneFeatureRenderer(playerRenderer));
                         helper.register(new RoleHeadAccessoryFeatureRenderer(playerRenderer));
-                        helper.register(new MegaphoneFeatureRenderer(playerRenderer));
+                        // (Megaphone mouth-cone feature renderer removed — the player holds the
+                        // 3D megaphone item in hand, so the cone at the mouth was redundant.)
                     }
                 });
 

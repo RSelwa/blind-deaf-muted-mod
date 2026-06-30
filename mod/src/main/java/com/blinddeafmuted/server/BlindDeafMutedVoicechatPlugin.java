@@ -193,10 +193,9 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         }
         // Megaphone is on if the speaker holds the item OR is pressing the megaphone key.
         boolean megaphone = megaphoneKeyDown(senderId) || holdsMegaphone(sender);
-        boolean speakerMuted = roleOf(sender) == Role.MUTED;
         // Note: the re-entrancy guard (rebuilding) is set around the RESEND in the caller,
         // not here — that's where SVC re-fires the sound event on this thread.
-        return fx.forDeaf(receiverId, senderId, packet.getOpusEncodedData(), megaphone, speakerMuted);
+        return fx.forDeaf(receiverId, senderId, packet.getOpusEncodedData(), megaphone);
     }
 
     /** Whether the speaker is currently holding the push-to-megaphone key. */

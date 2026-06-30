@@ -22,12 +22,10 @@ import java.util.concurrent.ConcurrentHashMap;
  *       voice still leaks through but sounds like a dull "talking in a box" murmur, barely
  *       intelligible (not full silence like the old cancel). A muted speaker holding a
  *       megaphone instead gets a lighter bit-crush garble, driven loud so it cuts through.</li>
- *   <li><b>DEAF → {@link #forDeaf}</b>: a non-muted speaker is amplified, dusted with
- *       white noise and hard-clipped — loud enough that a deaf player can hear it, but
- *       a crunchy mess that's still hard to understand. A <em>muted</em> speaker is kept
- *       faint + muffled instead (their mic was already garbled at the source). A speaker
- *       holding a megaphone overrides both: driven up and clipped into the saturated
- *       bullhorn timbre that cuts clean through the deafness.</li>
+ *   <li><b>DEAF → {@link #forDeaf}</b>: the speaker's clean voice is simply turned right
+ *       down to a faint murmur — no noise/garble, just quiet (that's the deafness). A
+ *       speaker holding a megaphone overrides this: amplified and lightly saturated so it's
+ *       loud enough to cut clean through.</li>
  * </ul>
  *
  * <p><b>Opus is a stateful stream codec</b> — a decoder/encoder carries state between
@@ -48,21 +46,20 @@ final class VoiceFx {
     /** Simple Voice Chat decodes to 48 kHz mono PCM. */
     private static final float SAMPLE_RATE = 48_000f;
 
-    /** Deaf listener hears everyone at this fraction of normal volume, AND through a
-     *  low-pass muffle ({@link #DEAF_LOWPASS_HZ}) — a faint, dull rumble of voices. */
-    private static final float DEAF_VOLUME = 0.12f;
+    /** Deaf listener hears everyone at this fraction of normal volume — clean audio, just
+     *  turned right down to a barely-there murmur (no garble/noise/muffle). Deliberately very
+     *  low: normal speech is almost inaudible to a deaf player, so others must use a megaphone
+     *  to actually get through. Raise for a louder baseline, lower for more profound deafness. */
+    private static final float DEAF_VOLUME = 0.05f;
 
-    /** Low-pass cutoff for the deaf muffle: frequencies above this are rolled off, so
-     *  consonants blur and voices read as a distant murmur. */
-    private static final float DEAF_LOWPASS_HZ = 500f;
+    /** Megaphone drive (gain). Modest on purpose: normal speech stays fairly quiet, so a
+     *  speaker has to SCREAM (loud input) to actually be heard — and that's when it pushes
+     *  into the clip ceiling and saturates a touch. */
+    private static final float MEGAPHONE_GAIN = 1.5f;
 
-    /** Extra gain applied before clipping when a speaker uses a megaphone (saturation drive).
-     *  The megaphone path is deliberately NOT muffled — that's how it cuts through. */
-    private static final float MEGAPHONE_GAIN = 6.0f;
-
-    /** Post-megaphone output is clamped to this fraction of full scale, so the clipped
-     *  bullhorn voice is loud but not eardrum-splitting. */
-    private static final float MEGAPHONE_CEILING = 0.85f;
+    /** Post-megaphone clip ceiling (fraction of full scale). Lowered so loud peaks clip and
+     *  saturate a LITTLE — gives the bullhorn bite without blasting. */
+    private static final float MEGAPHONE_CEILING = 0.80f;
 
     /** MUTED low-pass cutoff: roll off everything above this so the voice reads as a dull,
      *  muffled "talking in a box" sound — no crispy/aliased garble, just smothered. Lower =
@@ -70,32 +67,21 @@ final class VoiceFx {
     private static final float MUTED_LOWPASS_HZ = 300f;
     private static final float MUTED_LOWPASS_ALPHA = lowpassAlpha(MUTED_LOWPASS_HZ);
 
-    /** MUTED is dropped to this fraction of volume — faint AND muffled, so a muted player's
-     *  voice barely leaks through and isn't clearly intelligible. */
-    private static final float MUTED_VOLUME = 0.18f;
+    /** MUTED bare-mic volume. Set so a muted player (muffled) is heard at roughly the same
+     *  faintness a deaf listener hears others ({@link #DEAF_VOLUME}) — a hair higher to make
+     *  up for the energy the box muffle strips out. Audible up close, not silent. */
+    private static final float MUTED_VOLUME = 0.13f;
 
-    /** MUTED + megaphone: a LIGHTER garble than the bare {@link #MUTED_KEEP_BITS}/
-     *  {@link #MUTED_DOWNSAMPLE}, so the muted player becomes vaguely intelligible — you
-     *  can sort of make out words if they speak slowly and clearly, but it's still hard. */
-    private static final int MUTED_MEGAPHONE_KEEP_BITS = 9;
-    private static final int MUTED_MEGAPHONE_DOWNSAMPLE = 1;
+    /** MUTED + megaphone low-pass: a much higher cutoff than the bare-mute box muffle, so the
+     *  voice opens up and is clear-ish (only lightly filtered), not boxed-in. */
+    private static final float MUTED_MEGAPHONE_LOWPASS_HZ = 1800f;
+    private static final float MUTED_MEGAPHONE_LOWPASS_ALPHA = lowpassAlpha(MUTED_MEGAPHONE_LOWPASS_HZ);
 
-    /** MUTED + megaphone gain + clip ceiling: loud enough to cut through, not a full
-     *  saturation blast like the DEAF megaphone path. */
-    private static final float MUTED_MEGAPHONE_GAIN = 2.0f;
-    private static final float MUTED_MEGAPHONE_CEILING = 0.9f;
-
-    /** DEAF normal (non-muted speaker, no megaphone): drive the voice up so the deaf
-     *  player CAN hear it... */
-    private static final float DEAF_AMPLIFY_GAIN = 3.0f;
-    /** ...but pile on white noise (fraction of full scale)... */
-    private static final float DEAF_NOISE = 0.06f;
-    /** ...and hard-clip, so it's loud-and-crunchy but still hard to actually understand. */
-    private static final float DEAF_CRUNCH_CEILING = 0.9f;
-
-    /** One-pole low-pass coefficient derived from {@link #DEAF_LOWPASS_HZ}:
-     *  alpha = w / (w + 1), w = 2π·fc/sr. Smaller alpha = heavier muffle. */
-    private static final float DEAF_LOWPASS_ALPHA = lowpassAlpha(DEAF_LOWPASS_HZ);
+    /** MUTED + megaphone gain + clip ceiling: same modest drive + low ceiling as the deaf
+     *  megaphone — a muted player must speak up to be heard, and loud peaks saturate a touch
+     *  (no bit-crush garble, no noise). */
+    private static final float MUTED_MEGAPHONE_GAIN = 1.5f;
+    private static final float MUTED_MEGAPHONE_CEILING = 0.80f;
 
     private static float lowpassAlpha(float cutoffHz) {
         double w = 2.0 * Math.PI * cutoffHz / SAMPLE_RATE;
@@ -117,9 +103,6 @@ final class VoiceFx {
     private final Map<String, OpusDecoder> deafDecoders = new ConcurrentHashMap<>();
     /** One encoder per receiver, for the deaf rebuild path. */
     private final Map<UUID, OpusEncoder> deafEncoders = new ConcurrentHashMap<>();
-    /** Per-(receiver,sender) low-pass filter memory ({@code [prevOutput]}), so the muffle
-     *  is continuous across the 20 ms frames of a stream instead of resetting each frame. */
-    private final Map<String, float[]> deafLowpassState = new ConcurrentHashMap<>();
 
     VoiceFx(VoicechatApi api) {
         this.api = api;
@@ -127,25 +110,27 @@ final class VoiceFx {
 
     /**
      * Mangle a MUTED speaker's own microphone frame. Without a megaphone it's muffled
-     * (low-pass) + faint — a dull "talking in a box" murmur, hard to understand. With a
-     * megaphone it's a lighter bit-crush garble driven loud + saturated so it cuts through.
-     * Returns new Opus bytes to put back on the mic packet, or {@code null} if decoding
-     * failed (caller falls back to cancel).
+     * (heavy low-pass) + very faint — a dull "talking in a box" you only catch point-blank.
+     * With a megaphone it opens up (light low-pass) and is amplified clean, so the muted
+     * player can actually be heard at range — no bit-crush garble, no noise. Returns new
+     * Opus bytes to put back on the mic packet, or {@code null} if decoding failed (caller
+     * falls back to cancel).
      */
     byte[] distort(UUID sender, byte[] opus, boolean megaphone) {
         OpusDecoder decoder = micDecoders.computeIfAbsent(sender, k -> api.createDecoder());
         OpusEncoder encoder = micEncoders.computeIfAbsent(sender, k -> api.createEncoder());
         short[] pcm = decode(decoder, opus);
         if (pcm == null) return null;
+        float[] lp = muteLowpassState.computeIfAbsent(sender, k -> new float[1]);
         if (megaphone) {
-            // Megaphone in hand: light garble (vaguely intelligible if they speak slowly
-            // and clearly) + loud-ish so it cuts through.
-            garble(pcm, MUTED_MEGAPHONE_KEEP_BITS, MUTED_MEGAPHONE_DOWNSAMPLE);
+            // Megaphone: barely filtered + amplified clean, so the muted player opens up and
+            // can be heard at range — clearer, not boxy, not noisy.
+            lowpassCore(pcm, lp, MUTED_MEGAPHONE_LOWPASS_ALPHA);
             saturate(pcm, MUTED_MEGAPHONE_GAIN, (int) (Short.MAX_VALUE * MUTED_MEGAPHONE_CEILING));
         } else {
-            // No megaphone: muffle (low-pass) + faint — a dull "talking in a box" murmur,
-            // not the old crispy bit-crush. Barely intelligible.
-            lowpassCore(pcm, muteLowpassState.computeIfAbsent(sender, k -> new float[1]), MUTED_LOWPASS_ALPHA);
+            // No megaphone: heavy muffle ("in a box") + very faint, so it's only audible to
+            // someone standing right next to them.
+            lowpassCore(pcm, lp, MUTED_LOWPASS_ALPHA);
             scale(pcm, MUTED_VOLUME);
         }
         return encoder.encode(pcm);
@@ -157,25 +142,20 @@ final class VoiceFx {
      * new Opus bytes for a rebuilt sound packet, or {@code null} on decode failure
      * (caller should fall back to cancelling).
      */
-    byte[] forDeaf(UUID receiver, UUID sender, byte[] opus, boolean megaphone, boolean speakerMuted) {
+    byte[] forDeaf(UUID receiver, UUID sender, byte[] opus, boolean megaphone) {
         String key = receiver + "|" + sender;
         OpusDecoder decoder = deafDecoders.computeIfAbsent(key, k -> api.createDecoder());
         OpusEncoder encoder = deafEncoders.computeIfAbsent(receiver, k -> api.createEncoder());
         short[] pcm = decode(decoder, opus);
         if (pcm == null) return null;
         if (megaphone) {
-            // Loud and clear-ish — no muffle, so the megaphone cuts through the deafness.
+            // Megaphone amplifies the otherwise-faint voice up to a loud, lightly-saturated
+            // level so it cuts through the deafness. Clean apart from the hot drive.
             saturate(pcm, MEGAPHONE_GAIN, (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
-        } else if (speakerMuted) {
-            // A muted speaker stays muted even to a deaf ear: their mic was already garbled
-            // at the source, so just keep it faint + muffled — don't amplify the garble.
-            lowpass(pcm, key);
-            scale(pcm, DEAF_VOLUME);
         } else {
-            // Everyone else: amplified + noisy + saturated. The deaf player CAN hear them,
-            // but it's a loud crunchy mess that's still hard to actually understand.
-            addNoise(pcm, DEAF_NOISE);
-            saturate(pcm, DEAF_AMPLIFY_GAIN, (int) (Short.MAX_VALUE * DEAF_CRUNCH_CEILING));
+            // Default deaf: the SAME clean voice, just turned right down — they catch only a
+            // faint murmur, no garble/noise. A megaphone (above) is how you get heard.
+            scale(pcm, DEAF_VOLUME);
         }
         return encoder.encode(pcm);
     }
@@ -198,12 +178,6 @@ final class VoiceFx {
         }
     }
 
-    /** One-pole IIR low-pass, in place, with state carried per stream so the muffle is
-     *  continuous across frames: {@code y += alpha·(x − y)}. */
-    private void lowpass(short[] pcm, String streamKey) {
-        lowpassCore(pcm, deafLowpassState.computeIfAbsent(streamKey, k -> new float[1]), DEAF_LOWPASS_ALPHA);
-    }
-
     /** One-pole IIR low-pass core: {@code y += alpha·(x − y)}, with {@code state[0]} holding
      *  the previous output so the muffle is continuous across frames. */
     private static void lowpassCore(short[] pcm, float[] state, float alpha) {
@@ -215,38 +189,14 @@ final class VoiceFx {
         state[0] = y;
     }
 
-    /** Boost then hard-clip to {@code ceiling} — the overdrive/saturation that gives
-     *  the megaphone its crunchy, cutting timbre. */
+    /** Boost then hard-clip to {@code ceiling} — amplification with light saturation only on
+     *  the peaks that exceed the ceiling (keep the ceiling high to stay clean). */
     private static void saturate(short[] pcm, float gain, int ceiling) {
         for (int i = 0; i < pcm.length; i++) {
             int v = (int) (pcm[i] * gain);
             if (v > ceiling) v = ceiling;
             else if (v < -ceiling) v = -ceiling;
             pcm[i] = (short) v;
-        }
-    }
-
-    /** Bit-crush ({@code keepBits} high bits) + sample-and-hold downsample (÷{@code factor}),
-     *  in place. Higher keepBits and lower factor = lighter, more intelligible garble. */
-    private static void garble(short[] pcm, int keepBits, int factor) {
-        int mask = ~((1 << (16 - keepBits)) - 1); // zero the low bits
-        short held = 0;
-        for (int i = 0; i < pcm.length; i++) {
-            if (i % factor == 0) {
-                held = (short) (pcm[i] & mask);
-            }
-            pcm[i] = held;
-        }
-    }
-
-    /** Add uniform white noise of amplitude {@code amount}·full-scale, in place — the
-     *  hiss that makes the amplified DEAF voice loud yet hard to parse. */
-    private static void addNoise(short[] pcm, float amount) {
-        int amp = (int) (Short.MAX_VALUE * amount);
-        if (amp <= 0) return;
-        java.util.concurrent.ThreadLocalRandom rnd = java.util.concurrent.ThreadLocalRandom.current();
-        for (int i = 0; i < pcm.length; i++) {
-            pcm[i] = clamp(pcm[i] + rnd.nextInt(-amp, amp + 1));
         }
     }
 
