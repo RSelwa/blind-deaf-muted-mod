@@ -103,17 +103,23 @@ final class VoiceFx {
     }
 
     /**
-     * Garble a MUTED speaker's own microphone frame. Returns new Opus bytes to put
-     * back on the mic packet, or {@code null} if decoding failed (caller should then
-     * fall back to cancelling the packet).
+     * Garble a MUTED speaker's own microphone frame. Always crunched/unintelligible; if
+     * {@code megaphone} (the muted speaker is holding one) it's also driven loud + saturated
+     * so it cuts through, otherwise dropped near-silent. Returns new Opus bytes to put back
+     * on the mic packet, or {@code null} if decoding failed (caller falls back to cancel).
      */
-    byte[] distort(UUID sender, byte[] opus) {
+    byte[] distort(UUID sender, byte[] opus, boolean megaphone) {
         OpusDecoder decoder = micDecoders.computeIfAbsent(sender, k -> api.createDecoder());
         OpusEncoder encoder = micEncoders.computeIfAbsent(sender, k -> api.createEncoder());
         short[] pcm = decode(decoder, opus);
         if (pcm == null) return null;
-        garble(pcm);
-        scale(pcm, MUTED_VOLUME); // faint AND garbled
+        garble(pcm); // always crunchy/unintelligible
+        if (megaphone) {
+            // Megaphone in hand: still garbled, but loud + saturated so it cuts through.
+            saturate(pcm, MEGAPHONE_GAIN, (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
+        } else {
+            scale(pcm, MUTED_VOLUME); // faint AND garbled
+        }
         return encoder.encode(pcm);
     }
 

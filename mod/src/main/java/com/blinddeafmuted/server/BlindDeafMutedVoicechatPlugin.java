@@ -113,7 +113,9 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
             return;
         }
         MicrophonePacket packet = event.getPacket();
-        byte[] garbled = fx.distort(uuidOf(sender), packet.getOpusEncodedData());
+        UUID senderId = uuidOf(sender);
+        boolean megaphone = megaphoneKeyDown(senderId) || holdsMegaphone(sender);
+        byte[] garbled = fx.distort(senderId, packet.getOpusEncodedData(), megaphone);
         if (garbled != null) {
             packet.setOpusEncodedData(garbled);
         } else {
