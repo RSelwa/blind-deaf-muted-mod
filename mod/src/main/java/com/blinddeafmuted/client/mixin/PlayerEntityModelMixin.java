@@ -1,10 +1,12 @@
 package com.blinddeafmuted.client.mixin;
 
+import com.blinddeafmuted.client.BlindCaneFeatureRenderer;
 import com.blinddeafmuted.client.MegaphoneState;
 import com.blinddeafmuted.client.RosterState;
 import com.blinddeafmuted.common.Role;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
 import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
+import net.minecraft.util.Arm;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -44,15 +46,28 @@ public class PlayerEntityModelMixin {
             at = @At("TAIL"))
     private void blinddeafmuted$extendBlindArm(PlayerEntityRenderState state, CallbackInfo ci) {
         if (RosterState.roleOf(state.name) != Role.BLIND) return;
+        // Only sweep the arm forward when the cane is actually in hand, and sweep the
+        // SAME arm that grips it (matches the cane accessory, which renders in that hand).
+        Arm arm = BlindCaneFeatureRenderer.caneArm(state.name);
+        if (arm == null) return;
 
         PlayerEntityModel model = (PlayerEntityModel) (Object) this;
-        model.leftArm.pitch = BLIND_LEFT_ARM_PITCH;
-        model.leftArm.yaw = 0.0F;
-        model.leftArm.roll = 0.0F;
-        // Keep the jacket sleeve overlay aligned with the arm we just moved.
-        model.leftSleeve.pitch = model.leftArm.pitch;
-        model.leftSleeve.yaw = 0.0F;
-        model.leftSleeve.roll = 0.0F;
+        if (arm == Arm.RIGHT) {
+            model.rightArm.pitch = BLIND_LEFT_ARM_PITCH;
+            model.rightArm.yaw = 0.0F;
+            model.rightArm.roll = 0.0F;
+            // Keep the jacket sleeve overlay aligned with the arm we just moved.
+            model.rightSleeve.pitch = model.rightArm.pitch;
+            model.rightSleeve.yaw = 0.0F;
+            model.rightSleeve.roll = 0.0F;
+        } else {
+            model.leftArm.pitch = BLIND_LEFT_ARM_PITCH;
+            model.leftArm.yaw = 0.0F;
+            model.leftArm.roll = 0.0F;
+            model.leftSleeve.pitch = model.leftArm.pitch;
+            model.leftSleeve.yaw = 0.0F;
+            model.leftSleeve.roll = 0.0F;
+        }
     }
 
     /** Raise the RIGHT arm to the mouth while megaphoning, so the player reads as holding

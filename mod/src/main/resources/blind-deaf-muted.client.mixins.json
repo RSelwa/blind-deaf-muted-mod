@@ -4,6 +4,7 @@
   "package": "com.blinddeafmuted.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "ArmedEntityRenderStateMixin",
     "BackgroundRendererMixin",
     "GameRendererAccessor",
     "InGameHudMixin",

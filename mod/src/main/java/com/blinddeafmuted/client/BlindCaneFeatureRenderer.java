@@ -1,7 +1,9 @@
 package com.blinddeafmuted.client;
 
 import com.blinddeafmuted.common.ModConstants;
+import com.blinddeafmuted.common.ModItems;
 import com.blinddeafmuted.common.Role;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.model.ModelData;
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.model.ModelPartBuilder;
@@ -16,6 +18,7 @@ import net.minecraft.client.render.entity.feature.FeatureRendererContext;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
 import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.Arm;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.RotationAxis;
 
@@ -68,11 +71,13 @@ public final class BlindCaneFeatureRenderer
                        PlayerEntityRenderState state, float limbAngle, float limbDistance) {
         if (!SkinVisibilityState.isEnabled()) return; // op toggled accessories off
         if (RosterState.roleOf(state.name) != Role.BLIND) return;
+        Arm arm = caneArm(state.name); // which hand holds the cane (null = not holding)
+        if (arm == null) return; // only show the cane while it's actually in hand
 
         PlayerEntityModel model = getContextModel();
         matrices.push();
-        // Follow the left arm's live transform (so the cane swings with the arm)…
-        model.leftArm.rotate(matrices);
+        // Follow the holding arm's live transform (so the cane swings with the arm)…
+        (arm == Arm.RIGHT ? model.rightArm : model.leftArm).rotate(matrices);
         // …drop to the hand and lean the cane forward a touch.
         matrices.translate(0.0F, HAND_DOWN, 0.0F);
         matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(FORWARD_TILT_DEGREES));
@@ -81,5 +86,34 @@ public final class BlindCaneFeatureRenderer
                 vertexConsumers.getBuffer(RenderLayer.getEntitySolid(TEXTURE)),
                 light, OverlayTexture.DEFAULT_UV);
         matrices.pop();
+    }
+
+    /**
+     * Whether the player with this display name is currently holding the cane item
+     * in either hand. The feature renderer only gets the render state (no entity
+     * ref), so we resolve the live entity by name from the client world and read its
+     * hand stacks. Match-by-name is fine here — this is a small private-server mod.
+     */
+    public static boolean holdsCane(String name) {
+        return caneArm(name) != null;
+    }
+
+    /**
+     * Which physical arm the named player holds the cane in, or {@code null} if they
+     * aren't holding it. Both the fake cane geometry and the swept-arm pose
+     * ({@code PlayerEntityModelMixin}) follow this, so the cane appears in — and bends —
+     * whichever hand actually grips it.
+     */
+    public static Arm caneArm(String name) {
+        if (ModItems.CANE == null) return null;
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.world == null) return null;
+        var player = client.world.getPlayers().stream()
+                .filter(p -> p.getName().getString().equals(name))
+                .findFirst().orElse(null);
+        if (player == null) return null;
+        if (player.getStackInArm(Arm.RIGHT).isOf(ModItems.CANE)) return Arm.RIGHT;
+        if (player.getStackInArm(Arm.LEFT).isOf(ModItems.CANE)) return Arm.LEFT;
+        return null;
     }
 }
