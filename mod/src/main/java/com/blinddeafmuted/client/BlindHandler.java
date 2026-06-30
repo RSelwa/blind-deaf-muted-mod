@@ -16,9 +16,10 @@ import org.lwjgl.glfw.GLFW;
  * <ol>
  *   <li><b>Mode toggle keybind</b> (default {@code B}) — cycles {@link BlindMode} so
  *       you can flip between the two looks live while testing.</li>
- *   <li><b>VANILLA mode</b> — re-applies Minecraft's Blindness status effect to the
- *       local player every tick while blind. (The {@code BLACKOUT_HUD} mode is drawn
- *       by {@code InGameHudMixin}; nothing to do here for it.)</li>
+ *   <li><b>Fog modes</b> ({@code FOG_HARD} / {@code FOG_MEDIUM}) — re-applies
+ *       Minecraft's Blindness status effect to the local player every tick while blind
+ *       ({@code BackgroundRendererMixin} then tightens the fog distance per level). The
+ *       {@code BLACKOUT_HUD} / {@code MYOPIA} looks are drawn elsewhere; nothing here.)</li>
  * </ol>
  *
  * <p>The Blindness effect is applied <i>client-side only</i>, consistent with the
@@ -71,8 +72,9 @@ public final class BlindHandler {
 
             if (client.player == null) return;
 
+            BlindMode mode = RoleState.effectiveBlindMode();
             boolean wantVanilla = RoleState.blindEffectActive()
-                    && RoleState.effectiveBlindMode() == BlindMode.VANILLA;
+                    && (mode == BlindMode.FOG_HARD || mode == BlindMode.FOG_MEDIUM);
 
             if (wantVanilla) {
                 // Re-apply each tick with a short duration so it never lapses while blind.
@@ -81,7 +83,7 @@ public final class BlindHandler {
                         StatusEffects.BLINDNESS, 40, 0, true, false, false));
                 appliedVanilla = true;
             } else if (appliedVanilla) {
-                // Left vanilla-blind (role changed or toggled to BLACKOUT_HUD): clear it.
+                // Left a fog mode (role changed or cycled to BLACKOUT_HUD/MYOPIA): clear it.
                 client.player.removeStatusEffect(StatusEffects.BLINDNESS);
                 appliedVanilla = false;
             }

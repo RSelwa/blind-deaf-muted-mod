@@ -1,13 +1,17 @@
 package com.blinddeafmuted.client;
 
 /**
- * The two visual styles of the BLIND role. Both stop the player from seeing the
- * environment; they differ only in HOW.
+ * The visual styles of the BLIND role. They all stop the player from seeing the
+ * environment; they differ only in HOW (and how harshly).
  *
  * <ul>
- *   <li>{@link #VANILLA} — apply Minecraft's own Blindness effect (the familiar
- *       closing-in fog). Handled by {@code BlindHandler} re-applying the status
- *       effect to the local player.</li>
+ *   <li>{@link #FOG_HARD} — Minecraft's Blindness effect plus a very tight fog (~2
+ *       blocks): you basically see only your feet. This is the default blind look.
+ *       Handled by {@code BlindHandler} (re-applies Blindness) + {@code
+ *       BackgroundRendererMixin} (tightens the fog).</li>
+ *   <li>{@link #FOG_MEDIUM} — the same idea but a looser fog (~7 blocks), so you can
+ *       make out your immediate surroundings. The {@code ModItems#CANE cane} eases a
+ *       blind player from {@code FOG_HARD} up to this while held.</li>
  *   <li>{@link #BLACKOUT_HUD} — the environment is painted solid black, but the HUD
  *       (hotbar, health, hunger, hand) and any open screen (inventory, etc.) remain
  *       visible. Done by {@code InGameHudMixin} drawing black BEFORE the HUD renders,
@@ -18,11 +22,12 @@ package com.blinddeafmuted.client;
  *       post-effect shader, toggled on/off by {@code MyopiaController}.</li>
  * </ul>
  *
- * <p>All three are interchangeable looks; we keep them all so we can test in-game and
- * later promote one to the enforced default.
+ * <p>All looks are interchangeable for testing (cycle with the {@code B} key); the
+ * fog pair is the gameplay default, with the cane easing HARD → MEDIUM.
  */
 public enum BlindMode {
-    VANILLA,
+    FOG_HARD,
+    FOG_MEDIUM,
     BLACKOUT_HUD,
     MYOPIA
 }

@@ -2,6 +2,8 @@
 
 uniform sampler2D InSampler;
 uniform sampler2D InDepthSampler;
+uniform vec2 InSize;   // render target size in px — used to keep the vignette circle round
+uniform vec2 BlurDir;  // (1,0) on pass 1, (0,1) on pass 2 — vignette only on pass 2
 
 in vec2 texCoord;
 in vec2 sampleStep; // oneTexel * BlurDir (from the vanilla post/blur vertex shader)
@@ -21,6 +23,10 @@ const int TAPS = 22;
 // an approximate eye-space distance in blocks (far plane is negligible at close range:
 //   depth ~= 1 - near/z   =>   z ~= near / (1 - depth)).
 const float NEAR = 0.05;
+// --- Vignette (tunnel vision): black overlay with a clear circle in the middle ----
+// Radii are in aspect-corrected screen units (0 = centre, ~0.5 = screen edge).
+const float VIGNETTE_CLEAR = 0.16; // inside this radius: fully visible
+const float VIGNETTE_BLACK = 0.40; // past this radius: fully black
 // ------------------------------------------------------------------------------
 
 void main() {
@@ -29,21 +35,31 @@ void main() {
     float amt = smoothstep(SHARP_BLOCKS, FULL_BLUR_BLOCKS, dist);
     float radius = amt * MAX_TEXEL_RADIUS;
 
-    vec4 center = texture(InSampler, texCoord);
-    if (radius < 0.5) {
-        fragColor = center; // near field: leave it crisp
-        return;
+    vec4 color = texture(InSampler, texCoord);
+    if (radius >= 0.5) {
+        // Far field: average TAPS samples either side along the blur axis.
+        vec4 sum = color;
+        float wsum = 1.0;
+        for (int i = 1; i <= TAPS; i++) {
+            float t = float(i) / float(TAPS);
+            float off = t * radius;
+            float w = 1.0 - t * 0.6; // gentle triangular-ish falloff
+            sum += texture(InSampler, texCoord + sampleStep * off) * w;
+            sum += texture(InSampler, texCoord - sampleStep * off) * w;
+            wsum += 2.0 * w;
+        }
+        color = sum / wsum;
     }
 
-    vec4 sum = center;
-    float wsum = 1.0;
-    for (int i = 1; i <= TAPS; i++) {
-        float t = float(i) / float(TAPS);
-        float off = t * radius;
-        float w = 1.0 - t * 0.6; // gentle triangular-ish falloff
-        sum += texture(InSampler, texCoord + sampleStep * off) * w;
-        sum += texture(InSampler, texCoord - sampleStep * off) * w;
-        wsum += 2.0 * w;
+    // Tunnel-vision vignette — applied ONLY on the second (vertical) pass so it isn't
+    // squared by running twice. Black at the edges, clear circle in the middle.
+    if (BlurDir.y > 0.5) {
+        vec2 p = texCoord - 0.5;
+        p.x *= InSize.x / max(1.0, InSize.y); // correct aspect so the clear zone is a circle
+        float r = length(p);
+        float vis = 1.0 - smoothstep(VIGNETTE_CLEAR, VIGNETTE_BLACK, r);
+        color.rgb *= vis;
     }
-    fragColor = sum / wsum;
+
+    fragColor = color;
 }

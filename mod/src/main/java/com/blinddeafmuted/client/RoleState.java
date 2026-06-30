@@ -20,11 +20,11 @@ public final class RoleState {
     /**
      * How the BLIND role is rendered. Purely a client-side visual style of the same
      * disability (the player can't see the environment either way), so it's safe to
-     * let the player pick it — see {@link BlindMode}. Default: {@link BlindMode#BLACKOUT_HUD}
-     * (full black). Holding the {@link ModItems#CANE cane} upgrades it to the reduced
-     * "see your feet" fog; the {@code B} keybind also flips it manually for testing.
+     * let the player pick it — see {@link BlindMode}. Default: {@link BlindMode#FOG_HARD}
+     * (tight ~2-block fog). Holding the {@link ModItems#CANE cane} eases it to the looser
+     * {@link BlindMode#FOG_MEDIUM}; the {@code B} keybind also flips it manually for testing.
      */
-    private static volatile BlindMode blindMode = BlindMode.BLACKOUT_HUD;
+    private static volatile BlindMode blindMode = BlindMode.FOG_HARD;
 
     /**
      * DEBUG/TEST flag: when true, the local BLIND visual effect (vanilla Blindness +
@@ -71,22 +71,26 @@ public final class RoleState {
     }
 
     /**
-     * The blind look to actually render right now. Full {@link BlindMode#BLACKOUT_HUD}
-     * by default, upgraded to the {@link BlindMode#VANILLA} reduced fog when the local
-     * player is holding the {@link ModItems#CANE cane} (or has manually toggled VANILLA
-     * with {@code B}). This is the cane mechanic: no cane → blind in the dark; cane in
-     * hand → you can feel out your feet. Read locally — no networking. The three effect
-     * sites gate on this instead of {@link #getBlindMode()}.
+     * The blind look to actually render right now. The cane mechanic lives here: in a fog
+     * mode, holding the {@link ModItems#CANE cane} eases {@link BlindMode#FOG_HARD} up to
+     * the looser {@link BlindMode#FOG_MEDIUM} — no cane → near-blind tight fog; cane in
+     * hand → you can make out your surroundings. The non-fog looks ({@link
+     * BlindMode#BLACKOUT_HUD}, {@link BlindMode#MYOPIA}) are manual {@code B}-cycle test
+     * styles and pass through unchanged. Read locally — no networking. The effect sites
+     * gate on this instead of {@link #getBlindMode()}.
      */
     public static BlindMode effectiveBlindMode() {
-        // MYOPIA is a manual test look (B-cycle): show it as-is, no cane upgrade.
-        if (blindMode == BlindMode.MYOPIA) {
-            return BlindMode.MYOPIA;
+        switch (blindMode) {
+            // Manual test looks (B-cycle): shown as-is, no cane upgrade.
+            case MYOPIA:
+            case BLACKOUT_HUD:
+            case FOG_MEDIUM:
+                return blindMode;
+            // Default fog: the cane eases HARD → MEDIUM while held.
+            case FOG_HARD:
+            default:
+                return localHoldsCane() ? BlindMode.FOG_MEDIUM : BlindMode.FOG_HARD;
         }
-        if (blindMode == BlindMode.VANILLA || localHoldsCane()) {
-            return BlindMode.VANILLA;
-        }
-        return BlindMode.BLACKOUT_HUD;
     }
 
     /** Whether the local player is holding the cane item in either hand. */
