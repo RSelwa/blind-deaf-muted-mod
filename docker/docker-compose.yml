@@ -15,14 +15,14 @@ services:
       #   simple-voice-chat — provides the voice API our BlindDeafMutedVoicechatPlugin
       #                       enforces DEAF/MUTED against. Must also be installed
       #                       by every player on their client.
-      # simple-voice-chat is PINNED to 2.5.36 to match the dev clients: Loom 1.9.2
-      # can't load newer SVC builds (2.6.x built with Loom 1.17+), so the dev
-      # clients run 2.5.36 (voice compat 18). The server auto-downloads "latest"
-      # by default (2.6.20 = compat 20), which mismatches → "incompatible voice
-      # chat version" and voice never connects. Pin both sides to the same build.
-      # FOR PRODUCTION: drop the pin (use "simple-voice-chat") so server + players
-      # all get the latest SVC.
-      MODRINTH_PROJECTS: "fabric-api,simple-voice-chat:fabric-1.21.4-2.5.36"
+      # simple-voice-chat PINNED to 2.6.20 to match the REAL clients everyone installs
+      # (voice compat 20). Server + every player must run the SAME SVC build or voice
+      # fails with "incompatible voice chat version". Our plugin is compiled against the
+      # 2.5.36 API (compileOnly) but the 2.x plugin API is stable, so it loads fine here.
+      # NOTE: in-dev runClient voice testing uses SVC 2.5.36 (modLocalRuntime in
+      # build.gradle — Loom 1.9.2 can't load 2.6.x), so dev clients won't voice-match this
+      # 2.6.20 server. Test voice with the real installed clients instead.
+      MODRINTH_PROJECTS: "fabric-api,simple-voice-chat:fabric-1.21.4-2.6.20"
       MODRINTH_DOWNLOAD_DEPENDENCIES: "required"
     ports:
       - "25565:25565" # share host IP:25565 with players (see DESIGN.md §2g)
