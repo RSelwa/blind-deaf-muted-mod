@@ -24,6 +24,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(PlayerEntityModel.class)
 public class PlayerEntityModelMixin {
 
+    /** Switch for the megaphone right-arm raise. Disabled for now — the pose mis-bent
+     *  the arm. Flip to {@code true} to bring it back. (The blind left-arm pose stays on.) */
+    private static final boolean MEGAPHONE_ARM_POSE_ENABLED = false;
+
     /** Left-arm pitch while blind. ~-69°: forward and angled down, like a held cane.
      *  0 = hanging down, -π/2 ≈ -1.57 = straight forward. Tweak to taste. */
     private static final float BLIND_LEFT_ARM_PITCH = -1.2F;
@@ -58,6 +62,7 @@ public class PlayerEntityModelMixin {
             method = "setAngles(Lnet/minecraft/client/render/entity/state/PlayerEntityRenderState;)V",
             at = @At("TAIL"))
     private void blinddeafmuted$raiseMegaphoneArm(PlayerEntityRenderState state, CallbackInfo ci) {
+        if (!MEGAPHONE_ARM_POSE_ENABLED) return;
         if (!MegaphoneState.isActive(state.name)) return;
 
         PlayerEntityModel model = (PlayerEntityModel) (Object) this;
