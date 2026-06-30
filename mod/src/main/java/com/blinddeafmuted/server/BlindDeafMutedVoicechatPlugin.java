@@ -131,8 +131,15 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         byte[] audio = renderForDeaf(event.getReceiverConnection(), event.getSenderConnection(), p);
         event.cancel();
         if (audio != null) {
-            serverApi.sendEntitySoundPacketTo(event.getReceiverConnection(),
-                    p.entitySoundPacketBuilder().opusEncodedData(audio).build());
+            // Guard the resend: SVC re-fires the sound event for the resent packet on this
+            // same thread, so without the flag we'd recurse into onEntitySound forever.
+            rebuilding.set(Boolean.TRUE);
+            try {
+                serverApi.sendEntitySoundPacketTo(event.getReceiverConnection(),
+                        p.entitySoundPacketBuilder().opusEncodedData(audio).build());
+            } finally {
+                rebuilding.set(Boolean.FALSE);
+            }
         }
     }
 
@@ -142,8 +149,13 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         byte[] audio = renderForDeaf(event.getReceiverConnection(), event.getSenderConnection(), p);
         event.cancel();
         if (audio != null) {
-            serverApi.sendLocationalSoundPacketTo(event.getReceiverConnection(),
-                    p.locationalSoundPacketBuilder().opusEncodedData(audio).build());
+            rebuilding.set(Boolean.TRUE);
+            try {
+                serverApi.sendLocationalSoundPacketTo(event.getReceiverConnection(),
+                        p.locationalSoundPacketBuilder().opusEncodedData(audio).build());
+            } finally {
+                rebuilding.set(Boolean.FALSE);
+            }
         }
     }
 
@@ -153,8 +165,13 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         byte[] audio = renderForDeaf(event.getReceiverConnection(), event.getSenderConnection(), p);
         event.cancel();
         if (audio != null) {
-            serverApi.sendStaticSoundPacketTo(event.getReceiverConnection(),
-                    p.staticSoundPacketBuilder().opusEncodedData(audio).build());
+            rebuilding.set(Boolean.TRUE);
+            try {
+                serverApi.sendStaticSoundPacketTo(event.getReceiverConnection(),
+                        p.staticSoundPacketBuilder().opusEncodedData(audio).build());
+            } finally {
+                rebuilding.set(Boolean.FALSE);
+            }
         }
     }
 
@@ -177,13 +194,9 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         // Megaphone is on if the speaker holds the item OR is pressing the megaphone key.
         boolean megaphone = megaphoneKeyDown(senderId) || holdsMegaphone(sender);
         boolean speakerMuted = roleOf(sender) == Role.MUTED;
-        // Mark re-entrancy across the resend in case it re-fires the sound-packet event.
-        rebuilding.set(Boolean.TRUE);
-        try {
-            return fx.forDeaf(receiverId, senderId, packet.getOpusEncodedData(), megaphone, speakerMuted);
-        } finally {
-            rebuilding.set(Boolean.FALSE);
-        }
+        // Note: the re-entrancy guard (rebuilding) is set around the RESEND in the caller,
+        // not here — that's where SVC re-fires the sound event on this thread.
+        return fx.forDeaf(receiverId, senderId, packet.getOpusEncodedData(), megaphone, speakerMuted);
     }
 
     /** Whether the speaker is currently holding the push-to-megaphone key. */

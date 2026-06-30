@@ -36,7 +36,11 @@ import net.minecraft.util.math.RotationAxis;
 public final class BlindCaneFeatureRenderer
         extends FeatureRenderer<PlayerEntityRenderState, PlayerEntityModel> {
 
-    private static final Identifier TEXTURE = ModConstants.id("textures/entity/blind_cane.png");
+    // Shared with the cane ITEM model (models/item/cane_3d.json) so the held cane and the
+    // body-rendered cane use ONE texture file. It lives under textures/item/ (not entity/)
+    // because item models can only stitch atlas textures from there; the entity render
+    // layer below loads it standalone, which works from any path.
+    private static final Identifier TEXTURE = ModConstants.id("textures/item/blind_cane.png");
 
     // --- Hand-attachment transform (tweak these to reposition the cane) ----------
     /** Down the left arm from the shoulder pivot to roughly the hand (~10px). */

@@ -1,8 +1,8 @@
 {
   "texture_size": [16, 32],
   "textures": {
-    "0": "blind-deaf-muted:entity/blind_cane",
-    "particle": "blind-deaf-muted:entity/blind_cane"
+    "0": "blind-deaf-muted:item/blind_cane",
+    "particle": "blind-deaf-muted:item/blind_cane"
   },
   "elements": [
     {
