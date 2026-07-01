@@ -1,9 +1,10 @@
 package com.blinddeafmuted.client;
 
+import java.util.Objects;
+
 import com.blinddeafmuted.client.mixin.GameRendererAccessor;
 import com.blinddeafmuted.common.ModConstants;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Identifier;
 
 /**
@@ -24,23 +25,33 @@ import net.minecraft.util.Identifier;
 public final class MyopiaController {
     private MyopiaController() {}
 
-    /** Our post-effect pipeline id → assets/blind-deaf-muted/post_effect/myopia.json. */
+    /** SOFT myopia (cane held) → assets/blind-deaf-muted/post_effect/myopia.json. */
     private static final Identifier MYOPIA = Identifier.of(ModConstants.MOD_ID, "myopia");
+    /** HARD myopia (no cane) → assets/blind-deaf-muted/post_effect/myopia_hard.json. */
+    private static final Identifier MYOPIA_HARD = Identifier.of(ModConstants.MOD_ID, "myopia_hard");
 
-    /** Did we install our post processor last tick? (so we only clear what we set). */
-    private static boolean applied = false;
+    /** Pipeline currently installed by us, or null if none. Reinstall on any change. */
+    private static Identifier applied = null;
 
     public static void register() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            boolean want = RoleState.blindEffectActive()
-                    && RoleState.effectiveBlindMode() == BlindMode.MYOPIA;
+            // Which pipeline (if any) the current blind state wants this tick.
+            Identifier want = null;
+            if (RoleState.blindEffectActive()) {
+                switch (RoleState.effectiveBlindMode()) {
+                    case MYOPIA -> want = MYOPIA;           // cane held → soft
+                    case MYOPIA_HARD -> want = MYOPIA_HARD; // no cane → harsh
+                    default -> want = null;                 // fog/blackout: not our shader
+                }
+            }
 
-            if (want == applied) return; // only act on transitions
+            if (Objects.equals(want, applied)) return; // only act on transitions
+            if (client.gameRenderer == null) return;    // retry next tick, leave `applied`
             applied = want;
 
-            if (client.gameRenderer == null) return;
-            if (want) {
-                ((GameRendererAccessor) client.gameRenderer).blinddeafmuted$setPostProcessor(MYOPIA);
+            if (want != null) {
+                // Switching soft<->hard just re-sets the processor to the new pipeline.
+                ((GameRendererAccessor) client.gameRenderer).blinddeafmuted$setPostProcessor(want);
             } else {
                 client.gameRenderer.clearPostProcessor();
             }

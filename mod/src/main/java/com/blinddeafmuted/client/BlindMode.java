@@ -10,24 +10,30 @@ package com.blinddeafmuted.client;
  *       Handled by {@code BlindHandler} (re-applies Blindness) + {@code
  *       BackgroundRendererMixin} (tightens the fog).</li>
  *   <li>{@link #FOG_MEDIUM} — the same idea but a looser fog (~7 blocks), so you can
- *       make out your immediate surroundings. The {@code ModItems#CANE cane} eases a
- *       blind player from {@code FOG_HARD} up to this while held.</li>
+ *       make out your immediate surroundings. A manual {@code B}-cycle look; the cane no
+ *       longer maps here (it now switches to {@link #MYOPIA}).</li>
  *   <li>{@link #BLACKOUT_HUD} — the environment is painted solid black, but the HUD
  *       (hotbar, health, hunger, hand) and any open screen (inventory, etc.) remain
  *       visible. Done by {@code InGameHudMixin} drawing black BEFORE the HUD renders,
  *       so the HUD lands on top of the black.</li>
- *   <li>{@link #MYOPIA} — a depth-aware blur: the few blocks right in front of you
- *       stay sharp, everything past that smears into unreadable shapes (you see "a
- *       wall" but not which blocks). Driven by the {@code blind-deaf-muted:myopia}
- *       post-effect shader, toggled on/off by {@code MyopiaController}.</li>
+ *   <li>{@link #MYOPIA} — SOFT depth-aware blur (the cane look): the few blocks right
+ *       in front of you stay sharp, everything past smears into shapes, and a generous
+ *       clear hole keeps usable sight. Driven by the {@code blind-deaf-muted:myopia}
+ *       post-effect shader (Intensity 0), toggled by {@code MyopiaController}.</li>
+ *   <li>{@link #MYOPIA_HARD} — the same shader at Intensity 1 (pipeline {@code
+ *       blind-deaf-muted:myopia_hard}): a tiny clear hole, heavy blur that starts almost
+ *       at the camera, near-black surround. This is the default blind look with NO cane.</li>
  * </ul>
  *
- * <p>All looks are interchangeable for testing (cycle with the {@code B} key); the
- * fog pair is the gameplay default, with the cane easing HARD → MEDIUM.
+ * <p><b>Gameplay path</b> (see {@code RoleState#effectiveBlindMode}): blind → myopia
+ * always — {@link #MYOPIA_HARD} without the cane, {@link #MYOPIA} (soft) while it's held.
+ * {@link #FOG_HARD}, {@link #FOG_MEDIUM} and {@link #BLACKOUT_HUD} are no longer on the
+ * gameplay path; the code is kept and they remain reachable via the {@code B} test cycle.
  */
 public enum BlindMode {
     FOG_HARD,
     FOG_MEDIUM,
     BLACKOUT_HUD,
-    MYOPIA
+    MYOPIA,
+    MYOPIA_HARD
 }

@@ -20,11 +20,13 @@ public final class RoleState {
     /**
      * How the BLIND role is rendered. Purely a client-side visual style of the same
      * disability (the player can't see the environment either way), so it's safe to
-     * let the player pick it — see {@link BlindMode}. Default: {@link BlindMode#FOG_HARD}
-     * (tight ~2-block fog). Holding the {@link ModItems#CANE cane} eases it to the looser
-     * {@link BlindMode#FOG_MEDIUM}; the {@code B} keybind also flips it manually for testing.
+     * let the player pick it — see {@link BlindMode}. Default: {@link BlindMode#MYOPIA}
+     * (the auto/gameplay look): without the {@link ModItems#CANE cane} it renders as the
+     * harsh {@link BlindMode#MYOPIA_HARD}, holding the cane eases it to the soft
+     * {@link BlindMode#MYOPIA}. The {@code B} keybind flips it manually for testing
+     * (incl. the kept-but-off-path fog/blackout looks).
      */
-    private static volatile BlindMode blindMode = BlindMode.FOG_HARD;
+    private static volatile BlindMode blindMode = BlindMode.MYOPIA;
 
     /**
      * DEBUG/TEST flag: when true, the local BLIND visual effect (vanilla Blindness +
@@ -71,25 +73,27 @@ public final class RoleState {
     }
 
     /**
-     * The blind look to actually render right now. The cane mechanic lives here: in a fog
-     * mode, holding the {@link ModItems#CANE cane} eases {@link BlindMode#FOG_HARD} up to
-     * the looser {@link BlindMode#FOG_MEDIUM} — no cane → near-blind tight fog; cane in
-     * hand → you can make out your surroundings. The non-fog looks ({@link
-     * BlindMode#BLACKOUT_HUD}, {@link BlindMode#MYOPIA}) are manual {@code B}-cycle test
-     * styles and pass through unchanged. Read locally — no networking. The effect sites
-     * gate on this instead of {@link #getBlindMode()}.
+     * The blind look to actually render right now. The cane mechanic lives here: the
+     * gameplay look is {@link BlindMode#MYOPIA} and the cane picks the intensity — no cane
+     * → harsh {@link BlindMode#MYOPIA_HARD} (tiny hole, heavy blur, near-black surround);
+     * cane in hand → soft {@link BlindMode#MYOPIA} (generous hole, usable sight). The
+     * kept-but-off-path test looks ({@link BlindMode#FOG_HARD}, {@link BlindMode#FOG_MEDIUM},
+     * {@link BlindMode#BLACKOUT_HUD}) and a manually forced {@link BlindMode#MYOPIA_HARD}
+     * pass through unchanged. Read locally — no networking. The effect sites gate on this
+     * instead of {@link #getBlindMode()}.
      */
     public static BlindMode effectiveBlindMode() {
         switch (blindMode) {
-            // Manual test looks (B-cycle): shown as-is, no cane upgrade.
+            // Gameplay default: cane picks soft (MYOPIA) vs harsh (MYOPIA_HARD).
             case MYOPIA:
+                return localHoldsCane() ? BlindMode.MYOPIA : BlindMode.MYOPIA_HARD;
+            // Manual B-cycle test looks (kept, but off the gameplay path): shown as-is.
+            case MYOPIA_HARD:
             case BLACKOUT_HUD:
             case FOG_MEDIUM:
-                return blindMode;
-            // Default fog: the cane eases HARD → MEDIUM while held.
             case FOG_HARD:
             default:
-                return localHoldsCane() ? BlindMode.FOG_MEDIUM : BlindMode.FOG_HARD;
+                return blindMode;
         }
     }
 

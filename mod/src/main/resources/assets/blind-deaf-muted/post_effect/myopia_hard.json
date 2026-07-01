@@ -1,4 +1,5 @@
 {
+    "__comment": "HARD myopia (no cane) — same program/shader as blind-deaf-muted:myopia, but Intensity=1 so the fsh mixes to the harsh soft/hard params (tiny clear hole, heavy blur, near-black surround). Installed by MyopiaController when a blind player has NO cane.",
     "targets": {
         "temp": {}
     },
@@ -12,7 +13,7 @@
             "output": "temp",
             "uniforms": [
                 { "name": "BlurDir", "values": [ 1.0, 0.0 ] },
-                { "name": "Intensity", "values": [ 0.0 ] }
+                { "name": "Intensity", "values": [ 1.0 ] }
             ]
         },
         {
@@ -24,7 +25,7 @@
             "output": "minecraft:main",
             "uniforms": [
                 { "name": "BlurDir", "values": [ 0.0, 1.0 ] },
-                { "name": "Intensity", "values": [ 0.0 ] }
+                { "name": "Intensity", "values": [ 1.0 ] }
             ]
         }
     ]
