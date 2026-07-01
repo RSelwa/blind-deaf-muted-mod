@@ -35,7 +35,7 @@ public final class BlindDeafMutedCommand {
     private BlindDeafMutedCommand() {}
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher,
-                                RoleManager roles, SharedHealthManager sharedHealth, SkinVisibilityManager skinVisibility,
+                                RoleManager roles, SkinVisibilityManager skinVisibility,
                                 RandomEventManager randomEvents) {
         // One <target> argument node, with a literal per role hung off it so
         // tab-completion offers /bdm set <player> blind|deaf|muted|none.
@@ -56,10 +56,6 @@ public final class BlindDeafMutedCommand {
                         .then(literal("randomizer").executes(BlindDeafMutedCommand::giveRandomizer))
                         .then(literal("megaphone").executes(BlindDeafMutedCommand::giveMegaphone))
                         .then(literal("cane").executes(BlindDeafMutedCommand::giveCane))
-                        .then(literal("health")
-                                .then(literal("on").executes(ctx -> setSharedHealth(ctx, sharedHealth, true)))
-                                .then(literal("off").executes(ctx -> setSharedHealth(ctx, sharedHealth, false)))
-                                .executes(ctx -> healthStatus(ctx, sharedHealth)))
                         .then(literal("help").executes(BlindDeafMutedCommand::help))
                         .then(literal("skin")
                                 .then(literal("on").executes(ctx -> setSkins(ctx, skinVisibility, true)))
@@ -161,30 +157,6 @@ public final class BlindDeafMutedCommand {
         }
         player.giveItemStack(new ItemStack(ModItems.CANE, 1));
         ctx.getSource().sendFeedback(() -> Text.literal("Gave 1 Cane."), false);
-        return 1;
-    }
-
-    /**
-     * Turn shared-health mode on or off. While on, damage to any one player is
-     * mirrored onto the whole team (healing stays individual for now).
-     */
-    private static int setSharedHealth(CommandContext<ServerCommandSource> ctx,
-                                       SharedHealthManager sharedHealth, boolean on) {
-        sharedHealth.setEnabled(on);
-        ctx.getSource().sendFeedback(
-                () -> Text.literal("Shared health is now " + (on ? "ON" : "OFF") + ".")
-                        .formatted(on ? Formatting.RED : Formatting.GRAY),
-                true);
-        return 1;
-    }
-
-    /** Report whether shared-health mode is currently on. */
-    private static int healthStatus(CommandContext<ServerCommandSource> ctx,
-                                    SharedHealthManager sharedHealth) {
-        boolean on = sharedHealth.isEnabled();
-        ctx.getSource().sendFeedback(
-                () -> Text.literal("Shared health is " + (on ? "ON" : "OFF") + "."),
-                false);
         return 1;
     }
 
@@ -292,8 +264,7 @@ public final class BlindDeafMutedCommand {
                   /bdm status                                - list every player's current role
                   /bdm randomizer                            - give yourself Randomizer bottles (test)
                   /bdm megaphone                             - give yourself a Megaphone (talk loud/saturated to deaf players)
-                  /bdm cane                                  - give yourself a Cane (blind: hold it to swap full blackout for reduced fog)
-                  /bdm health <on|off>                       - toggle shared-health mode (damage mirrored across the team)
+                  /bdm cane                                  - give yourself a Cane (blind: hold it to ease harsh myopia to the soft version)
                   /bdm skin <on|off>                         - toggle the custom role accessories (cane/glasses/bandage/headset)
                   /bdm events <on|off>                       - toggle the periodic random-events timer (re-roll / random potion)
                   /bdm events now                            - force-fire one random event now (testing/recording)

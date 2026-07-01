@@ -256,7 +256,6 @@ sudo ufw allow 24454/udp</code></pre>
       <pre class="${pre}"><code>/bdm set &lt;joueur&gt; &lt;blind|deaf|muted|none&gt;   # attribuer / retirer un rôle
 /bdm random                                  # roulette : un rôle aléatoire pour tout le monde
 /bdm randomizer                              # te donne 4 fioles Randomizer (test)
-/bdm health &lt;on|off&gt;                         # mode vie partagée
 /bdm skin &lt;on|off&gt;                           # afficher/cacher les accessoires de rôle
 /bdm events &lt;on|off&gt;                         # re-tirage automatique des rôles à intervalle aléatoire
 /bdm events now                              # force un re-tirage maintenant (test / vidéo)</code></pre>

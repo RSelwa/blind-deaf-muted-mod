@@ -54,9 +54,6 @@ public class BlindDeafMutedServer implements ModInitializer {
     /** In-memory role store. TODO: persist to world save so roles survive restarts. */
     private final RoleManager roleManager = new RoleManager();
 
-    /** Optional shared-health mode (off by default; toggled via /bdm health). */
-    private final SharedHealthManager sharedHealth = new SharedHealthManager();
-
     /** Optional skin-visibility mode (on by default; toggled via /bdm skin). */
     private final SkinVisibilityManager skinVisibility = new SkinVisibilityManager();
 
@@ -159,16 +156,12 @@ public class BlindDeafMutedServer implements ModInitializer {
             }
         });
 
-        // Shared-health mode: listen for damage and mirror it across the team.
-        // Inert until an op runs /bdm health on.
-        sharedHealth.register();
-
         // Random-events timer: inert until an op runs /bdm events on.
         randomEvents.register();
 
         // Admin command: /bdm set <player> <blind|deaf|muted|none>, etc.
         CommandRegistrationCallback.EVENT.register((dispatcher, access, env) ->
-                BlindDeafMutedCommand.register(dispatcher, roleManager, sharedHealth, skinVisibility, randomEvents));
+                BlindDeafMutedCommand.register(dispatcher, roleManager, skinVisibility, randomEvents));
 
         // When a player joins, immediately sync whatever role they have.
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->

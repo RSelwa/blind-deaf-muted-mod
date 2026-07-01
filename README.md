@@ -214,7 +214,6 @@ permission level 2**.
 /bdm set <player> <blind|deaf|muted|none>   # assign / clear a role (instant)
 /bdm random                                 # roulette-reveal a random role to everyone
 /bdm randomizer                             # give yourself 4 Randomizer bottles (test)
-/bdm health <on|off>                        # shared-health mode
 /bdm skin <on|off>                          # show/hide the role accessories
 /bdm events <on|off>                        # periodic auto-randomizer (re-rolls roles on a surprise timer)
 /bdm events now                             # force a re-roll now (testing/recording)

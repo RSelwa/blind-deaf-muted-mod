@@ -186,8 +186,7 @@ is the shared library bundled in via jar-in-jar.
   late-joiner syncs within a second. Client mirrors it in `SkinVisibilityState`
   (volatile); both feature renderers (`BlindCaneFeatureRenderer`,
   `RoleHeadAccessoryFeatureRenderer`) early-return in `render()` when disabled.
-  Protocol bumped to **v5**. Not persisted across restarts (defaults ON, like the
-  shared-health toggle).
+  Protocol bumped to **v5**. Not persisted across restarts (defaults ON).
 - **Auto-randomizer timer (idea #5):** `server/RandomEventManager.java` — a server-tick
   timer (off by default) that re-rolls every online player's role every 3–8 min while
   enabled (reuses `RoleRoller.rollAll` → roulette, same as a shattered Randomizer bottle).
