@@ -122,12 +122,13 @@ public final class RouletteAnimation {
         // A dim banner band behind the text so it reads over any scene.
         context.fill(0, cy - 32, w, cy + 28, 0xB0000000);
 
-        Text caption = Text.literal(spinning ? "Assigning your role…" : "You're now")
+        Text caption = Text.translatable(
+                        spinning ? "hud.blind-deaf-muted.assigning" : "hud.blind-deaf-muted.now")
                 .formatted(Formatting.WHITE);
         context.drawCenteredTextWithShadow(font, caption, cx, cy - 24, 0xFFFFFFFF);
 
         // The big role word, scaled up, in its role colour.
-        Text roleText = Text.literal(shown.name()).formatted(shown.color(), Formatting.BOLD);
+        Text roleText = Text.translatable(shown.translationKey()).formatted(shown.color(), Formatting.BOLD);
         MatrixStack matrices = context.getMatrices();
         matrices.push();
         matrices.translate(cx, cy - 6, 0);

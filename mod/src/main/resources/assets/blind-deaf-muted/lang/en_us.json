@@ -1,11 +1,28 @@
 {
   "key.categories.blind-deaf-muted": "Blind Deaf Muted",
-  "key.blind-deaf-muted.toggle_blind_mode": "Toggle blind mode (vanilla / blackout)",
+  "key.blind-deaf-muted.toggle_blind_mode": "Cycle blind mode (test: myopia / fog / blackout)",
   "key.blind-deaf-muted.toggle_blind_effect": "DEBUG: toggle blind effect (see own accessories)",
   "key.blind-deaf-muted.toggle_tracker": "Toggle teammate tracker HUD",
   "key.blind-deaf-muted.toggle_roster": "Toggle who-is-what leaderboard HUD",
   "key.blind-deaf-muted.megaphone": "Megaphone (hold to talk loud to deaf players)",
+
   "item.blind-deaf-muted.randomizer": "Randomizer",
   "item.blind-deaf-muted.megaphone": "Megaphone",
-  "item.blind-deaf-muted.cane": "Cane"
+  "item.blind-deaf-muted.cane": "Cane",
+
+  "role.blind-deaf-muted.none": "None",
+  "role.blind-deaf-muted.blind": "Blind",
+  "role.blind-deaf-muted.deaf": "Deaf",
+  "role.blind-deaf-muted.muted": "Muted",
+
+  "msg.blind-deaf-muted.cleared": "Your disability has been cleared — you're back to normal.",
+  "msg.blind-deaf-muted.now": "You're now %s",
+
+  "hud.blind-deaf-muted.assigning": "Assigning your role…",
+  "hud.blind-deaf-muted.now": "You're now",
+  "hud.blind-deaf-muted.roster": "Roster: %s",
+  "hud.blind-deaf-muted.tracker": "Teammate tracker: %s",
+
+  "state.blind-deaf-muted.on": "ON",
+  "state.blind-deaf-muted.off": "OFF"
 }

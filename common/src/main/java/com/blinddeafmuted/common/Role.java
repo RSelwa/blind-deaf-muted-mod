@@ -43,6 +43,16 @@ public enum Role {
         return label;
     }
 
+    /**
+     * Translation key for this role's localized name, e.g.
+     * {@code "role.blind-deaf-muted.blind"}. Wrap in {@code Text.translatable(...)} so
+     * each client shows it in its own language (see {@code lang/fr_fr.json}). Preferred
+     * over {@link #label()}/{@link #name()} for anything a player reads.
+     */
+    public String translationKey() {
+        return "role." + ModConstants.MOD_ID + "." + name().toLowerCase();
+    }
+
     /** The Minecraft named colour for this role (red = blind, gold = deaf, …). */
     public Formatting color() {
         return color;

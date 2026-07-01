@@ -1,0 +1,28 @@
+{
+  "key.categories.blind-deaf-muted": "Aveugle Sourd Muet",
+  "key.blind-deaf-muted.toggle_blind_mode": "Changer de mode aveugle (test : myopie / brouillard / écran noir)",
+  "key.blind-deaf-muted.toggle_blind_effect": "DEBUG : activer/désactiver l'effet aveugle (voir ses accessoires)",
+  "key.blind-deaf-muted.toggle_tracker": "Afficher/masquer le traceur d'équipiers",
+  "key.blind-deaf-muted.toggle_roster": "Afficher/masquer le tableau des rôles",
+  "key.blind-deaf-muted.megaphone": "Mégaphone (maintenir pour parler fort aux sourds)",
+
+  "item.blind-deaf-muted.randomizer": "Randomiseur",
+  "item.blind-deaf-muted.megaphone": "Mégaphone",
+  "item.blind-deaf-muted.cane": "Canne",
+
+  "role.blind-deaf-muted.none": "Aucun",
+  "role.blind-deaf-muted.blind": "Aveugle",
+  "role.blind-deaf-muted.deaf": "Sourd",
+  "role.blind-deaf-muted.muted": "Muet",
+
+  "msg.blind-deaf-muted.cleared": "Ton handicap a été retiré — tu redeviens normal.",
+  "msg.blind-deaf-muted.now": "Tu es maintenant %s",
+
+  "hud.blind-deaf-muted.assigning": "Attribution de ton rôle…",
+  "hud.blind-deaf-muted.now": "Tu es maintenant",
+  "hud.blind-deaf-muted.roster": "Tableau des rôles : %s",
+  "hud.blind-deaf-muted.tracker": "Traceur d'équipiers : %s",
+
+  "state.blind-deaf-muted.on": "ACTIVÉ",
+  "state.blind-deaf-muted.off": "DÉSACTIVÉ"
+}

@@ -70,13 +70,14 @@ public class RoleManager {
     private void announce(ServerPlayerEntity player, Role role) {
         Text message;
         if (role == Role.NONE) {
-            message = Text.literal("Your disability has been cleared — you're back to normal.")
-                    .formatted(Formatting.GRAY);
+            message = Text.translatable("msg.blind-deaf-muted.cleared").formatted(Formatting.GRAY);
         } else {
-            message = Text.literal("You're now ")
-                    .formatted(Formatting.WHITE)
-                    .append(Text.literal(role.name())
-                            .formatted(role.color(), Formatting.BOLD));
+            // Translatable is resolved on each CLIENT, so a French player sees French
+            // even though this runs on the server. The role name is a nested translatable
+            // arg keeping its own colour/bold.
+            message = Text.translatable("msg.blind-deaf-muted.now",
+                            Text.translatable(role.translationKey()).formatted(role.color(), Formatting.BOLD))
+                    .formatted(Formatting.WHITE);
         }
         player.sendMessage(message, false); // false = chat line, not the action bar
     }

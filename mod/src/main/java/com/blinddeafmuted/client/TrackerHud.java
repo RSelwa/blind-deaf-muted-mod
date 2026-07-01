@@ -51,7 +51,8 @@ public final class TrackerHud {
                 boolean on = TrackerState.toggle();
                 if (client.player != null) {
                     client.player.sendMessage(
-                            Text.literal("Teammate tracker: " + (on ? "ON" : "OFF")),
+                            Text.translatable("hud.blind-deaf-muted.tracker", Text.translatable(
+                                    on ? "state.blind-deaf-muted.on" : "state.blind-deaf-muted.off")),
                             true); // action bar
                 }
             }

@@ -263,6 +263,17 @@ no-comments rule.
   (e.g. swap two players' positions, time/weather shifts, mob spawn) as desired.
 - Command syntax & name finalization.
 
+### Localization (i18n)
+
+- **French supported.** Player-facing text uses translation keys resolved per-client
+  (`Text.translatable`), so a client set to *Français* shows French even though the
+  server runs the logic. Keys live in `assets/blind-deaf-muted/lang/en_us.json` +
+  `fr_fr.json`. `Role.translationKey()` returns `role.blind-deaf-muted.<name>`; the
+  role announce (`RoleManager`), roulette reveal (`RouletteAnimation`), roster HUD
+  labels + roster/tracker toggles, item names and keybinds all go through keys.
+- **Still hardcoded English (by choice):** admin `/bdm` command feedback (host/op
+  console) and the `B`/`N` debug action-bars. Convert to keys if the host needs FR too.
+
 ## Reference
 
 - "Completely Blind" mod (inspiration only, not reusable — client-only, no server

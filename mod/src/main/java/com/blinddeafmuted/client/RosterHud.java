@@ -47,7 +47,8 @@ public final class RosterHud {
                 boolean on = RosterState.toggle();
                 if (client.player != null) {
                     client.player.sendMessage(
-                            Text.literal("Roster: " + (on ? "ON" : "OFF")),
+                            Text.translatable("hud.blind-deaf-muted.roster", Text.translatable(
+                                    on ? "state.blind-deaf-muted.on" : "state.blind-deaf-muted.off")),
                             true); // action bar
                 }
             }
@@ -92,7 +93,7 @@ public final class RosterHud {
 
         return name
                 .append(Text.literal("  ").formatted(Formatting.WHITE))
-                .append(Text.literal(e.role().label()).formatted(e.role().color()));
+                .append(Text.translatable(e.role().translationKey()).formatted(e.role().color()));
     }
 
     /** Draw {@code text} so its right edge sits at {@code rightX}. */
