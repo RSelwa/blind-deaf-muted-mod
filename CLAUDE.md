@@ -198,8 +198,22 @@ is the shared library bundled in via jar-in-jar.
 - A **Vite + TypeScript + Tailwind v4** showcase site lives in `site/` (French tutorial +
   downloadable jar served from `site/public/downloads/`, kept tracked via a `.gitignore`
   exception). Tailwind via `@tailwindcss/vite` (no config file; theme in `@theme` block in
-  `src/style.css`); markup in `src/main.ts`. Re-copy the jar + bump `MOD_VERSION` in
-  `site/src/main.ts` after each release build. `npm run build` runs `tsc` then `vite build`.
+  `src/style.css`); markup in `src/main.ts`. **Version is read from `gradle.properties`
+  at build** (`?raw` import → parse `mod_version`/`minecraft_version`), so no manual
+  `MOD_VERSION` bump in the site — just re-copy the jar to `public/downloads/` after a
+  release build. `npm run build` runs `tsc` then `vite build`.
+  **Copy-paste Docker files:** the tutorial's Étape 3 offers the real Docker files inline
+  with **Copier** / **Télécharger** buttons — Option A (recommended, no repo/Git/Java):
+  copy `docker-compose.user.yml` (prebuilt GHCR image) → `docker compose up -d`; Option B
+  (from source): `docker-compose.yml` + `Dockerfile` → `--build`. File contents pulled
+  from `docker/` at build via Vite `?raw` imports (single source of truth, no drift),
+  rendered by the `codeFile()` helper; one delegated click listener does clipboard-copy
+  with a Blob-download fallback. The GHCR image tag in the copied/downloaded compose is
+  **re-pinned to `mod_version`** at build (regex replace on the raw text), so the file
+  users get is always aligned with `gradle.properties` regardless of the literal tag in
+  the repo `docker-compose.user.yml`. Reads `../../docker/*` + `../../gradle.properties`
+  outside `site/` — works in build + dev (repo `.git` = workspace root); if dev ever
+  blocks it, add `server.fs.allow: ['..']` to `vite.config.ts`.
 - Fixed a pre-existing compile break in `TrackerHud` (undefined `elevation` var left
   by the compass-HUD commit) — now shows a ↑/↓ elevation hint past the threshold.
 - `docker/` — multi-stage `Dockerfile` + `docker-compose.yml`.

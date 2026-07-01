@@ -1,11 +1,26 @@
 import './style.css'
+// Contenu reel des fichiers Docker importe tel quel au build (Vite `?raw`).
+// Source unique de verite : ces blocs sur le site = les fichiers du depot, aucun
+// risque de divergence. On les rend copiables + telechargeables cote client.
+import composeUserRaw from '../../docker/docker-compose.user.yml?raw'
+import composeBuild from '../../docker/docker-compose.yml?raw'
+import dockerfile from '../../docker/Dockerfile?raw'
+// Version lue directement dans gradle.properties (source UNIQUE de verite). Plus
+// besoin de re-bumper la version ici ni le tag d'image du compose : tout en decoule.
+import gradleProps from '../../gradle.properties?raw'
 
-// Source de verite cote site. A bumper en meme temps que mod_version dans
-// gradle.properties, et recopier le nouveau jar dans public/downloads/.
-const MOD_VERSION = '0.1.0'
-const MC_VERSION = '1.21.4'
+const MC_VERSION = /^minecraft_version=(.+)$/m.exec(gradleProps)?.[1].trim() ?? '1.21.4'
+const MOD_VERSION = /^mod_version=(.+)$/m.exec(gradleProps)?.[1].trim() ?? '0.0.0'
 const JAR = `blind-deaf-muted-${MOD_VERSION}.jar`
 const JAR_URL = `./downloads/${JAR}`
+
+// Re-epingle le tag d'image de l'image GHCR sur MOD_VERSION, quelle que soit la
+// valeur ecrite en dur dans docker-compose.user.yml. Le fichier copie/telecharge
+// depuis le site est donc TOUJOURS aligne sur gradle.properties.
+const composeUser = composeUserRaw.replace(
+  /(blind-deaf-muted-server:)\S+/,
+  `$1${MOD_VERSION}`,
+)
 
 // Injecte par Vite au build (voir vite.config.ts). Date du dernier deploiement.
 declare const __BUILD_DATE__: string
@@ -58,6 +73,34 @@ const link = 'text-brand underline underline-offset-2 hover:text-brand-dark'
 
 const a = (href: string, label: string) =>
   `<a href="${href}" target="_blank" rel="noopener" class="${link}">${label}</a>`
+
+// Echappe le texte brut d'un fichier pour l'injecter sans casser le HTML.
+const esc = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+// Registre id -> fichier, alimente par codeFile(). Les boutons copier/telecharger
+// referencent l'id via data-* (voir le gestionnaire de clic en bas de fichier).
+const files: Record<string, { name: string; text: string }> = {}
+let fileSeq = 0
+const btnMini =
+  'inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 text-xs font-medium text-slate-200 hover:bg-ink-2 transition cursor-pointer'
+
+// Bloc de code avec en-tete (nom du fichier + boutons Copier / Telecharger).
+const codeFile = (name: string, text: string) => {
+  const id = `f${fileSeq++}`
+  files[id] = { name, text }
+  return `
+    <div class="mt-3">
+      <div class="flex items-center justify-between gap-3 bg-[#0a0c11] border border-line rounded-t-lg px-4 py-2">
+        <span class="font-mono text-sm text-slate-300 truncate">${name}</span>
+        <div class="flex gap-2 shrink-0">
+          <button type="button" data-copy="${id}" class="${btnMini}">📋 Copier</button>
+          <button type="button" data-download="${id}" class="${btnMini}">⬇ Télécharger</button>
+        </div>
+      </div>
+      <pre class="${pre} rounded-t-none border-t-0"><code>${esc(text)}</code></pre>
+    </div>`
+}
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <header class="border-b border-line px-6 pt-20 pb-16 text-center bg-[radial-gradient(1200px_500px_at_50%_-10%,#1d2740_0%,transparent_60%)]">
@@ -158,11 +201,37 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </p>
 
       <h3 class="${stepH}">Étape 3 — Lancer le serveur (l'hôte)</h3>
-      <p class="mb-2">Avec Docker installé, depuis le dossier <code class="${icode}">docker/</code> du dépôt :</p>
+      <p class="mb-4">Une seule personne héberge. Il faut <b>Docker</b> installé
+      (${a('https://docs.docker.com/get-docker/', 'Docker Desktop')} sur Windows/Mac,
+      <code class="${icode}">docker</code> + <code class="${icode}">docker compose</code> sur Linux).
+      Deux façons de faire — la première ne demande <b>ni dépôt, ni Git, ni Java</b>.</p>
+
+      <h4 class="mt-6 mb-2 font-bold text-lg">🟢 Option A — Copier-coller (recommandé, sans le dépôt)</h4>
+      <ol class="list-decimal pl-5 space-y-2">
+        <li>Créez un dossier vide, p. ex. <code class="${icode}">bdm-server/</code>.</li>
+        <li>Dedans, créez un fichier <code class="${icode}">docker-compose.yml</code> avec ce contenu
+          (bouton <b>Copier</b> ou <b>Télécharger</b>) :</li>
+      </ol>
+      ${codeFile('docker-compose.yml', composeUser)}
+      <p class="mt-4 mb-2">Puis, depuis ce dossier, une seule commande :</p>
+      <pre class="${pre}"><code>docker compose up -d</code></pre>
+      <p class="mt-2 text-sm text-slate-400">
+        Docker télécharge l'image prête à l'emploi (le mod est déjà dedans) et démarre le serveur.
+        Le monde est sauvegardé dans le sous-dossier <code class="${icode}">data/</code>.
+        Pour arrêter : <code class="${icode}">docker compose down</code>.
+      </p>
+
+      <h4 class="mt-8 mb-2 font-bold text-lg">🔧 Option B — Construire depuis les sources</h4>
+      <p class="mb-2">Pour compiler le jar vous-même (contributions, version modifiée). Il faut le dépôt.
+      Placez ces deux fichiers dans <code class="${icode}">docker/</code> (ils y sont déjà si vous clonez le dépôt) :</p>
+      ${codeFile('docker/docker-compose.yml', composeBuild)}
+      ${codeFile('docker/Dockerfile', dockerfile)}
+      <p class="mt-4 mb-2">Puis, depuis la racine du dépôt :</p>
       <pre class="${pre}"><code>git clone &lt;url-du-depot&gt; blind-deaf-muted
 cd blind-deaf-muted/docker
-docker compose up -d --build</code></pre>
-      <p class="my-2">Ouvrez ensuite les ports sur le serveur :</p>
+docker compose up -d --build   # --build : compile le jar la 1re fois</code></pre>
+
+      <p class="my-4">Dans les deux cas, ouvrez ensuite les ports sur la machine hôte :</p>
       <pre class="${pre}"><code># Minecraft (TCP) + Simple Voice Chat (UDP)
 sudo ufw allow 25565/tcp
 sudo ufw allow 24454/udp</code></pre>
@@ -229,3 +298,34 @@ sudo ufw allow 24454/udp</code></pre>
     <p>Blind Deaf Muted — mod Minecraft coopératif. Aveugle, sourd, muet : communiquez ou périssez.</p>
   </footer>
 `
+
+// Boutons Copier / Telecharger des fichiers Docker (delegation d'evenements :
+// un seul listener pour tous les blocs codeFile()).
+document.addEventListener('click', async (e) => {
+  const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-copy],[data-download]')
+  if (!btn) return
+
+  const copyId = btn.dataset.copy
+  const dlId = btn.dataset.download
+
+  if (copyId && files[copyId]) {
+    try {
+      await navigator.clipboard.writeText(files[copyId].text)
+      const prev = btn.textContent
+      btn.textContent = '✓ Copié'
+      setTimeout(() => (btn.textContent = prev), 1500)
+    } catch {
+      // Clipboard bloque (http, permission) : on retombe sur le telechargement.
+      btn.textContent = '⚠ Copie bloquée'
+    }
+  } else if (dlId && files[dlId]) {
+    const { name, text } = files[dlId]
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }))
+    const link = document.createElement('a')
+    link.href = url
+    // Nom de fichier plat (pas de "docker/…") pour le telechargement.
+    link.download = name.split('/').pop()!
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+})
