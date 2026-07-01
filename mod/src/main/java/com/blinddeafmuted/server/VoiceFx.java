@@ -70,7 +70,7 @@ final class VoiceFx {
     /** MUTED bare-mic volume. Set so a muted player (muffled) is heard at roughly the same
      *  faintness a deaf listener hears others ({@link #DEAF_VOLUME}) — a hair higher to make
      *  up for the energy the box muffle strips out. Audible up close, not silent. */
-    private static final float MUTED_VOLUME = 0.13f;
+    private static final float MUTED_VOLUME = 0.10f;
 
     /** MUTED + megaphone low-pass: a much higher cutoff than the bare-mute box muffle, so the
      *  voice opens up and is clear-ish (only lightly filtered), not boxed-in. */
