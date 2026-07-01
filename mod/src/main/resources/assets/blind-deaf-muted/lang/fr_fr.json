@@ -2,6 +2,7 @@
   "key.categories.blind-deaf-muted": "Aveugle Sourd Muet",
   "key.blind-deaf-muted.toggle_blind_mode": "Changer de mode aveugle (test : myopie / brouillard / écran noir)",
   "key.blind-deaf-muted.toggle_blind_effect": "DEBUG : activer/désactiver l'effet aveugle (voir ses accessoires)",
+  "key.blind-deaf-muted.cycle_deaf_muffle": "Changer l'intensité d'atténuation (sourd)",
   "key.blind-deaf-muted.toggle_tracker": "Afficher/masquer le traceur d'équipiers",
   "key.blind-deaf-muted.toggle_roster": "Afficher/masquer le tableau des rôles",
   "key.blind-deaf-muted.megaphone": "Mégaphone (maintenir pour parler fort aux sourds)",
@@ -22,6 +23,7 @@
   "hud.blind-deaf-muted.now": "Tu es maintenant",
   "hud.blind-deaf-muted.roster": "Tableau des rôles : %s",
   "hud.blind-deaf-muted.tracker": "Traceur d'équipiers : %s",
+  "hud.blind-deaf-muted.deaf_muffle": "Atténuation sourd : %s",
 
   "state.blind-deaf-muted.on": "ACTIVÉ",
   "state.blind-deaf-muted.off": "DÉSACTIVÉ"

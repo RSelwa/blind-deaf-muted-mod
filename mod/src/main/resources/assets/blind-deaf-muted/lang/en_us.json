@@ -2,6 +2,7 @@
   "key.categories.blind-deaf-muted": "Blind Deaf Muted",
   "key.blind-deaf-muted.toggle_blind_mode": "Cycle blind mode (test: myopia / fog / blackout)",
   "key.blind-deaf-muted.toggle_blind_effect": "DEBUG: toggle blind effect (see own accessories)",
+  "key.blind-deaf-muted.cycle_deaf_muffle": "Cycle deaf muffle intensity",
   "key.blind-deaf-muted.toggle_tracker": "Toggle teammate tracker HUD",
   "key.blind-deaf-muted.toggle_roster": "Toggle who-is-what leaderboard HUD",
   "key.blind-deaf-muted.megaphone": "Megaphone (hold to talk loud to deaf players)",
@@ -22,6 +23,7 @@
   "hud.blind-deaf-muted.now": "You're now",
   "hud.blind-deaf-muted.roster": "Roster: %s",
   "hud.blind-deaf-muted.tracker": "Teammate tracker: %s",
+  "hud.blind-deaf-muted.deaf_muffle": "Deaf muffle: %s",
 
   "state.blind-deaf-muted.on": "ON",
   "state.blind-deaf-muted.off": "OFF"

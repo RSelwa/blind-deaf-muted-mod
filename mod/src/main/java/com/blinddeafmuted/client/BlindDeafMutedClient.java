@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
  * The actual effects read that state:
  * <ul>
  *   <li>BLIND — {@link BlindOverlay} draws a black HUD layer.</li>
- *   <li>DEAF  — {@link DeafHandler} forces sound volumes to 0.</li>
+ *   <li>DEAF  — {@code SoundSystemMixin} scales environment sound volume down.</li>
  *   <li>MUTED — {@link MuteHandler} cancels outgoing chat.</li>
  * </ul>
  */
@@ -85,7 +85,7 @@ public class BlindDeafMutedClient implements ClientModInitializer {
         // live in mixins — InGameHudMixin / SoundSystemMixin — and need no registration.)
         BlindHandler.register();  // blind-mode keybind + vanilla Blindness effect
         MyopiaController.register(); // installs the MYOPIA blur post-effect while blind
-        DeafHandler.register();   // stops in-flight sounds on going deaf
+        DeafHandler.register();   // deaf muffle-intensity cycle keybind (H)
         MuteHandler.register();   // blocks outgoing chat
         TrackerHud.register();    // teammate tracker keybind (HUD draw is in InGameHudMixin)
         RosterHud.register();     // who-is-what leaderboard keybind (HUD draw is in InGameHudMixin)

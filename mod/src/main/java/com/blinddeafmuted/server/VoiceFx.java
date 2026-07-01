@@ -55,7 +55,7 @@ final class VoiceFx {
     /** Megaphone drive (gain). Modest on purpose: normal speech stays fairly quiet, so a
      *  speaker has to SCREAM (loud input) to actually be heard — and that's when it pushes
      *  into the clip ceiling and saturates a touch. */
-    private static final float MEGAPHONE_GAIN = 1.5f;
+    private static final float MEGAPHONE_GAIN = 1.1f;
 
     /** Post-megaphone clip ceiling (fraction of full scale). Lowered so loud peaks clip and
      *  saturate a LITTLE — gives the bullhorn bite without blasting. */
@@ -80,7 +80,7 @@ final class VoiceFx {
     /** MUTED + megaphone gain + clip ceiling: same modest drive + low ceiling as the deaf
      *  megaphone — a muted player must speak up to be heard, and loud peaks saturate a touch
      *  (no bit-crush garble, no noise). */
-    private static final float MUTED_MEGAPHONE_GAIN = 1.5f;
+    private static final float MUTED_MEGAPHONE_GAIN = 1.1f;
     private static final float MUTED_MEGAPHONE_CEILING = 0.80f;
 
     private static float lowpassAlpha(float cutoffHz) {
@@ -138,23 +138,28 @@ final class VoiceFx {
 
     /**
      * Re-render a voice frame as a DEAF listener should hear it: near-silent normally,
-     * or loud and saturated if {@code megaphone} (the speaker is holding one). Returns
-     * new Opus bytes for a rebuilt sound packet, or {@code null} on decode failure
-     * (caller should fall back to cancelling).
+     * or loud and saturated if the speaker uses a megaphone. Returns new Opus bytes for a
+     * rebuilt sound packet, or {@code null} on decode failure (caller falls back to cancel).
+     *
+     * <p>The megaphone boost only applies when the speaker is NOT muted. A MUTED speaker's
+     * disability wins even with a megaphone: their mic is already garbled at the source, and
+     * here we keep it faint too, so a muted+megaphone player is still (near) inaudible to a
+     * deaf listener — two disabilities don't cancel out into clear audio.
      */
-    byte[] forDeaf(UUID receiver, UUID sender, byte[] opus, boolean megaphone) {
+    byte[] forDeaf(UUID receiver, UUID sender, byte[] opus, boolean megaphone, boolean speakerMuted) {
         String key = receiver + "|" + sender;
         OpusDecoder decoder = deafDecoders.computeIfAbsent(key, k -> api.createDecoder());
         OpusEncoder encoder = deafEncoders.computeIfAbsent(receiver, k -> api.createEncoder());
         short[] pcm = decode(decoder, opus);
         if (pcm == null) return null;
-        if (megaphone) {
+        if (megaphone && !speakerMuted) {
             // Megaphone amplifies the otherwise-faint voice up to a loud, lightly-saturated
             // level so it cuts through the deafness. Clean apart from the hot drive.
             saturate(pcm, MEGAPHONE_GAIN, (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
         } else {
-            // Default deaf: the SAME clean voice, just turned right down — they catch only a
-            // faint murmur, no garble/noise. A megaphone (above) is how you get heard.
+            // Default deaf (and any muted speaker, megaphone or not): the voice turned right
+            // down to a faint murmur. A muted speaker's audio is already garbled at source,
+            // so this leaves it near-inaudible.
             scale(pcm, DEAF_VOLUME);
         }
         return encoder.encode(pcm);

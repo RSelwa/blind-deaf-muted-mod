@@ -1,41 +1,39 @@
 package com.blinddeafmuted.client;
 
-import com.blinddeafmuted.common.Role;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.text.Text;
+import org.lwjgl.glfw.GLFW;
 
 /**
- * DEAF effect: total silence, driven entirely by the mod (never by user settings).
- *
- * <p>Two halves work together:
- * <ul>
- *   <li>{@code SoundSystemMixin} cancels every <i>new</i> sound while deaf — so
- *       nothing fresh ever starts (mobs, music, UI, footsteps).</li>
- *   <li>This handler kills every <i>already-playing</i> sound at the moment the
- *       player becomes deaf (the music track, looping cave/mob ambience, etc.), so
- *       there's no lingering audio.</li>
- * </ul>
- *
- * <p>Crucially we do NOT touch {@code client.options} volumes. That means switching
- * a player between roles is instant and lossless — their real volume preferences are
- * never altered, so there's nothing to "restore" and nothing to get out of sync when
- * an admin shuffles teams mid-game. When deafness ends, sound simply resumes.
+ * DEAF tuning keybind (default {@code H}, "hearing"): cycles the muffle intensity
+ * ({@link DeafMuffle}) live so you can find the right feel in-game — the deaf analogue
+ * of {@code B} for blind modes. The muffle itself is applied in {@code SourceMixin} via
+ * {@link DeafAudioFilter}; this only flips which preset that filter uses.
  */
 public final class DeafHandler {
     private DeafHandler() {}
 
-    private static boolean wasDeaf = false;
+    private static final KeyBinding CYCLE_MUFFLE = new KeyBinding(
+            "key.blind-deaf-muted.cycle_deaf_muffle",
+            InputUtil.Type.KEYSYM,
+            GLFW.GLFW_KEY_H,
+            "key.categories.blind-deaf-muted");
 
     public static void register() {
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            boolean deaf = RoleState.is(Role.DEAF);
-            if (deaf == wasDeaf) return; // only act on transitions
-            wasDeaf = deaf;
+        KeyBindingHelper.registerKeyBinding(CYCLE_MUFFLE);
 
-            if (deaf && client.getSoundManager() != null) {
-                // Cut off everything currently audible; the mixin handles everything after.
-                client.getSoundManager().stopAll();
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            while (CYCLE_MUFFLE.wasPressed()) {
+                DeafMuffle level = DeafState.cycle();
+                if (client.player != null) {
+                    client.player.sendMessage(
+                            Text.translatable("hud.blind-deaf-muted.deaf_muffle", level.name()),
+                            true); // action bar
+                }
             }
-            // On un-deaf: nothing to do — the mixin stops cancelling and sound resumes.
         });
     }
 }

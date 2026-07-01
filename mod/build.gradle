@@ -14,6 +14,15 @@ base {
     archivesName = project.archives_base_name
 }
 
+configurations {
+    // Holds the real Simple Voice Chat mod jar for dev runs. NOT a loom `mod*`
+    // configuration on purpose: loom would try to remap it at build time, and
+    // Loom 1.9.2 can't parse SVC 2.6.x's packaging. Instead we hand the raw jar to
+    // the Fabric LOADER via -Dfabric.addMods, which remaps it at runtime (the same
+    // path production uses), so dev can run the same 2.6.20 as the Docker server.
+    svcDevRuntime
+}
+
 repositories {
     // Simple Voice Chat plugin API lives here (not on Maven Central).
     maven {
@@ -45,14 +54,14 @@ dependencies {
     // never invoked, so nothing breaks. Plain API jar → plain `compileOnly`.
     compileOnly "de.maxhenkel.voicechat:voicechat-api:${project.voicechat_api_version}"
 
-    // DEV-ONLY: the full Simple Voice Chat mod, loaded into `runClient*`/`runServer`
-    // so we can actually test in-game voice locally. `modLocalRuntime` keeps it
-    // off the compile classpath and OUT of the published jar — players still
-    // install SVC themselves (it stays an optional soft dependency). Without this
-    // the dev client has no SVC mod, so no mic icon appears.
-    // 2.5.36 matches our compileOnly API version and was built with an older
-    // Loom (newer SVC builds use Loom 1.17+, which Loom 1.9.2 refuses to load).
-    modLocalRuntime "maven.modrinth:simple-voice-chat:fabric-1.21.4-2.5.36"
+    // DEV-ONLY: the full Simple Voice Chat mod for local voice testing. We pull the
+    // REAL 2.6.20 (same as the Docker server + what players install) so dev voice
+    // matches production instead of the old 2.5.36. transitive=false → just the one
+    // jar (resolved via .singleFile below). It's injected with -Dfabric.addMods on
+    // the run configs, NOT compiled against and NOT in the published jar (SVC stays
+    // an optional soft dependency). The compileOnly API above stays at its own
+    // version — the 2.x plugin API is stable, so it still links fine.
+    svcDevRuntime("maven.modrinth:simple-voice-chat:fabric-1.21.4-2.6.20") { transitive = false }
 
     // Share the common code and bundle it INTO this jar (jar-in-jar), so the one
     // published file is fully self-contained.
@@ -70,6 +79,10 @@ dependencies {
     include project(':common')
 }
 
+// Absolute path to the SVC dev jar, handed to the loader so it loads (and remaps)
+// it at runtime. Resolved once here; reused by every run below.
+def svcAddModsArg = "-Dfabric.addMods=${configurations.svcDevRuntime.singleFile}"
+
 loom {
     runs {
         // Default client gets a distinct offline username too, so it and client2
@@ -77,6 +90,7 @@ loom {
         client {
             client()
             programArgs '--username', 'Alex'
+            vmArg svcAddModsArg
         }
         // Second client so two instances can join one world for multiplayer
         // testing (blind <-> deaf <-> muted relay). Each gets its own runDir so
@@ -90,6 +104,7 @@ loom {
             ideConfigGenerated = true
             runDir = 'run2'
             programArgs '--username', 'Bob'
+            vmArg svcAddModsArg
         }
         // Third client — third player for blind/deaf/muted triangle testing.
         client3 {
@@ -98,6 +113,13 @@ loom {
             ideConfigGenerated = true
             runDir = 'run3'
             programArgs '--username', 'Alice'
+            vmArg svcAddModsArg
+        }
+        // Dev server (runServer) also gets SVC, so voice works dev-client↔dev-server
+        // too (not only against the Docker server).
+        server {
+            server()
+            vmArg svcAddModsArg
         }
     }
 }

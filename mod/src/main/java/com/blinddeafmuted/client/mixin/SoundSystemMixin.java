@@ -1,38 +1,65 @@
 package com.blinddeafmuted.client.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.blinddeafmuted.client.DeafMuffle;
+import com.blinddeafmuted.client.DeafState;
 import com.blinddeafmuted.client.RoleState;
 import com.blinddeafmuted.common.Role;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.client.sound.SoundSystem;
+import net.minecraft.util.math.MathHelper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * DEAF effect: cancel every sound at the source while the local player is deaf.
+ * DEAF effect on Minecraft's OWN audio (blocks, mobs, weather, music, footsteps — NOT
+ * voice; that's Simple Voice Chat's path, shaped in {@code VoiceFx}). Two things here,
+ * both keyed off the current {@link DeafMuffle} level:
+ * <ul>
+ *   <li><b>Slight loudness trim</b> — {@link #DEAF_ENV_VOLUME} knocks a little off overall
+ *       (1.0 = none; each level also carries its own gain). The real muffle is the OpenAL
+ *       low-pass in {@code SourceMixin}/{@code DeafAudioFilter}.</li>
+ *   <li><b>Hearing range cap</b> — positional sounds fade out over the far half of
+ *       {@link DeafMuffle#range()} and are silenced past it, so a deaf player hears only
+ *       what's close (e.g. EXTREME = nothing past ~8 blocks). Non-positional sounds
+ *       (UI / music / global ambience) are left alone — they have no meaningful distance.</li>
+ * </ul>
  *
- * <p>This is the clean, settings-free way to be deaf. We do NOT touch the player's
- * volume sliders (that would be a nightmare to snapshot/restore every time an admin
- * moves someone between roles). Instead we intercept playback itself: while deaf,
- * {@link SoundSystem#play} is short-circuited, so NOTHING new plays — music, mobs,
- * UI, footsteps, everything. Delayed sounds route through this same method, so
- * they're covered too. Currently-playing sounds are stopped by {@code DeafHandler}
- * on the transition into deafness.
- *
- * <p>The instant the player stops being deaf, this stops cancelling and sound
- * resumes naturally — with the player's original volume settings completely intact.
+ * <p>We never touch the player's volume sliders, so full hearing returns the instant
+ * deafness ends.
  */
 @Mixin(SoundSystem.class)
 public class SoundSystemMixin {
 
-    @Inject(
-            method = "play(Lnet/minecraft/client/sound/SoundInstance;)V",
-            at = @At("HEAD"),
-            cancellable = true)
-    private void blinddeafmuted$muteWhenDeaf(SoundInstance sound, CallbackInfo ci) {
-        if (RoleState.is(Role.DEAF)) {
-            ci.cancel();
+    /** Slight loudness trim for a deaf player: 1.0 = none, 0.7 ≈ -3 dB. */
+    private static final float DEAF_ENV_VOLUME = 1.0F;
+
+    @ModifyReturnValue(
+            method = "getAdjustedVolume(Lnet/minecraft/client/sound/SoundInstance;)F",
+            at = @At("RETURN"))
+    private float blinddeafmuted$deafenVolume(float original, SoundInstance sound) {
+        if (!RoleState.is(Role.DEAF)) return original;
+
+        float v = original * DEAF_ENV_VOLUME;
+
+        // Distance cap: only for positional (attenuated) sounds — global UI/music have no
+        // position, leave them. Fade from full at half-range to silent at full range.
+        if (sound.getAttenuationType() == SoundInstance.AttenuationType.LINEAR) {
+            ClientPlayerEntity player = MinecraftClient.getInstance().player;
+            if (player != null) {
+                float range = DeafState.getMuffle().range();
+                double dx = sound.getX() - player.getX();
+                double dy = sound.getY() - player.getY();
+                double dz = sound.getZ() - player.getZ();
+                double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                float half = range * 0.5F;
+                // 1 at/below half-range → 0 at/above full range; 0 past it.
+                float fade = 1.0F - MathHelper.clamp((float) (dist - half) / (range - half), 0.0F, 1.0F);
+                v *= fade;
+            }
         }
+        return v;
     }
 }

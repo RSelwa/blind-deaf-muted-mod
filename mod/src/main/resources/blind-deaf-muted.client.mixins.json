@@ -9,7 +9,8 @@
     "GameRendererAccessor",
     "InGameHudMixin",
     "PlayerEntityModelMixin",
-    "SoundSystemMixin"
+    "SoundSystemMixin",
+    "SourceMixin"
   ],
   "injectors": {
     "defaultRequire": 1
