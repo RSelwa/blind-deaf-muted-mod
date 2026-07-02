@@ -19,6 +19,7 @@ import net.fabricmc.fabric.api.loot.v2.LootTableEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.entity.EntityType;
 import net.minecraft.loot.LootPool;
 import net.minecraft.loot.LootTable;
 import net.minecraft.loot.LootTables;
@@ -35,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -73,26 +75,53 @@ public class BlindDeafMutedServer implements ModInitializer {
     private static final int ROSTER_INTERVAL_TICKS = 20;
     private int rosterTickCounter = 0;
 
-    /** Chest loot tables the Randomizer bottle can drop in (built-in structures). */
+    /** Chest loot tables the Randomizer bottle can drop in (built-in structures).
+     *  All village chest types are included (not just weaponsmith) so any village is a
+     *  reliable source — most villages lack a weaponsmith. */
     private static final Set<RegistryKey<LootTable>> RANDOMIZER_CHESTS = Set.of(
             LootTables.SIMPLE_DUNGEON_CHEST,
             LootTables.ABANDONED_MINESHAFT_CHEST,
-            LootTables.VILLAGE_WEAPONSMITH_CHEST,
             LootTables.STRONGHOLD_CORRIDOR_CHEST,
             LootTables.JUNGLE_TEMPLE_CHEST,
             LootTables.DESERT_PYRAMID_CHEST,
             LootTables.NETHER_BRIDGE_CHEST,
-            LootTables.BASTION_TREASURE_CHEST);
+            LootTables.BASTION_TREASURE_CHEST,
+            LootTables.BASTION_OTHER_CHEST,
+            LootTables.BASTION_BRIDGE_CHEST,
+            LootTables.BASTION_HOGLIN_STABLE_CHEST,
+            // Every village job-site + house chest.
+            LootTables.VILLAGE_WEAPONSMITH_CHEST,
+            LootTables.VILLAGE_TOOLSMITH_CHEST,
+            LootTables.VILLAGE_ARMORER_CHEST,
+            LootTables.VILLAGE_CARTOGRAPHER_CHEST,
+            LootTables.VILLAGE_MASON_CHEST,
+            LootTables.VILLAGE_SHEPARD_CHEST,
+            LootTables.VILLAGE_BUTCHER_CHEST,
+            LootTables.VILLAGE_FLETCHER_CHEST,
+            LootTables.VILLAGE_FISHER_CHEST,
+            LootTables.VILLAGE_TANNERY_CHEST,
+            LootTables.VILLAGE_TEMPLE_CHEST,
+            LootTables.VILLAGE_DESERT_HOUSE_CHEST,
+            LootTables.VILLAGE_PLAINS_CHEST,
+            LootTables.VILLAGE_TAIGA_HOUSE_CHEST,
+            LootTables.VILLAGE_SNOWY_HOUSE_CHEST,
+            LootTables.VILLAGE_SAVANNA_HOUSE_CHEST);
 
-    /** Roughly how often a qualifying chest yields a Randomizer (0.15 = 15%). Bumped
-     *  from 0.10 because the rarest source (village weaponsmith — not every village
-     *  has one, single chest) made it almost never show up. */
-    private static final float RANDOMIZER_CHANCE = 0.15F;
+    /** How often a qualifying chest yields a Randomizer (0.55 = 55%). High on purpose:
+     *  a run only sees a handful of these chests, so a low rate meant it barely showed. */
+    private static final float RANDOMIZER_CHANCE = 0.55F;
 
     /** Chance a single Piglin barter ALSO yields a Randomizer. A reliable, farmable
      *  source (trade gold to piglins) on top of the rare structure chests. Kept low
      *  so it's a treat, not spam — piglins barter fast. */
     private static final float PIGLIN_BARTER_CHANCE = 0.05F;
+
+    /** Mob death drops: chance a killed mob of each type drops a Randomizer. These are
+     *  pure bonuses on the entity loot tables (added, not replacing vanilla drops). */
+    private static final Map<EntityType<?>, Float> MOB_DEATH_DROPS = Map.of(
+            EntityType.PIGLIN, 0.10F,
+            EntityType.IRON_GOLEM, 0.60F,
+            EntityType.BLAZE, 0.60F);
 
     @Override
     public void onInitialize() {
@@ -153,6 +182,18 @@ public class BlindDeafMutedServer implements ModInitializer {
                         .rolls(ConstantLootNumberProvider.create(1))
                         .conditionally(RandomChanceLootCondition.builder(PIGLIN_BARTER_CHANCE))
                         .with(ItemEntry.builder(ModItems.RANDOMIZER)));
+            }
+            // Mob death drops (piglin/iron golem/blaze): add a bonus pool on each entity's
+            // loot table, on top of its vanilla drops (piglin has none — pure bonus there).
+            if (source.isBuiltin()) {
+                for (Map.Entry<EntityType<?>, Float> drop : MOB_DEATH_DROPS.entrySet()) {
+                    if (drop.getKey().getLootTableKey().map(key::equals).orElse(false)) {
+                        tableBuilder.pool(LootPool.builder()
+                                .rolls(ConstantLootNumberProvider.create(1))
+                                .conditionally(RandomChanceLootCondition.builder(drop.getValue()))
+                                .with(ItemEntry.builder(ModItems.RANDOMIZER)));
+                    }
+                }
             }
         });
 
