@@ -25,12 +25,12 @@ const float FULL_BLUR_BLOCKS_S = 1.5;
 const float FULL_BLUR_BLOCKS_H = 0.7;
 // Max per-axis blur spread, in texels, at full strength. Higher = mushier far field.
 const float MAX_TEXEL_RADIUS_S = 50.0;
-const float MAX_TEXEL_RADIUS_H = 60.0;
+const float MAX_TEXEL_RADIUS_H = 65.0;
 // Vignette radii, aspect-corrected screen units (0 = centre, ~0.5 = screen edge).
 const float VIGNETTE_CLEAR_S = 0.48; // inside this radius: fully visible
-const float VIGNETTE_CLEAR_H = 0.30;
+const float VIGNETTE_CLEAR_H = 0.20;
 const float VIGNETTE_BLACK_S = 0.72; // past this radius: darkest
-const float VIGNETTE_BLACK_H = 0.50;
+const float VIGNETTE_BLACK_H = 0.70;
 // Darkest the overlay ever gets (0 = pure black, 0.30 = 70% opaque so shapes show).
 const float VIGNETTE_MIN_VIS_S = 0.30;
 const float VIGNETTE_MIN_VIS_H = 0.12;

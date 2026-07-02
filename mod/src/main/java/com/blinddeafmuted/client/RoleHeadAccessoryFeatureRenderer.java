@@ -38,9 +38,10 @@ public final class RoleHeadAccessoryFeatureRenderer
 
     private static final Identifier GLASSES_TEX = ModConstants.id("textures/entity/glasses.png");
     private static final Identifier BANDAGE_TEX = ModConstants.id("textures/entity/bandage.png");
-    // Orange fill for the headset ear cups (reuses the old hard-hat PNG). The band +
-    // connectors use their own near-black PNG. Repaint either to restyle.
-    private static final Identifier HEADSET_TEX = ModConstants.id("textures/entity/hard_hat.png");
+    // Orange fill for the headset ear cups (own PNG, no longer shared with the megaphone).
+    // The band + connectors use their own near-black PNG. Repaint either to restyle.
+    // UV layout for both: see uv-guides/headset_cups.png + uv-guides/headset_band.png.
+    private static final Identifier HEADSET_TEX = ModConstants.id("textures/entity/headset_cups.png");
     private static final Identifier BAND_TEX = ModConstants.id("textures/entity/headset_band.png");
 
     private final ModelPart glasses;
@@ -84,7 +85,7 @@ public final class RoleHeadAccessoryFeatureRenderer
                 ModelPartBuilder.create().uv(0, 0).cuboid(-2.5F, -0.5F, -0.3F, 5.0F, 1.0F, 0.6F),
                 ModelTransform.of(0.0F, -1.5F, -4.6F, pitch, yaw, (float) Math.toRadians(20.0)));
         root.addChild("strip_b",
-                ModelPartBuilder.create().uv(0, 0).cuboid(-2.5F, -0.5F, -0.3F, 5.0F, 1.0F, 0.6F),
+                ModelPartBuilder.create().uv(0, 3).cuboid(-2.5F, -0.5F, -0.3F, 5.0F, 1.0F, 0.6F),
                 ModelTransform.of(0.0F, -1.5F, -4.6F, pitch, yaw, (float) Math.toRadians(-20.0)));
         return TexturedModelData.of(data, 16, 16);
     }
@@ -96,13 +97,14 @@ public final class RoleHeadAccessoryFeatureRenderer
         ModelPartData root = data.getRoot();
         // Head sides are at x=+4 (left) and x=-4 (right); cups sit just outside, centred
         // vertically (head mid ≈ y=-4) and roughly over the ear (z centred).
+        // Each cup on its own half of headset_cups.png — see uv-guides/headset_cups.png.
         root.addChild("left_cup",
                 ModelPartBuilder.create().uv(0, 0).cuboid(4.0F, -6.5F, -2.5F, 2.0F, 5.0F, 5.0F),
                 ModelTransform.NONE);
         root.addChild("right_cup",
-                ModelPartBuilder.create().uv(0, 0).cuboid(-6.0F, -6.5F, -2.5F, 2.0F, 5.0F, 5.0F),
+                ModelPartBuilder.create().uv(0, 11).cuboid(-6.0F, -6.5F, -2.5F, 2.0F, 5.0F, 5.0F),
                 ModelTransform.NONE);
-        return TexturedModelData.of(data, 16, 16);
+        return TexturedModelData.of(data, 16, 32);
     }
 
     /** The dark band arcing over the crown plus two short connectors down to the cups.
@@ -112,18 +114,19 @@ public final class RoleHeadAccessoryFeatureRenderer
         ModelPartData root = data.getRoot();
         // Head top is y=-8; the band sits just above it (y=-9 → -7.5) so it reads as
         // an over-the-head arc rather than lying flat on the scalp.
+        // Band + both connectors laid out on headset_band.png — see uv-guides/headset_band.png.
         root.addChild("band",
                 ModelPartBuilder.create().uv(0, 0).cuboid(-6.0F, -9.0F, -1.5F, 12.0F, 1.5F, 3.0F),
                 ModelTransform.NONE);
         // Two small connectors bridging the gap from the band bottom (y=-7.5) down to
         // each cup top (y=-6.5), one over each ear (x centred on the cups, ≈ ±5).
         root.addChild("left_connector",
-                ModelPartBuilder.create().uv(0, 0).cuboid(4.5F, -7.5F, -1.0F, 1.0F, 1.0F, 2.0F),
+                ModelPartBuilder.create().uv(0, 6).cuboid(4.5F, -7.5F, -1.0F, 1.0F, 1.0F, 2.0F),
                 ModelTransform.NONE);
         root.addChild("right_connector",
-                ModelPartBuilder.create().uv(0, 0).cuboid(-5.5F, -7.5F, -1.0F, 1.0F, 1.0F, 2.0F),
+                ModelPartBuilder.create().uv(7, 6).cuboid(-5.5F, -7.5F, -1.0F, 1.0F, 1.0F, 2.0F),
                 ModelTransform.NONE);
-        return TexturedModelData.of(data, 16, 16);
+        return TexturedModelData.of(data, 32, 16);
     }
 
     @Override
