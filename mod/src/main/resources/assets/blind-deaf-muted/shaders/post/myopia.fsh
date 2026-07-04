@@ -18,25 +18,31 @@ out vec4 fragColor;
 // blur that starts almost at the camera, and a near-black surround — barely any sight.
 // Every "_S" (soft) / "_H" (hard) pair below is mix()ed by Intensity in main().
 
-// Distance (in blocks) staying sharp, and where the blur maxes out.
-const float SHARP_BLOCKS_S     = 0.3;
-const float SHARP_BLOCKS_H     = 0.12;
-const float FULL_BLUR_BLOCKS_S = 1.5;
-const float FULL_BLUR_BLOCKS_H = 0.7;
+// Distance (in blocks) staying sharp, and where the blur maxes out. Soft (cane) reaches
+// further before blurring — the cane "extends" your usable sight a bit.
+const float SHARP_BLOCKS_S     = 0.55;
+const float SHARP_BLOCKS_H     = 0.20;
+const float FULL_BLUR_BLOCKS_S = 2.4;
+const float FULL_BLUR_BLOCKS_H = 1.0;
 // Max per-axis blur spread, in texels, at full strength. Higher = mushier far field.
-const float MAX_TEXEL_RADIUS_S = 50.0;
-const float MAX_TEXEL_RADIUS_H = 65.0;
-// Vignette radii, aspect-corrected screen units (0 = centre, ~0.5 = screen edge).
-const float VIGNETTE_CLEAR_S = 0.48; // inside this radius: fully visible
-const float VIGNETTE_CLEAR_H = 0.20;
-const float VIGNETTE_BLACK_S = 0.72; // past this radius: darkest
-const float VIGNETTE_BLACK_H = 0.70;
-// Darkest the overlay ever gets (0 = pure black, 0.30 = 70% opaque so shapes show).
-const float VIGNETTE_MIN_VIS_S = 0.30;
-const float VIGNETTE_MIN_VIS_H = 0.12;
+const float MAX_TEXEL_RADIUS_S = 70.0;
+const float MAX_TEXEL_RADIUS_H = 86.0;
+// Vignette radii, aspect-corrected screen units (0 = centre, ~0.5 = screen edge). Soft
+// (cane) clear circle is wider — again, the cane extends how much you can see. Hard (no
+// cane) is now much closer to soft than before, just a step harder.
+const float VIGNETTE_CLEAR_S = 0.55; // inside this radius: fully visible
+const float VIGNETTE_CLEAR_H = 0.28;
+const float VIGNETTE_BLACK_S = 0.85; // past this radius: darkest
+const float VIGNETTE_BLACK_H = 0.75;
+// Dark-GRAY haze the far field + surround fade into (was a pure-black vignette). Distant
+// stuff washes into soft dark-gray shapes instead of sharp black silhouettes. Hard mode
+// hazes a little more strongly. Lower HAZE_COLOR = darker gray; higher = lighter.
+const vec3  HAZE_COLOR      = vec3(0.17);
+const float HAZE_STRENGTH_S = 0.55;
+const float HAZE_STRENGTH_H = 0.80;
 
 // How many taps per side. More = smoother blur, slightly more cost. (Must be const.)
-const int TAPS = 22;
+const int TAPS = 26;
 // Minecraft's camera near plane. Turns the non-linear depth buffer back into an
 // approximate eye-space distance in blocks:  z ~= near / (1 - depth).
 const float NEAR = 0.05;
@@ -49,7 +55,7 @@ void main() {
     float maxTexelRadius = mix(MAX_TEXEL_RADIUS_S, MAX_TEXEL_RADIUS_H, Intensity);
     float vClear         = mix(VIGNETTE_CLEAR_S,   VIGNETTE_CLEAR_H,   Intensity);
     float vBlack         = mix(VIGNETTE_BLACK_S,   VIGNETTE_BLACK_H,   Intensity);
-    float vMinVis        = mix(VIGNETTE_MIN_VIS_S, VIGNETTE_MIN_VIS_H, Intensity);
+    float hazeStr        = mix(HAZE_STRENGTH_S,    HAZE_STRENGTH_H,    Intensity);
 
     float d = texture(InDepthSampler, texCoord).r;
     float dist = NEAR / max(1.0e-4, 1.0 - d); // approx distance to the fragment, in blocks
@@ -72,15 +78,21 @@ void main() {
         color = sum / wsum;
     }
 
-    // Tunnel-vision vignette — applied ONLY on the second (vertical) pass so it isn't
-    // squared by running twice. Dark at the edges, clear circle in the middle.
+    // Applied ONLY on the second (vertical) pass, so these run once (not squared by the
+    // two blur passes).
     if (BlurDir.y > 0.5) {
+        // Gray haze: wash the blurred far field toward dark gray so distant things read as
+        // soft dark-gray shapes, not sharp silhouettes. Scales with the blur amount, so the
+        // near/clear field is untouched and only the far field greys out.
+        color.rgb = mix(color.rgb, HAZE_COLOR, amt * hazeStr);
+
+        // Tunnel-vision vignette: fade the surround toward the SAME dark gray (not pure
+        // black), so the edge is a soft dark-gray stroke rather than a hard black frame.
         vec2 p = texCoord - 0.5;
         p.x *= InSize.x / max(1.0, InSize.y); // correct aspect so the clear zone is a circle
         float r = length(p);
         float vis = 1.0 - smoothstep(vClear, vBlack, r);
-        vis = max(vis, vMinVis); // floor darkness so it isn't always pure black
-        color.rgb *= vis;
+        color.rgb = mix(HAZE_COLOR, color.rgb, vis);
     }
 
     fragColor = color;
