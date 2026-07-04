@@ -9,7 +9,9 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
@@ -79,17 +81,32 @@ public final class TrackerHud {
         double pz = mc.player.getZ();
         float yaw = mc.player.getYaw();
 
+        // The server sends ALL online players (self included); drop ourselves here.
+        String self = mc.player.getName().getString();
+        String selfDim = mc.player.getWorld().getRegistryKey().getValue().toString();
+
         // All teammates on one horizontal row, separated by spaced bars.
-        StringBuilder row = new StringBuilder();
-        for (int i = 0; i < entries.size(); i++) {
-            if (i > 0) row.append("   |   ");
-            row.append(format(entries.get(i), px, py, pz, yaw));
+        MutableText row = Text.empty();
+        boolean first = true;
+        for (TrackerPayload.Entry e : entries) {
+            if (e.name().equals(self)) continue;
+            if (!first) row.append(Text.literal("   |   ").formatted(Formatting.WHITE));
+            first = false;
+            row.append(format(e, px, py, pz, yaw, selfDim));
         }
-        context.drawCenteredTextWithShadow(font, Text.literal(row.toString()),
-                centerX, y, 0xFFFFFFFF);
+        if (first) return; // only entry was ourselves (alone) — nothing to draw
+        context.drawCenteredTextWithShadow(font, row, centerX, y, 0xFFFFFFFF);
     }
 
-    private static String format(TrackerPayload.Entry e, double px, double py, double pz, float yaw) {
+    private static MutableText format(TrackerPayload.Entry e, double px, double py, double pz,
+                                      float yaw, String selfDim) {
+        // A teammate in another dimension: distance/arrow are meaningless (Nether coords
+        // are 1:8), so show just "Name (Nether)" with a per-dimension colour instead.
+        if (!e.dimension().equals(selfDim)) {
+            MutableText tag = dimensionTag(e.dimension());
+            return Text.literal(e.name() + " ").formatted(Formatting.WHITE).append(tag);
+        }
+
         double dx = e.x() - px;
         double dy = e.y() - py;
         double dz = e.z() - pz;
@@ -106,7 +123,20 @@ public final class TrackerHud {
         int sector = Math.floorMod((int) Math.round(rel / 45.0), 8);
         String arrow = ARROWS[sector];
 
-        return e.name() + "  " + blocks + "b  " + arrow;
+        return Text.literal(e.name() + "  " + blocks + "b  " + arrow).formatted(Formatting.WHITE);
+    }
+
+    /** A parenthesised, coloured dimension label — Nether red, End light purple,
+     *  overworld/other grey. Name resolves per-client via a translation key. */
+    private static MutableText dimensionTag(String dimension) {
+        String key;
+        Formatting colour;
+        switch (dimension) {
+            case "minecraft:the_nether" -> { key = "hud.blind-deaf-muted.dim.nether"; colour = Formatting.RED; }
+            case "minecraft:the_end"    -> { key = "hud.blind-deaf-muted.dim.end"; colour = Formatting.LIGHT_PURPLE; }
+            default                      -> { key = "hud.blind-deaf-muted.dim.overworld"; colour = Formatting.GRAY; }
+        }
+        return Text.literal("(").append(Text.translatable(key)).append(")").formatted(colour);
     }
 
     /** Normalize an angle to the range (-180, 180]. */

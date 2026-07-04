@@ -24,6 +24,9 @@
   "hud.blind-deaf-muted.roster": "Roster: %s",
   "hud.blind-deaf-muted.tracker": "Teammate tracker: %s",
   "hud.blind-deaf-muted.deaf_muffle": "Deaf muffle: %s",
+  "hud.blind-deaf-muted.dim.nether": "Nether",
+  "hud.blind-deaf-muted.dim.end": "End",
+  "hud.blind-deaf-muted.dim.overworld": "Overworld",
 
   "state.blind-deaf-muted.on": "ON",
   "state.blind-deaf-muted.off": "OFF"

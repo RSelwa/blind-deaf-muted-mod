@@ -243,17 +243,22 @@ public class BlindDeafMutedServer implements ModInitializer {
         tickCounter = 0;
 
         List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
-        if (players.size() < 2) return; // nobody to track
+        if (players.isEmpty()) return; // no one online
 
+        // Build ONE list of every online player (self included) and send the same payload
+        // to everyone; the client filters itself out by name. Rebuilt from the live player
+        // list each tick, so a teammate who disconnects, reconnects, or changes dimension
+        // never lingers stale on anyone's HUD (and a lone player just sees an empty tracker).
+        List<TrackerPayload.Entry> entries = new ArrayList<>(players.size());
+        for (ServerPlayerEntity player : players) {
+            entries.add(new TrackerPayload.Entry(
+                    player.getName().getString(),
+                    player.getX(), player.getY(), player.getZ(),
+                    player.getWorld().getRegistryKey().getValue().toString()));
+        }
+        TrackerPayload payload = new TrackerPayload(entries);
         for (ServerPlayerEntity recipient : players) {
-            List<TrackerPayload.Entry> entries = new ArrayList<>(players.size() - 1);
-            for (ServerPlayerEntity other : players) {
-                if (other == recipient) continue;
-                entries.add(new TrackerPayload.Entry(
-                        other.getName().getString(),
-                        other.getX(), other.getY(), other.getZ()));
-            }
-            ServerPlayNetworking.send(recipient, new TrackerPayload(entries));
+            ServerPlayNetworking.send(recipient, payload);
         }
     }
 

@@ -23,8 +23,10 @@ import java.util.List;
  */
 public record TrackerPayload(List<Entry> entries) implements CustomPayload {
 
-    /** One tracked teammate: their display name and world position. */
-    public record Entry(String name, double x, double y, double z) {}
+    /** One tracked teammate: their display name, world position, and the id of the
+     *  dimension they're in (e.g. {@code minecraft:the_nether}) so the client can flag
+     *  teammates in another dimension. */
+    public record Entry(String name, double x, double y, double z, String dimension) {}
 
     public static final CustomPayload.Id<TrackerPayload> ID =
             new CustomPayload.Id<>(ModConstants.id("tracker"));
@@ -37,6 +39,7 @@ public record TrackerPayload(List<Entry> entries) implements CustomPayload {
                     buf.writeDouble(e.x());
                     buf.writeDouble(e.y());
                     buf.writeDouble(e.z());
+                    buf.writeString(e.dimension());
                 }
             },
             buf -> {
@@ -47,7 +50,8 @@ public record TrackerPayload(List<Entry> entries) implements CustomPayload {
                     double x = buf.readDouble();
                     double y = buf.readDouble();
                     double z = buf.readDouble();
-                    list.add(new Entry(name, x, y, z));
+                    String dimension = buf.readString();
+                    list.add(new Entry(name, x, y, z, dimension));
                 }
                 return new TrackerPayload(list);
             }

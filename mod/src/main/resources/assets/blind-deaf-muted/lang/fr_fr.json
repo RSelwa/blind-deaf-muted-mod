@@ -24,6 +24,9 @@
   "hud.blind-deaf-muted.roster": "Tableau des rôles : %s",
   "hud.blind-deaf-muted.tracker": "Traceur d'équipiers : %s",
   "hud.blind-deaf-muted.deaf_muffle": "Atténuation sourd : %s",
+  "hud.blind-deaf-muted.dim.nether": "Nether",
+  "hud.blind-deaf-muted.dim.end": "End",
+  "hud.blind-deaf-muted.dim.overworld": "Surface",
 
   "state.blind-deaf-muted.on": "ACTIVÉ",
   "state.blind-deaf-muted.off": "DÉSACTIVÉ"
