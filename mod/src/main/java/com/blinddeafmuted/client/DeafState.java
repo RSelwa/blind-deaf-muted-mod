@@ -8,8 +8,8 @@ package com.blinddeafmuted.client;
 public final class DeafState {
     private DeafState() {}
 
-    /** Default muffle. STRONG = "through a wall"; cycle with H to tune. */
-    private static volatile DeafMuffle muffle = DeafMuffle.STRONG;
+    /** Default muffle. LIGHT = the mildest "through a wall"; cycle with H to tune. */
+    private static volatile DeafMuffle muffle = DeafMuffle.LIGHT;
 
     public static DeafMuffle getMuffle() {
         return muffle;

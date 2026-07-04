@@ -69,8 +69,12 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     private VoicechatServerApi serverApi;
     private VoiceFx fx;
 
-    /** Guards against a resent DEAF packet re-triggering the same sound-packet event. */
+    /** Guards against a resent packet re-triggering the same sound-packet event. */
     private final ThreadLocal<Boolean> rebuilding = ThreadLocal.withInitial(() -> Boolean.FALSE);
+
+    /** Sentinel from {@link #renderPacket}: leave the packet untouched (not our concern) —
+     *  distinct from {@code null}, which means "drop it" (deaf decode failure → silence). */
+    private static final byte[] UNTOUCHED = new byte[0];
 
     /** Wire in the role store. Called from {@link BlindDeafMutedServer#onInitialize()}. */
     public static void bind(RoleManager roleManager) {
@@ -123,16 +127,19 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         }
     }
 
-    // ---- DEAF (one handler per concrete sound-packet type) -----------------
+    // ---- Sound packets: DEAF re-render + non-deaf megaphone bullhorn -------
+    // One handler per concrete sound-packet type; all defer to renderPacket() for the
+    // decision, then cancel + resend the reprocessed audio (guarding the re-entrant resend).
 
     private void onEntitySound(EntitySoundPacketEvent event) {
-        if (skipDeaf(event.getReceiverConnection())) return;
+        if (rebuilding.get()) return;
         EntitySoundPacket p = event.getPacket();
-        byte[] audio = renderForDeaf(event.getReceiverConnection(), event.getSenderConnection(), p);
+        byte[] audio = renderPacket(event.getReceiverConnection(), event.getSenderConnection(), p);
+        if (audio == UNTOUCHED) return;
         event.cancel();
         if (audio != null) {
             // Guard the resend: SVC re-fires the sound event for the resent packet on this
-            // same thread, so without the flag we'd recurse into onEntitySound forever.
+            // same thread, so without the flag we'd recurse into this handler forever.
             rebuilding.set(Boolean.TRUE);
             try {
                 serverApi.sendEntitySoundPacketTo(event.getReceiverConnection(),
@@ -144,9 +151,10 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     }
 
     private void onLocationalSound(LocationalSoundPacketEvent event) {
-        if (skipDeaf(event.getReceiverConnection())) return;
+        if (rebuilding.get()) return;
         LocationalSoundPacket p = event.getPacket();
-        byte[] audio = renderForDeaf(event.getReceiverConnection(), event.getSenderConnection(), p);
+        byte[] audio = renderPacket(event.getReceiverConnection(), event.getSenderConnection(), p);
+        if (audio == UNTOUCHED) return;
         event.cancel();
         if (audio != null) {
             rebuilding.set(Boolean.TRUE);
@@ -160,9 +168,10 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     }
 
     private void onStaticSound(StaticSoundPacketEvent event) {
-        if (skipDeaf(event.getReceiverConnection())) return;
+        if (rebuilding.get()) return;
         StaticSoundPacket p = event.getPacket();
-        byte[] audio = renderForDeaf(event.getReceiverConnection(), event.getSenderConnection(), p);
+        byte[] audio = renderPacket(event.getReceiverConnection(), event.getSenderConnection(), p);
+        if (audio == UNTOUCHED) return;
         event.cancel();
         if (audio != null) {
             rebuilding.set(Boolean.TRUE);
@@ -175,29 +184,38 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         }
     }
 
-    /** True when this sound packet should be left untouched (receiver not deaf, or we're
-     *  inside our own resend). */
-    private boolean skipDeaf(VoicechatConnection receiver) {
-        if (rebuilding.get()) return true;
-        return roleOf(receiver) != Role.DEAF;
-    }
-
-    /** Decode→effect→encode a packet for a deaf receiver, picking the megaphone path when
-     *  the speaker holds one. A muted speaker is kept faint instead of amplified.
-     *  Returns null on decode failure (caller then just drops it). */
-    private byte[] renderForDeaf(VoicechatConnection receiver, VoicechatConnection sender, SoundPacket packet) {
+    /**
+     * Decide how one sound packet should be reprocessed for its receiver:
+     * <ul>
+     *   <li><b>Deaf receiver</b> — always re-rendered: megaphone → clean/clear (the deaf
+     *       accessibility channel), otherwise the "in a box" muffle. Returns {@code null} on
+     *       decode failure so the caller drops it (silence), preserving deaf enforcement.</li>
+     *   <li><b>Non-deaf receiver + NON-muted speaker megaphoning</b> — the fun bullhorn
+     *       saturation. (A muted speaker is already saturated at the mic source, so its
+     *       megaphone reaches bystanders that way; re-doing it here would double it.)</li>
+     *   <li><b>Everyone else</b> — {@link #UNTOUCHED} (pass the raw voice through).</li>
+     * </ul>
+     */
+    private byte[] renderPacket(VoicechatConnection receiver, VoicechatConnection sender, SoundPacket packet) {
         UUID receiverId = uuidOf(receiver);
         UUID senderId = packet.getSender();
         if (receiverId == null || senderId == null) {
-            return null;
+            return UNTOUCHED;
         }
         // Megaphone is on if the speaker holds the item OR is pressing the megaphone key.
         boolean megaphone = megaphoneKeyDown(senderId) || holdsMegaphone(sender);
-        // A muted speaker never gets the megaphone boost to a deaf listener — mute wins.
         boolean speakerMuted = roleOf(sender) == Role.MUTED;
-        // Note: the re-entrancy guard (rebuilding) is set around the RESEND in the caller,
-        // not here — that's where SVC re-fires the sound event on this thread.
-        return fx.forDeaf(receiverId, senderId, packet.getOpusEncodedData(), megaphone, speakerMuted);
+
+        if (roleOf(receiver) == Role.DEAF) {
+            // A muted speaker never gets the megaphone clarity boost to a deaf listener — mute
+            // wins (VoiceFx keeps it muffled even with a megaphone).
+            return fx.forDeaf(receiverId, senderId, packet.getOpusEncodedData(), megaphone, speakerMuted);
+        }
+        if (megaphone && !speakerMuted) {
+            byte[] out = fx.forMegaphoneBystander(receiverId, senderId, packet.getOpusEncodedData());
+            return out == null ? UNTOUCHED : out; // decode fail → leave the raw voice
+        }
+        return UNTOUCHED;
     }
 
     /** Whether the speaker is currently holding the push-to-megaphone key. */
