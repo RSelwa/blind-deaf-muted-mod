@@ -46,15 +46,16 @@ final class VoiceFx {
     /** Simple Voice Chat decodes to 48 kHz mono PCM. */
     private static final float SAMPLE_RATE = 48_000f;
 
-    /** Deaf listener volume — NOT turned down to silence. The deafness is simulated by the
-     *  heavy "in a box" muffle below, not by faintness. Well >1 as makeup for the energy the
-     *  steep low-pass strips out, so the muffled voice stays present. Raise/lower to taste. */
-    private static final float DEAF_VOLUME = 2.6f;
+    /** Deaf listener volume — unity (1.0) = normal loudness, unchanged pass-through. The muffle
+     *  below is the ONLY effect, layered on top of an otherwise-normal-volume voice; we neither
+     *  turn it down nor up. Do NOT push >1 — a boost re-amplifies past the clip ceiling and brings
+     *  back the crackle/grésillement. Strengthen the effect via the cutoff, not gain. */
+    private static final float DEAF_VOLUME = 1.0f;
 
-    /** DEAF "in a box" muffle cutoff: heavy hearing-loss muffle on voice. Pushed way down and
+    /** DEAF "in a box" muffle cutoff: heavy hearing-loss muffle on voice. Pushed hard down and
      *  run as a 2-pole cascade ({@link #lowpass2}) for a steep, genuinely boxed-off wall — a
-     *  voice reads as a dull muffled murmur, not just quieter. Lower = even boxier. */
-    private static final float DEAF_LOWPASS_HZ = 420f;
+     *  voice reads as an unintelligible dull rumble at full loudness. Lower = even boxier. */
+    private static final float DEAF_LOWPASS_HZ = 130f;
     private static final float DEAF_LOWPASS_ALPHA = lowpassAlpha(DEAF_LOWPASS_HZ);
 
     /** Bystander bullhorn (a NON-deaf listener hearing a megaphone speaker): band-pass to a
@@ -77,26 +78,26 @@ final class VoiceFx {
     private static final float DEAF_MEGAPHONE_VOLUME = 2.9f;
 
     /** MUTED low-pass cutoff: roll off everything above this so the voice reads as a dull,
-     *  muffled "talking in a box" sound — no crispy/aliased garble, just smothered. Lower =
-     *  more muffled. Pushed down from 300 Hz for a heavier "in a box" character. */
-    private static final float MUTED_LOWPASS_HZ = 200f;
+     *  muffled "talking in a box" sound — no crispy/aliased garble, just smothered. Run as a
+     *  2-pole cascade ({@link #lowpass2}) for a steep, genuinely boxed-off wall. Lower =
+     *  more muffled. (Was 65 Hz — raised: the bare effect was too much.) */
+    private static final float MUTED_LOWPASS_HZ = 95f;
     private static final float MUTED_LOWPASS_ALPHA = lowpassAlpha(MUTED_LOWPASS_HZ);
 
-    /** MUTED bare-mic volume/makeup gain. Kept at full so a muted player is as loud as normal
-     *  voice / ambient — the muffle is what marks them, not faintness. Slightly >1 makes up for
-     *  the energy the heavy low-pass strips out; peaks hard-clip at the short ceiling (adds a
-     *  touch of box grit). Raise if still quiet vs ambient, lower if it clips harshly. */
-    private static final float MUTED_VOLUME = 1.4f;
+    /** MUTED bare-mic volume — the muffle strips a lot of energy, so a mild makeup boost keeps
+     *  the muffled murmur actually audible (it was too quiet at unity). Stays modest so it
+     *  doesn't re-clip into grit; the 2-pole muffle is still the mark, not loudness. */
+    private static final float MUTED_VOLUME = 1.8f;
 
-    /** MUTED + megaphone low-pass: a much higher cutoff than the bare-mute box muffle, so the
-     *  voice opens up and is clear-ish (only lightly filtered), not boxed-in. */
-    private static final float MUTED_MEGAPHONE_LOWPASS_HZ = 1800f;
+    /** MUTED + megaphone low-pass: a bit higher than the bare-mute cutoff, so a megaphone helps
+     *  the muted player a little — a touch less muffled, but still clearly boxed-in. NOT the old
+     *  "open it up clear" behaviour. */
+    private static final float MUTED_MEGAPHONE_LOWPASS_HZ = 140f;
     private static final float MUTED_MEGAPHONE_LOWPASS_ALPHA = lowpassAlpha(MUTED_MEGAPHONE_LOWPASS_HZ);
 
-    /** MUTED + megaphone gain + clip ceiling: same hot drive + low ceiling as the deaf
-     *  megaphone — heavy bullhorn saturation so a muted player cuts through when they speak up. */
-    private static final float MUTED_MEGAPHONE_GAIN = 2.4f;
-    private static final float MUTED_MEGAPHONE_CEILING = 0.55f;
+    /** MUTED + megaphone volume: a bit louder than the bare-mute makeup, NOT a hot bullhorn
+     *  drive — the megaphone gives a muted player a small bump, nothing more. */
+    private static final float MUTED_MEGAPHONE_VOLUME = 2.1f;
 
     private static float lowpassAlpha(float cutoffHz) {
         double w = 2.0 * Math.PI * cutoffHz / SAMPLE_RATE;
@@ -111,7 +112,8 @@ final class VoiceFx {
     private final Map<UUID, OpusDecoder> micDecoders = new ConcurrentHashMap<>();
     /** One encoder per sender stream, for the mic (MUTED) path. */
     private final Map<UUID, OpusEncoder> micEncoders = new ConcurrentHashMap<>();
-    /** Per-sender low-pass filter memory for the MUTED muffle, so it's continuous across frames. */
+    /** Per-sender low-pass filter memory for the MUTED muffle (2 slots: the bare-mute path runs a
+     *  2-pole cascade; the megaphone path uses only slot 0), so it's continuous across frames. */
     private final Map<UUID, float[]> muteLowpassState = new ConcurrentHashMap<>();
 
     /** One decoder per (receiver,sender) stream, for the deaf rebuild path. */
@@ -146,16 +148,16 @@ final class VoiceFx {
         OpusEncoder encoder = micEncoders.computeIfAbsent(sender, k -> api.createEncoder());
         short[] pcm = decode(decoder, opus);
         if (pcm == null) return null;
-        float[] lp = muteLowpassState.computeIfAbsent(sender, k -> new float[1]);
+        float[] lp = muteLowpassState.computeIfAbsent(sender, k -> new float[2]);
         if (megaphone) {
-            // Megaphone: barely filtered + amplified clean, so the muted player opens up and
-            // can be heard at range — clearer, not boxy, not noisy.
-            lowpassCore(pcm, lp, MUTED_MEGAPHONE_LOWPASS_ALPHA);
-            saturate(pcm, MUTED_MEGAPHONE_GAIN, (int) (Short.MAX_VALUE * MUTED_MEGAPHONE_CEILING));
+            // Megaphone barely helps a muted player: SAME heavy 2-pole box muffle, only a hair
+            // higher cutoff + a hair louder than bare — still boxed-in, just slightly clearer.
+            lowpass2(pcm, lp, MUTED_MEGAPHONE_LOWPASS_ALPHA);
+            scale(pcm, MUTED_MEGAPHONE_VOLUME);
         } else {
-            // No megaphone: heavy muffle ("in a box") + very faint, so it's only audible to
-            // someone standing right next to them.
-            lowpassCore(pcm, lp, MUTED_LOWPASS_ALPHA);
+            // No megaphone: heavy 2-pole "in a box" muffle — words smother into an
+            // unintelligible dull murmur, mild makeup gain so it's still audible.
+            lowpass2(pcm, lp, MUTED_LOWPASS_ALPHA);
             scale(pcm, MUTED_VOLUME);
         }
         return encoder.encode(pcm);
