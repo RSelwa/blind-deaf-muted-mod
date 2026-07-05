@@ -22,8 +22,11 @@ public final class ModConstants {
      *  v6: added {@link MegaphonePayload} (C2S push-to-megaphone) +
      *      {@link MegaphoneStatePayload} (S2C who's megaphoning, for the mouth model).
      *  v7: added {@link ConfigPayload} (S2C live tunables) +
-     *      {@link ConfigUpdatePayload} (C2S slider-menu edits). */
-    public static final int PROTOCOL_VERSION = 7;
+     *      {@link ConfigUpdatePayload} (C2S slider-menu edits).
+     *  v8: added the note card — {@link CardWritePayload} + {@link CardBrandishPayload}
+     *      (C2S) and {@link CardBrandishStatePayload} (S2C) + the {@link ModComponents#CARD_TEXT}
+     *      data component. */
+    public static final int PROTOCOL_VERSION = 8;
 
     /** Helper to build identifiers under our namespace. */
     public static Identifier id(String path) {

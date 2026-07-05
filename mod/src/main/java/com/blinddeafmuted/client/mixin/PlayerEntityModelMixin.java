@@ -2,6 +2,7 @@ package com.blinddeafmuted.client.mixin;
 
 import com.blinddeafmuted.client.BlindCaneFeatureRenderer;
 import com.blinddeafmuted.client.MegaphoneState;
+import com.blinddeafmuted.client.NoteCardFeatureRenderer;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
 import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
 import net.minecraft.util.Arm;
@@ -40,6 +41,12 @@ public class PlayerEntityModelMixin {
      *  hand inward toward the face centre. Tweak to taste. */
     private static final float MEGAPHONE_ARM_PITCH = -2.3F;
     private static final float MEGAPHONE_ARM_ROLL = -0.5F;
+
+    /** Both arms raised forward to hold the note card up in front of the chest (reading /
+     *  showing pose). Pitch raises forward (0 = down, -π/2 ≈ straight ahead); roll angles the
+     *  hands inward toward the card centre. Tweak to taste. */
+    private static final float NOTE_CARD_ARM_PITCH = -1.35F;
+    private static final float NOTE_CARD_ARM_ROLL = 0.25F;
 
     @Inject(
             method = "setAngles(Lnet/minecraft/client/render/entity/state/PlayerEntityRenderState;)V",
@@ -85,6 +92,31 @@ public class PlayerEntityModelMixin {
         model.rightArm.yaw = 0.0F;
         model.rightArm.roll = MEGAPHONE_ARM_ROLL;
         // Keep the jacket sleeve overlay aligned with the arm we just moved.
+        model.rightSleeve.pitch = model.rightArm.pitch;
+        model.rightSleeve.yaw = 0.0F;
+        model.rightSleeve.roll = model.rightArm.roll;
+    }
+
+    /** Raise BOTH arms to hold the note card up in front, whenever it's in hand — so it reads
+     *  as reading/showing a card (the card itself is drawn by {@code NoteCardFeatureRenderer}
+     *  attached to the body). */
+    @Inject(
+            method = "setAngles(Lnet/minecraft/client/render/entity/state/PlayerEntityRenderState;)V",
+            at = @At("TAIL"))
+    private void blinddeafmuted$holdCardArms(PlayerEntityRenderState state, CallbackInfo ci) {
+        if (!NoteCardFeatureRenderer.holdsCard(state.name)) return;
+
+        PlayerEntityModel model = (PlayerEntityModel) (Object) this;
+        model.leftArm.pitch = NOTE_CARD_ARM_PITCH;
+        model.leftArm.yaw = 0.0F;
+        model.leftArm.roll = NOTE_CARD_ARM_ROLL;
+        model.rightArm.pitch = NOTE_CARD_ARM_PITCH;
+        model.rightArm.yaw = 0.0F;
+        model.rightArm.roll = -NOTE_CARD_ARM_ROLL;
+        // Keep the jacket sleeves aligned with the arms we just moved.
+        model.leftSleeve.pitch = model.leftArm.pitch;
+        model.leftSleeve.yaw = 0.0F;
+        model.leftSleeve.roll = model.leftArm.roll;
         model.rightSleeve.pitch = model.rightArm.pitch;
         model.rightSleeve.yaw = 0.0F;
         model.rightSleeve.roll = model.rightArm.roll;

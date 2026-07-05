@@ -1,6 +1,7 @@
 package com.blinddeafmuted.client.mixin;
 
 import com.blinddeafmuted.client.BlindMode;
+import com.blinddeafmuted.client.NoteCardHud;
 import com.blinddeafmuted.client.RoleState;
 import com.blinddeafmuted.client.RosterHud;
 import com.blinddeafmuted.client.RouletteAnimation;
@@ -51,6 +52,7 @@ public class InGameHudMixin {
     private void blinddeafmuted$drawTracker(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
         TrackerHud.render(context);
         RosterHud.render(context);
+        NoteCardHud.render(context); // your private card read (hidden while you brandish it)
         RouletteAnimation.render(context); // last = on top of everything
     }
 }

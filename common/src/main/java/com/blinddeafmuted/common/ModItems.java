@@ -30,6 +30,13 @@ public final class ModItems {
      *  (no networking) — a plain item whose only effect is being held. */
     public static Item CANE;
 
+    /** The MUTED player's note card: a square of paper you can write ≤6 lines on (like a
+     *  sign) and brandish to show teammates (Sea-of-Thieves treasure-map style). The text
+     *  lives in the {@link ModComponents#CARD_TEXT} component; the effect is client render +
+     *  a write/brandish handshake. A plain item — all behaviour is in the client + the
+     *  card payloads. */
+    public static Item NOTE_CARD;
+
     public static void register() {
         // Idempotent: in the unified jar this can be reached from more than one
         // entrypoint on a physical client. Registering twice would throw, so bail
@@ -42,6 +49,9 @@ public final class ModItems {
                 Item::new,
                 new Item.Settings().maxCount(1));
         CANE = register("cane",
+                Item::new,
+                new Item.Settings().maxCount(1));
+        NOTE_CARD = register("note_card",
                 Item::new,
                 new Item.Settings().maxCount(1));
     }

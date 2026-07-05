@@ -7,6 +7,7 @@
   "key.blind-deaf-muted.toggle_roster": "Toggle who-is-what leaderboard HUD",
   "key.blind-deaf-muted.megaphone": "Megaphone (hold to talk loud to deaf players)",
   "key.blind-deaf-muted.open_config": "Open settings menu (live sliders)",
+  "key.blind-deaf-muted.write_card": "Write on the note card (hold one)",
 
   "config.blind-deaf-muted.title": "Blind Deaf Muted — Settings",
   "config.blind-deaf-muted.reset": "Reset defaults",
@@ -28,6 +29,11 @@
   "item.blind-deaf-muted.randomizer": "Randomizer",
   "item.blind-deaf-muted.megaphone": "Megaphone",
   "item.blind-deaf-muted.cane": "Cane",
+  "item.blind-deaf-muted.note_card": "Note Card",
+
+  "screen.blind-deaf-muted.card": "Note Card",
+  "hud.blind-deaf-muted.card_reading": "Your note (right-click to show)",
+  "hud.blind-deaf-muted.card_empty": "(blank — press the write key)",
 
   "role.blind-deaf-muted.none": "None",
   "role.blind-deaf-muted.blind": "Blind",

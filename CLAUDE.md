@@ -282,6 +282,45 @@ no-comments rule.
   the protocol. New lang keys `config.blind-deaf-muted.*` (en + fr) + keybind
   `key.blind-deaf-muted.open_config`.
 
+### Recent additions (note card — muted's writing tool)
+
+- **Note card item (`ModItems.NOTE_CARD`, idea for MUTED):** a square of paper you write
+  on like a sign (≤6 lines, ≤22 chars/line) and brandish to show teammates, Sea-of-Thieves
+  treasure-map style. Text lives in a custom data component (`ModComponents.CARD_TEXT`,
+  `List<String>`, registered from `main` like items) — it carries BOTH a persistent codec
+  and a **packet codec, so a held card's text auto-syncs to the clients tracking that
+  player**; that's how everyone reads a brandished card with NO extra text packet (the
+  feature renderer reads it off the tracked stack). Give via `/bdm card`.
+- **Interaction:** write = a **rebindable keybind** (`key.blind-deaf-muted.write_card`,
+  default **`G`**) → opens `CardEditScreen` (6 text fields on a paper panel, prefilled from
+  the held card; on close sends `CardWritePayload` C2S → server writes the component
+  authoritatively, clamping count+length). Brandish = **right-click** (`UseItemCallback`,
+  client-side, returns `ActionResult.SUCCESS`) → toggles, flips `CardBrandishState` locally
+  + sends `CardBrandishPayload` C2S. `NoteCardController` also auto-clears the toggle when
+  the card leaves the hand.
+- **Sea-of-Thieves inversion (per the user):** *brandishing → others read it, you don't;
+  not brandishing → only YOU read it.* Implemented as:
+  - `NoteCardFeatureRenderer` (feature layer on all player renderers) draws the real **3D
+    paper card** at chest height (attached to `body`), text drawn on the +Z face via
+    `TextRenderer.draw`. Brandishing rotates the card 180° so the FACE turns OUTWARD (viewers
+    in front read it); otherwise the face points back at the writer and others see the blank
+    back. Reads brandish from `CardBrandishState.isBrandishing(name)`, text from the tracked
+    stack. **All geometry constants (`CARD_W/H`, `CHEST_DOWN`, `FORWARD`, `TEXT_SCALE`,
+    `TEXT_Z`) need in-game visual calibration** — like the other accessories. Text-face
+    orientation/mirroring especially may need a flip after testing.
+  - `NoteCardHud` (drawn from `InGameHudMixin` TAIL) is the writer's **private 2D read**: a
+    paper panel above the hotbar, shown only while holding a card AND not brandishing. Hides
+    the instant you brandish.
+  - `PlayerEntityModelMixin` raises both arms to hold the card up; `ArmedEntityRenderStateMixin`
+    hides the vanilla held-item model of the card (any holder) so only the 3D card shows.
+- **Server:** `CardBrandishState` (like `MegaphoneState`) tracks who's brandishing; broadcast
+  via `CardBrandishStatePayload` (S2C) on the roster tick + on each toggle. Cleared on
+  disconnect. Protocol bumped to **v8**.
+- **Texture:** `assets/blind-deaf-muted/textures/item/note_card.png` (16×16 beige paper w/
+  ruled lines, generated — repaintable) + item-model defs under `items/` + `models/item/`.
+  Lang keys en+fr (`item…note_card`, `screen…card`, `hud…card_reading/card_empty`,
+  `key…write_card`).
+
 ### Must-verify before first build
 
 - Fabric version strings in `gradle.properties` (minecraft/yarn/loader/fabric-api)

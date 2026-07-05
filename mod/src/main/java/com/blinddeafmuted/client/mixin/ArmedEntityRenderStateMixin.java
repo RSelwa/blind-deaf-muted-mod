@@ -46,4 +46,26 @@ public class ArmedEntityRenderStateMixin {
             state.leftArmPose = BipedEntityModel.ArmPose.EMPTY;
         }
     }
+
+    /**
+     * Hide the VANILLA held-item model of the note card, so the only card on screen is the 3D
+     * one drawn by {@code NoteCardFeatureRenderer} (held up at the chest, both hands raised by
+     * {@code PlayerEntityModelMixin}). Applies to ANY player holding a card (unlike the cane,
+     * which is BLIND-only) — the note card is everyone's comms tool.
+     */
+    @Inject(method = "updateRenderState", at = @At("TAIL"))
+    private static void blinddeafmuted$hideHeldNoteCard(LivingEntity entity, ArmedEntityRenderState state,
+                                                        ItemModelManager itemModelManager, CallbackInfo ci) {
+        if (ModItems.NOTE_CARD == null) return;
+        if (!(entity instanceof PlayerEntity)) return;
+
+        if (entity.getStackInArm(Arm.RIGHT).isOf(ModItems.NOTE_CARD)) {
+            state.rightHandItemState.clear();
+            state.rightArmPose = BipedEntityModel.ArmPose.EMPTY;
+        }
+        if (entity.getStackInArm(Arm.LEFT).isOf(ModItems.NOTE_CARD)) {
+            state.leftHandItemState.clear();
+            state.leftArmPose = BipedEntityModel.ArmPose.EMPTY;
+        }
+    }
 }

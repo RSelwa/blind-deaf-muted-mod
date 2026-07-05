@@ -1,9 +1,13 @@
 package com.blinddeafmuted.server;
 
+import com.blinddeafmuted.common.CardBrandishPayload;
+import com.blinddeafmuted.common.CardBrandishStatePayload;
+import com.blinddeafmuted.common.CardWritePayload;
 import com.blinddeafmuted.common.ConfigPayload;
 import com.blinddeafmuted.common.ConfigUpdatePayload;
 import com.blinddeafmuted.common.MegaphonePayload;
 import com.blinddeafmuted.common.MegaphoneStatePayload;
+import com.blinddeafmuted.common.ModComponents;
 import com.blinddeafmuted.common.ModConstants;
 import com.blinddeafmuted.common.ModEntities;
 import com.blinddeafmuted.common.ModItems;
@@ -22,6 +26,7 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.EntityType;
+import net.minecraft.item.ItemStack;
 import net.minecraft.loot.LootPool;
 import net.minecraft.loot.LootTable;
 import net.minecraft.loot.LootTables;
@@ -70,6 +75,9 @@ public class BlindDeafMutedServer implements ModInitializer {
 
     /** Who is currently holding the push-to-megaphone key (fed by MegaphonePayload). */
     private final MegaphoneState megaphoneState = new MegaphoneState();
+
+    /** Who is currently brandishing a note card outward (fed by CardBrandishPayload). */
+    private final CardBrandishState cardBrandishState = new CardBrandishState();
 
     /** Push teammate positions every N server ticks (20 ticks = 1s). 4/sec is smooth
      *  for a direction arrow without being chatty. */
@@ -135,9 +143,11 @@ public class BlindDeafMutedServer implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("Blind Deaf Muted server starting (protocol v{})", ModConstants.PROTOCOL_VERSION);
 
-        // Register our shared item + entity (the client does the same; same ids both sides).
+        // Register our shared item + entity + data components (client does the same; same ids
+        // both sides). ModComponents must exist before any note-card stack is (de)serialized.
         ModItems.register();
         ModEntities.register();
+        ModComponents.register();
 
         // Tell the networking layer our payloads exist (must also be done client-side).
         PayloadTypeRegistry.playS2C().register(RolePayload.ID, RolePayload.CODEC);
@@ -147,9 +157,13 @@ public class BlindDeafMutedServer implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(SkinVisibilityPayload.ID, SkinVisibilityPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(MegaphoneStatePayload.ID, MegaphoneStatePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ConfigPayload.ID, ConfigPayload.CODEC);
-        // Inbound: clients report their megaphone key press/release + slider-menu config edits.
+        PayloadTypeRegistry.playS2C().register(CardBrandishStatePayload.ID, CardBrandishStatePayload.CODEC);
+        // Inbound: clients report their megaphone key press/release + slider-menu config edits
+        // + note-card writes and brandish toggles.
         PayloadTypeRegistry.playC2S().register(MegaphonePayload.ID, MegaphonePayload.CODEC);
         PayloadTypeRegistry.playC2S().register(ConfigUpdatePayload.ID, ConfigUpdatePayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(CardWritePayload.ID, CardWritePayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(CardBrandishPayload.ID, CardBrandishPayload.CODEC);
 
         // Receive megaphone key transitions. The concurrent set mutation is thread-safe,
         // but rebroadcasting the visual state touches the player list, so hop to the
@@ -159,6 +173,32 @@ public class BlindDeafMutedServer implements ModInitializer {
             ServerPlayerEntity player = context.player();
             megaphoneState.set(player.getUuid(), payload.active());
             player.getServer().execute(() -> broadcastMegaphoneState(player.getServer()));
+        });
+
+        // Receive a note-card brandish toggle. Store it and re-broadcast the visual state at
+        // once (so the card flips outward snappily for everyone), same as the megaphone.
+        ServerPlayNetworking.registerGlobalReceiver(CardBrandishPayload.ID, (payload, context) -> {
+            ServerPlayerEntity player = context.player();
+            cardBrandishState.set(player.getUuid(), payload.active());
+            player.getServer().execute(() -> broadcastCardBrandishState(player.getServer()));
+        });
+
+        // Receive a note-card write: the client edited the card in its screen; write the text
+        // onto the held stack authoritatively (the component then syncs to trackers on its own).
+        // Clamp count + length defensively — never trust the client's line list.
+        ServerPlayNetworking.registerGlobalReceiver(CardWritePayload.ID, (payload, context) -> {
+            ServerPlayerEntity player = context.player();
+            player.getServer().execute(() -> {
+                ItemStack stack = player.getStackInHand(payload.hand());
+                if (!stack.isOf(ModItems.NOTE_CARD)) return; // no card in that hand anymore
+                List<String> lines = new ArrayList<>();
+                for (String line : payload.lines()) {
+                    if (lines.size() >= ModComponents.MAX_LINES) break;
+                    lines.add(line.length() > ModComponents.MAX_LINE_LENGTH
+                            ? line.substring(0, ModComponents.MAX_LINE_LENGTH) : line);
+                }
+                stack.set(ModComponents.CARD_TEXT, List.copyOf(lines));
+            });
         });
 
         // Receive a slider-menu edit from ANY client (access = everyone, by design — the cheat
@@ -249,9 +289,11 @@ public class BlindDeafMutedServer implements ModInitializer {
             BlindDeafMutedVoicechatPlugin.bindConfig(configManager::get);
         }
 
-        // Drop a leaver's megaphone flag so a disconnect mid-press can't leave it stuck on.
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                megaphoneState.clear(handler.getPlayer().getUuid()));
+        // Drop a leaver's megaphone + card-brandish flags so a disconnect can't leave them stuck.
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            megaphoneState.clear(handler.getPlayer().getUuid());
+            cardBrandishState.clear(handler.getPlayer().getUuid());
+        });
 
         // A few times per second, send every player the positions of all the others,
         // so their client can draw the teammate tracker HUD. The client decides
@@ -322,9 +364,28 @@ public class BlindDeafMutedServer implements ModInitializer {
             ServerPlayNetworking.send(recipient, skinPayload);
         }
 
-        // Megaphone state rides the same slow tick (keeps late-joiners synced); it's also
-        // pushed immediately on each press/release for snappiness.
+        // Megaphone + card-brandish states ride the same slow tick (keeps late-joiners synced);
+        // both are also pushed immediately on each transition for snappiness.
         broadcastMegaphoneState(server);
+        broadcastCardBrandishState(server);
+    }
+
+    /** Broadcast the names of everyone currently brandishing a note card, so every client can
+     *  flip the card FACE outward on them. Built from online players, so a leaver never lingers. */
+    private void broadcastCardBrandishState(net.minecraft.server.MinecraftServer server) {
+        List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
+        if (players.isEmpty()) return;
+
+        List<String> brandishing = new ArrayList<>();
+        for (ServerPlayerEntity player : players) {
+            if (cardBrandishState.isActive(player.getUuid())) {
+                brandishing.add(player.getName().getString());
+            }
+        }
+        CardBrandishStatePayload payload = new CardBrandishStatePayload(brandishing);
+        for (ServerPlayerEntity recipient : players) {
+            ServerPlayNetworking.send(recipient, payload);
+        }
     }
 
     /** Broadcast the names of everyone currently megaphoning, so every client can draw the

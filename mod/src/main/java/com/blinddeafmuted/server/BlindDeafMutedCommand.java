@@ -56,6 +56,7 @@ public final class BlindDeafMutedCommand {
                         .then(literal("randomizer").executes(BlindDeafMutedCommand::giveRandomizer))
                         .then(literal("megaphone").executes(BlindDeafMutedCommand::giveMegaphone))
                         .then(literal("cane").executes(BlindDeafMutedCommand::giveCane))
+                        .then(literal("card").executes(BlindDeafMutedCommand::giveNoteCard))
                         .then(literal("help").executes(BlindDeafMutedCommand::help))
                         .then(literal("skin")
                                 .then(literal("on").executes(ctx -> setSkins(ctx, skinVisibility, true)))
@@ -157,6 +158,21 @@ public final class BlindDeafMutedCommand {
         }
         player.giveItemStack(new ItemStack(ModItems.CANE, 1));
         ctx.getSource().sendFeedback(() -> Text.literal("Gave 1 Cane."), false);
+        return 1;
+    }
+
+    /**
+     * Give the command runner a Note Card — the MUTED player's writing tool. Press the
+     * write key while holding it to edit (≤6 lines), right-click to brandish it to teammates.
+     */
+    private static int giveNoteCard(CommandContext<ServerCommandSource> ctx) {
+        ServerPlayerEntity player = ctx.getSource().getPlayer();
+        if (player == null) {
+            ctx.getSource().sendError(Text.literal("Run this as a player."));
+            return 0;
+        }
+        player.giveItemStack(new ItemStack(ModItems.NOTE_CARD, 1));
+        ctx.getSource().sendFeedback(() -> Text.literal("Gave 1 Note Card."), false);
         return 1;
     }
 
@@ -265,6 +281,7 @@ public final class BlindDeafMutedCommand {
                   /bdm randomizer                            - give yourself Randomizer bottles (test)
                   /bdm megaphone                             - give yourself a Megaphone (talk loud/saturated to deaf players)
                   /bdm cane                                  - give yourself a Cane (blind: hold it to ease harsh myopia to the soft version)
+                  /bdm card                                  - give yourself a Note Card (muted: write on it, right-click to show teammates)
                   /bdm skin <on|off>                         - toggle the custom role accessories (cane/glasses/bandage/headset)
                   /bdm events <on|off>                       - toggle the periodic random-events timer (re-roll / random potion)
                   /bdm events now                            - force-fire one random event now (testing/recording)

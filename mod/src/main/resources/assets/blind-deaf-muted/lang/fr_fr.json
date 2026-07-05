@@ -7,6 +7,7 @@
   "key.blind-deaf-muted.toggle_roster": "Afficher/masquer le tableau des rôles",
   "key.blind-deaf-muted.megaphone": "Mégaphone (maintenir pour parler fort aux sourds)",
   "key.blind-deaf-muted.open_config": "Ouvrir le menu des réglages (curseurs en direct)",
+  "key.blind-deaf-muted.write_card": "Écrire sur la carte (en tenir une)",
 
   "config.blind-deaf-muted.title": "Aveugle Sourd Muet — Réglages",
   "config.blind-deaf-muted.reset": "Valeurs par défaut",
@@ -28,6 +29,11 @@
   "item.blind-deaf-muted.randomizer": "Randomiseur",
   "item.blind-deaf-muted.megaphone": "Mégaphone",
   "item.blind-deaf-muted.cane": "Canne",
+  "item.blind-deaf-muted.note_card": "Carte à écrire",
+
+  "screen.blind-deaf-muted.card": "Carte à écrire",
+  "hud.blind-deaf-muted.card_reading": "Ta note (clic droit pour montrer)",
+  "hud.blind-deaf-muted.card_empty": "(vide — appuie sur la touche d'écriture)",
 
   "role.blind-deaf-muted.none": "Aucun",
   "role.blind-deaf-muted.blind": "Aveugle",
