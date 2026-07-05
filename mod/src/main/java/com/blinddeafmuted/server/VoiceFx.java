@@ -41,22 +41,14 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 final class VoiceFx {
 
-    // ---- Tunables (tweak by ear) -------------------------------------------
+    // ---- Tunables ----------------------------------------------------------
+    // The DEAF/MUTED cutoffs + volumes now live in ModConfig (edited live from the client
+    // slider menu, read fresh each frame via `config` below) — see the per-effect reads in
+    // distort()/forDeaf(). Only the comedic bystander-bullhorn shaping stays hard-coded here;
+    // it's an aesthetic effect nobody asked to tune.
 
     /** Simple Voice Chat decodes to 48 kHz mono PCM. */
     private static final float SAMPLE_RATE = 48_000f;
-
-    /** Deaf listener volume — unity (1.0) = normal loudness, unchanged pass-through. The muffle
-     *  below is the ONLY effect, layered on top of an otherwise-normal-volume voice; we neither
-     *  turn it down nor up. Do NOT push >1 — a boost re-amplifies past the clip ceiling and brings
-     *  back the crackle/grésillement. Strengthen the effect via the cutoff, not gain. */
-    private static final float DEAF_VOLUME = 1.0f;
-
-    /** DEAF "in a box" muffle cutoff: heavy hearing-loss muffle on voice. Pushed hard down and
-     *  run as a 2-pole cascade ({@link #lowpass2}) for a steep, genuinely boxed-off wall — a
-     *  voice reads as an unintelligible dull rumble at full loudness. Lower = even boxier. */
-    private static final float DEAF_LOWPASS_HZ = 130f;
-    private static final float DEAF_LOWPASS_ALPHA = lowpassAlpha(DEAF_LOWPASS_HZ);
 
     /** Bystander bullhorn (a NON-deaf listener hearing a megaphone speaker): band-pass to a
      *  thin, honky "through a horn" timbre, then overdrive hard into a low clip ceiling — a
@@ -70,35 +62,9 @@ final class VoiceFx {
     private static final float MEGAPHONE_HP_ALPHA = lowpassAlpha(MEGAPHONE_HP_HZ);
     private static final float MEGAPHONE_LP_ALPHA = lowpassAlpha(MEGAPHONE_LP_HZ);
 
-    /** Megaphone-to-DEAF: EASES the deafness a little — the "in a box" muffle opens up (higher
-     *  cutoff) and comes a touch louder than the bare-deaf muffle, so it's less painful and a
-     *  bit clearer, but still clearly muffled — NOT normal hearing. */
-    private static final float DEAF_MEGAPHONE_LOWPASS_HZ = 750f;
-    private static final float DEAF_MEGAPHONE_LOWPASS_ALPHA = lowpassAlpha(DEAF_MEGAPHONE_LOWPASS_HZ);
-    private static final float DEAF_MEGAPHONE_VOLUME = 2.9f;
-
-    /** MUTED low-pass cutoff: roll off everything above this so the voice reads as a dull,
-     *  muffled "talking in a box" sound — no crispy/aliased garble, just smothered. Run as a
-     *  2-pole cascade ({@link #lowpass2}) for a steep, genuinely boxed-off wall. Lower =
-     *  more muffled. (Was 65 Hz — raised: the bare effect was too much.) */
-    private static final float MUTED_LOWPASS_HZ = 95f;
-    private static final float MUTED_LOWPASS_ALPHA = lowpassAlpha(MUTED_LOWPASS_HZ);
-
-    /** MUTED bare-mic volume — the muffle strips a lot of energy, so a mild makeup boost keeps
-     *  the muffled murmur actually audible (it was too quiet at unity). Stays modest so it
-     *  doesn't re-clip into grit; the 2-pole muffle is still the mark, not loudness. */
-    private static final float MUTED_VOLUME = 1.8f;
-
-    /** MUTED + megaphone low-pass: a bit higher than the bare-mute cutoff, so a megaphone helps
-     *  the muted player a little — a touch less muffled, but still clearly boxed-in. NOT the old
-     *  "open it up clear" behaviour. */
-    private static final float MUTED_MEGAPHONE_LOWPASS_HZ = 140f;
-    private static final float MUTED_MEGAPHONE_LOWPASS_ALPHA = lowpassAlpha(MUTED_MEGAPHONE_LOWPASS_HZ);
-
-    /** MUTED + megaphone volume: a bit louder than the bare-mute makeup, NOT a hot bullhorn
-     *  drive — the megaphone gives a muted player a small bump, nothing more. */
-    private static final float MUTED_MEGAPHONE_VOLUME = 2.1f;
-
+    /** One-pole IIR coefficient for a cutoff in Hz. Cheap enough (a few FLOPs) to recompute
+     *  per frame from the live config, so a slider change takes effect on the very next 20 ms
+     *  voice frame with no restart. */
     private static float lowpassAlpha(float cutoffHz) {
         double w = 2.0 * Math.PI * cutoffHz / SAMPLE_RATE;
         return (float) (w / (w + 1.0));
@@ -107,6 +73,9 @@ final class VoiceFx {
     // ------------------------------------------------------------------------
 
     private final VoicechatApi api;
+
+    /** Live gameplay config (cutoffs + volumes). Read fresh at the top of each effect call. */
+    private final java.util.function.Supplier<com.blinddeafmuted.common.ModConfig> config;
 
     /** One decoder per sender stream, for the mic (MUTED) path. */
     private final Map<UUID, OpusDecoder> micDecoders = new ConcurrentHashMap<>();
@@ -131,8 +100,9 @@ final class VoiceFx {
     /** Per-(receiver,sender) band-pass memory (2 slots: HP + LP) for the bullhorn timbre. */
     private final Map<String, float[]> bystanderFilterState = new ConcurrentHashMap<>();
 
-    VoiceFx(VoicechatApi api) {
+    VoiceFx(VoicechatApi api, java.util.function.Supplier<com.blinddeafmuted.common.ModConfig> config) {
         this.api = api;
+        this.config = config;
     }
 
     /**
@@ -149,16 +119,17 @@ final class VoiceFx {
         short[] pcm = decode(decoder, opus);
         if (pcm == null) return null;
         float[] lp = muteLowpassState.computeIfAbsent(sender, k -> new float[2]);
+        com.blinddeafmuted.common.ModConfig cfg = config.get();
         if (megaphone) {
             // Megaphone barely helps a muted player: SAME heavy 2-pole box muffle, only a hair
             // higher cutoff + a hair louder than bare — still boxed-in, just slightly clearer.
-            lowpass2(pcm, lp, MUTED_MEGAPHONE_LOWPASS_ALPHA);
-            scale(pcm, MUTED_MEGAPHONE_VOLUME);
+            lowpass2(pcm, lp, lowpassAlpha(cfg.mutedMegaphoneLowpassHz()));
+            scale(pcm, cfg.mutedMegaphoneVolume());
         } else {
             // No megaphone: heavy 2-pole "in a box" muffle — words smother into an
             // unintelligible dull murmur, mild makeup gain so it's still audible.
-            lowpass2(pcm, lp, MUTED_LOWPASS_ALPHA);
-            scale(pcm, MUTED_VOLUME);
+            lowpass2(pcm, lp, lowpassAlpha(cfg.mutedLowpassHz()));
+            scale(pcm, cfg.mutedVolume());
         }
         return encoder.encode(pcm);
     }
@@ -180,17 +151,18 @@ final class VoiceFx {
         short[] pcm = decode(decoder, opus);
         if (pcm == null) return null;
         float[] lp = deafLowpassState.computeIfAbsent(key, k -> new float[2]);
+        com.blinddeafmuted.common.ModConfig cfg = config.get();
         if (megaphone && !speakerMuted) {
             // Megaphone EASES the deafness: the "in a box" muffle opens up a bit (higher cutoff)
             // and comes a touch louder — less painful and clearer, but still muffled, NOT normal.
-            lowpass2(pcm, lp, DEAF_MEGAPHONE_LOWPASS_ALPHA);
-            scale(pcm, DEAF_MEGAPHONE_VOLUME);
+            lowpass2(pcm, lp, lowpassAlpha(cfg.deafMegaphoneLowpassHz()));
+            scale(pcm, cfg.deafMegaphoneVolume());
         } else {
             // Default deaf (and any muted speaker, megaphone or not): NOT turned down — the
             // deafness is a heavy 2-pole "in a box" muffle, then makeup gain so the muffled
             // voice stays present. Muffled/dull, not just quieter.
-            lowpass2(pcm, lp, DEAF_LOWPASS_ALPHA);
-            scale(pcm, DEAF_VOLUME);
+            lowpass2(pcm, lp, lowpassAlpha(cfg.deafLowpassHz()));
+            scale(pcm, cfg.deafVolume());
         }
         return encoder.encode(pcm);
     }

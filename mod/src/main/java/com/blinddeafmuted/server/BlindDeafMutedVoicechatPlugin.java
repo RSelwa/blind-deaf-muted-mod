@@ -18,10 +18,12 @@ import de.maxhenkel.voicechat.api.packets.LocationalSoundPacket;
 import de.maxhenkel.voicechat.api.packets.MicrophonePacket;
 import de.maxhenkel.voicechat.api.packets.SoundPacket;
 import de.maxhenkel.voicechat.api.packets.StaticSoundPacket;
+import com.blinddeafmuted.common.ModConfig;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * Enforces the {@link Role#DEAF} and {@link Role#MUTED} disabilities over
@@ -65,6 +67,9 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     /** Set once at server-mod init: who is currently holding the megaphone key. */
     private static volatile MegaphoneState megaphones;
 
+    /** Live audio tunables, supplied from {@link ConfigManager}. Never null once bound. */
+    private static volatile Supplier<ModConfig> config = () -> ModConfig.DEFAULT;
+
     /** SVC server API + our effect pipeline, set in {@link #initialize}. */
     private VoicechatServerApi serverApi;
     private VoiceFx fx;
@@ -86,6 +91,11 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         megaphones = state;
     }
 
+    /** Wire in the live-config supplier. Called from {@link BlindDeafMutedServer#onInitialize()}. */
+    public static void bindConfig(Supplier<ModConfig> supplier) {
+        config = supplier;
+    }
+
     @Override
     public String getPluginId() {
         return ModConstants.MOD_ID;
@@ -95,7 +105,7 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     public void initialize(VoicechatApi api) {
         // On a server, the api handed to a plugin is the server flavour.
         this.serverApi = (VoicechatServerApi) api;
-        this.fx = new VoiceFx(api);
+        this.fx = new VoiceFx(api, config);
     }
 
     @Override

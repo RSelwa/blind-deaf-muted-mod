@@ -24,21 +24,18 @@ import java.util.Random;
  */
 public final class RandomEventManager {
     private final RoleManager roles;
+    private final ConfigManager config;
     private final Random rng = new Random();
 
     /** Off by default so it never surprises a normal session until an op opts in. */
     private volatile boolean enabled = false;
 
-    /** Random gap between re-rolls, in server ticks (20 ticks = 1 second). 3..8 minutes.
-     *  Tweak freely — short for chaotic streams, long for a slow-burn challenge. */
-    private static final int MIN_INTERVAL_TICKS = 3 * 60 * 20;
-    private static final int MAX_INTERVAL_TICKS = 8 * 60 * 20;
-
     /** Ticks remaining until the next re-roll (only counts down while enabled). */
     private int ticksUntilNext;
 
-    public RandomEventManager(RoleManager roles) {
+    public RandomEventManager(RoleManager roles, ConfigManager config) {
         this.roles = roles;
+        this.config = config;
         scheduleNext();
     }
 
@@ -57,9 +54,13 @@ public final class RandomEventManager {
         if (on) scheduleNext();
     }
 
-    /** Pick a fresh random delay until the next re-roll. */
+    /** Pick a fresh random delay until the next re-roll, reading the min/max interval live from
+     *  the config (minutes → ticks; 20 ticks = 1 s). A slider change applies from the next
+     *  scheduled fire onward. Guards against min > max and a zero/negative window. */
     private void scheduleNext() {
-        ticksUntilNext = MIN_INTERVAL_TICKS + rng.nextInt(MAX_INTERVAL_TICKS - MIN_INTERVAL_TICKS + 1);
+        int minTicks = Math.max(1, Math.round(config.get().eventMinMinutes() * 60f * 20f));
+        int maxTicks = Math.max(minTicks, Math.round(config.get().eventMaxMinutes() * 60f * 20f));
+        ticksUntilNext = minTicks + rng.nextInt(maxTicks - minTicks + 1);
     }
 
     private void tick(MinecraftServer server) {

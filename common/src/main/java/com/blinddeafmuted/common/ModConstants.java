@@ -20,8 +20,10 @@ public final class ModConstants {
      *  v4: added {@link RollPayload} (roulette reveal animation trigger).
      *  v5: added {@link SkinVisibilityPayload} (toggle custom role accessories).
      *  v6: added {@link MegaphonePayload} (C2S push-to-megaphone) +
-     *      {@link MegaphoneStatePayload} (S2C who's megaphoning, for the mouth model). */
-    public static final int PROTOCOL_VERSION = 6;
+     *      {@link MegaphoneStatePayload} (S2C who's megaphoning, for the mouth model).
+     *  v7: added {@link ConfigPayload} (S2C live tunables) +
+     *      {@link ConfigUpdatePayload} (C2S slider-menu edits). */
+    public static final int PROTOCOL_VERSION = 7;
 
     /** Helper to build identifiers under our namespace. */
     public static Identifier id(String path) {

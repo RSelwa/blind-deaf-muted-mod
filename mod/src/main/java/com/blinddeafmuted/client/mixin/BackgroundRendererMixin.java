@@ -2,6 +2,7 @@ package com.blinddeafmuted.client.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.blinddeafmuted.client.BlindMode;
+import com.blinddeafmuted.client.ClientConfigState;
 import com.blinddeafmuted.client.RoleState;
 import com.blinddeafmuted.common.Role;
 import net.minecraft.client.render.BackgroundRenderer;
@@ -26,20 +27,17 @@ public class BackgroundRendererMixin {
 
     /** Fog start while blind (both levels start at the camera). */
     private static final float BLIND_FOG_START = 0.0F;
-    /** HARD fog end: fully fogged by ~2 blocks — you see only your feet. */
-    private static final float BLIND_FOG_HARD_END = 2.0F;
-    /** MEDIUM fog end (cane held): looser, ~7 blocks — you make out your surroundings. */
-    private static final float BLIND_FOG_MEDIUM_END = 7.0F;
 
     @ModifyReturnValue(method = "applyFog", at = @At("RETURN"))
     private static Fog blinddeafmuted$tightenBlindFog(Fog fog) {
         if (!RoleState.blindEffectActive()) return fog;
         BlindMode mode = RoleState.effectiveBlindMode();
+        // Fog distances are live-tunable from the slider menu (ClientConfigState).
         float end;
         if (mode == BlindMode.FOG_HARD) {
-            end = BLIND_FOG_HARD_END;
+            end = ClientConfigState.get().blindFogHardEnd();
         } else if (mode == BlindMode.FOG_MEDIUM) {
-            end = BLIND_FOG_MEDIUM_END;
+            end = ClientConfigState.get().blindFogMediumEnd();
         } else {
             return fog; // BLACKOUT_HUD / MYOPIA don't use fog
         }

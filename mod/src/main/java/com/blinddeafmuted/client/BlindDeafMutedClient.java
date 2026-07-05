@@ -1,5 +1,6 @@
 package com.blinddeafmuted.client;
 
+import com.blinddeafmuted.common.ConfigPayload;
 import com.blinddeafmuted.common.MegaphoneStatePayload;
 import com.blinddeafmuted.common.ModConstants;
 import com.blinddeafmuted.common.ModEntities;
@@ -76,6 +77,10 @@ public class BlindDeafMutedClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(MegaphoneStatePayload.ID, (payload, context) ->
                 context.client().execute(() -> MegaphoneState.setActive(java.util.Set.copyOf(payload.activeNames()))));
 
+        // Live tunables: mirror the server's config so the effect mixins + slider menu read it.
+        ClientPlayNetworking.registerGlobalReceiver(ConfigPayload.ID, (payload, context) ->
+                context.client().execute(() -> ClientConfigState.set(payload.config())));
+
         // The roulette reveal: spin the slot machine, then RouletteAnimation applies
         // the role itself at the end (so we deliberately don't touch RoleState here).
         ClientPlayNetworking.registerGlobalReceiver(RollPayload.ID, (payload, context) ->
@@ -91,6 +96,7 @@ public class BlindDeafMutedClient implements ClientModInitializer {
         RosterHud.register();     // who-is-what leaderboard keybind (HUD draw is in InGameHudMixin)
         RouletteAnimation.register(); // roulette reveal countdown (HUD draw is in InGameHudMixin)
         MegaphoneController.register(); // push-to-megaphone keybind (R) → tells the server
+        ConfigMenu.register();    // live-tuning slider menu keybind (O)
 
         LOGGER.info("Blind Deaf Muted client ready (protocol v{})", ModConstants.PROTOCOL_VERSION);
     }

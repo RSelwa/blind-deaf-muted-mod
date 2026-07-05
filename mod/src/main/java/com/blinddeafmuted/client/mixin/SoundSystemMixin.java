@@ -1,6 +1,7 @@
 package com.blinddeafmuted.client.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.blinddeafmuted.client.ClientConfigState;
 import com.blinddeafmuted.client.DeafMuffle;
 import com.blinddeafmuted.client.DeafState;
 import com.blinddeafmuted.client.RoleState;
@@ -33,16 +34,14 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(SoundSystem.class)
 public class SoundSystemMixin {
 
-    /** Slight loudness trim for a deaf player: 1.0 = none, 0.7 ≈ -3 dB. */
-    private static final float DEAF_ENV_VOLUME = 1.0F;
-
     @ModifyReturnValue(
             method = "getAdjustedVolume(Lnet/minecraft/client/sound/SoundInstance;)F",
             at = @At("RETURN"))
     private float blinddeafmuted$deafenVolume(float original, SoundInstance sound) {
         if (!RoleState.is(Role.DEAF)) return original;
 
-        float v = original * DEAF_ENV_VOLUME;
+        // Ambient loudness trim (1.0 = none) is live-tunable from the slider menu.
+        float v = original * ClientConfigState.get().deafEnvVolume();
 
         // Distance cap: only for positional (attenuated) sounds — global UI/music have no
         // position, leave them. Fade from full at half-range to silent at full range.

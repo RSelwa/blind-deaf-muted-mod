@@ -1,0 +1,104 @@
+package com.blinddeafmuted.common;
+
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.codec.PacketCodec;
+
+/**
+ * All live-tunable gameplay parameters, in one immutable snapshot.
+ *
+ * <p>These used to be scattered {@code static final} constants across {@code VoiceFx},
+ * {@code BackgroundRendererMixin}, {@code SoundSystemMixin} and {@code RandomEventManager},
+ * each needing a rebuild + restart to change. They now live here so the server can hold a
+ * single live copy, players can nudge them from an in-game slider menu, and the new value
+ * takes effect immediately on every side — no restart.
+ *
+ * <p>Flow: the server owns the authoritative {@code ModConfig} (persisted to JSON), broadcasts
+ * it via {@link ConfigPayload} on join and after every change; a client edits a copy in the
+ * slider menu and sends it back via {@link ConfigUpdatePayload}. Server-enforced audio
+ * ({@code VoiceFx}) reads the server's live copy; pure-client vision knobs (fog / env volume)
+ * read the client's mirror.
+ *
+ * <p><b>Adding a field:</b> add it to the record, {@link #DEFAULT}, the {@link #CODEC} (same
+ * order both ways), the JSON (de)serialiser in {@code ConfigManager}, and a slider in
+ * {@code ConfigScreen}. Bump {@link ModConstants#PROTOCOL_VERSION} — the wire format changed.
+ *
+ * <p>Frequencies are low-pass cutoffs in Hz; volumes are linear gain multipliers (1.0 =
+ * unchanged); fog ends are in blocks; event intervals are in minutes; chances are 0..1.
+ */
+public record ModConfig(
+        // ---- DEAF / MUTED voice (server-enforced, VoiceFx) ----
+        float deafLowpassHz,
+        float deafVolume,
+        float deafMegaphoneLowpassHz,
+        float deafMegaphoneVolume,
+        float mutedLowpassHz,
+        float mutedVolume,
+        float mutedMegaphoneLowpassHz,
+        float mutedMegaphoneVolume,
+        // ---- BLIND / DEAF vision + ambient (client-applied) ----
+        float blindFogHardEnd,
+        float blindFogMediumEnd,
+        float deafEnvVolume,
+        // ---- timers / chances (server) ----
+        float eventMinMinutes,
+        float eventMaxMinutes,
+        float randomizerChestChance) {
+
+    /** Factory defaults — the exact values the old {@code static final} constants held. */
+    public static final ModConfig DEFAULT = new ModConfig(
+            130f, 1.0f, 750f, 2.9f,
+            95f, 1.8f, 140f, 2.1f,
+            2.0f, 7.0f, 1.0f,
+            3.0f, 8.0f, 0.55f);
+
+    public static final PacketCodec<PacketByteBuf, ModConfig> CODEC = PacketCodec.of(
+            ModConfig::write, ModConfig::read);
+
+    private static void write(ModConfig c, PacketByteBuf buf) {
+        buf.writeFloat(c.deafLowpassHz);
+        buf.writeFloat(c.deafVolume);
+        buf.writeFloat(c.deafMegaphoneLowpassHz);
+        buf.writeFloat(c.deafMegaphoneVolume);
+        buf.writeFloat(c.mutedLowpassHz);
+        buf.writeFloat(c.mutedVolume);
+        buf.writeFloat(c.mutedMegaphoneLowpassHz);
+        buf.writeFloat(c.mutedMegaphoneVolume);
+        buf.writeFloat(c.blindFogHardEnd);
+        buf.writeFloat(c.blindFogMediumEnd);
+        buf.writeFloat(c.deafEnvVolume);
+        buf.writeFloat(c.eventMinMinutes);
+        buf.writeFloat(c.eventMaxMinutes);
+        buf.writeFloat(c.randomizerChestChance);
+    }
+
+    private static ModConfig read(PacketByteBuf buf) {
+        return new ModConfig(
+                buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
+                buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
+                buf.readFloat(), buf.readFloat(), buf.readFloat(),
+                buf.readFloat(), buf.readFloat(), buf.readFloat());
+    }
+
+    /** Number of tunable fields — the length of {@link #toArray()}. */
+    public static final int FIELD_COUNT = 14;
+
+    /** Flatten to a float[] in declaration order. The slider menu edits this array in place and
+     *  rebuilds via {@link #fromArray}, so the field↔index mapping lives ONLY here. Keep this,
+     *  {@link #fromArray} and the record in lockstep when adding a field. */
+    public float[] toArray() {
+        return new float[]{
+                deafLowpassHz, deafVolume, deafMegaphoneLowpassHz, deafMegaphoneVolume,
+                mutedLowpassHz, mutedVolume, mutedMegaphoneLowpassHz, mutedMegaphoneVolume,
+                blindFogHardEnd, blindFogMediumEnd, deafEnvVolume,
+                eventMinMinutes, eventMaxMinutes, randomizerChestChance};
+    }
+
+    /** Inverse of {@link #toArray()}. */
+    public static ModConfig fromArray(float[] a) {
+        return new ModConfig(
+                a[0], a[1], a[2], a[3],
+                a[4], a[5], a[6], a[7],
+                a[8], a[9], a[10],
+                a[11], a[12], a[13]);
+    }
+}

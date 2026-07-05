@@ -1,5 +1,7 @@
 package com.blinddeafmuted.server;
 
+import com.blinddeafmuted.common.ConfigPayload;
+import com.blinddeafmuted.common.ConfigUpdatePayload;
 import com.blinddeafmuted.common.MegaphonePayload;
 import com.blinddeafmuted.common.MegaphoneStatePayload;
 import com.blinddeafmuted.common.ModConstants;
@@ -56,11 +58,15 @@ public class BlindDeafMutedServer implements ModInitializer {
     /** In-memory role store. TODO: persist to world save so roles survive restarts. */
     private final RoleManager roleManager = new RoleManager();
 
+    /** Live-tunable gameplay parameters (persisted JSON); edited from the client slider menu. */
+    private final ConfigManager configManager = new ConfigManager();
+
     /** Optional skin-visibility mode (on by default; toggled via /bdm skin). */
     private final SkinVisibilityManager skinVisibility = new SkinVisibilityManager();
 
-    /** Periodic random-events engine (off by default; toggled via /bdm events). */
-    private final RandomEventManager randomEvents = new RandomEventManager(roleManager);
+    /** Periodic random-events engine (off by default; toggled via /bdm events).
+     *  Reads its re-roll interval live from {@link #configManager}. */
+    private final RandomEventManager randomEvents = new RandomEventManager(roleManager, configManager);
 
     /** Who is currently holding the push-to-megaphone key (fed by MegaphonePayload). */
     private final MegaphoneState megaphoneState = new MegaphoneState();
@@ -107,9 +113,11 @@ public class BlindDeafMutedServer implements ModInitializer {
             LootTables.VILLAGE_SNOWY_HOUSE_CHEST,
             LootTables.VILLAGE_SAVANNA_HOUSE_CHEST);
 
-    /** How often a qualifying chest yields a Randomizer (0.55 = 55%). High on purpose:
-     *  a run only sees a handful of these chests, so a low rate meant it barely showed. */
-    private static final float RANDOMIZER_CHANCE = 0.55F;
+    /** How often a qualifying chest yields a Randomizer — now lives in {@link ConfigManager}
+     *  ({@code randomizerChestChance}, default 0.55). Read live in the loot callback below.
+     *  NOTE: loot tables only re-roll this on resource (re)load, so a live change to this one
+     *  knob takes effect on the next {@code /reload} or restart, not instantly (unlike the
+     *  audio/fog knobs). */
 
     /** Chance a single Piglin barter ALSO yields a Randomizer. A reliable, farmable
      *  source (trade gold to piglins) on top of the rare structure chests. Kept low
@@ -138,8 +146,10 @@ public class BlindDeafMutedServer implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(RollPayload.ID, RollPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(SkinVisibilityPayload.ID, SkinVisibilityPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(MegaphoneStatePayload.ID, MegaphoneStatePayload.CODEC);
-        // Inbound: clients report their megaphone key press/release.
+        PayloadTypeRegistry.playS2C().register(ConfigPayload.ID, ConfigPayload.CODEC);
+        // Inbound: clients report their megaphone key press/release + slider-menu config edits.
         PayloadTypeRegistry.playC2S().register(MegaphonePayload.ID, MegaphonePayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(ConfigUpdatePayload.ID, ConfigUpdatePayload.CODEC);
 
         // Receive megaphone key transitions. The concurrent set mutation is thread-safe,
         // but rebroadcasting the visual state touches the player list, so hop to the
@@ -149,6 +159,17 @@ public class BlindDeafMutedServer implements ModInitializer {
             ServerPlayerEntity player = context.player();
             megaphoneState.set(player.getUuid(), payload.active());
             player.getServer().execute(() -> broadcastMegaphoneState(player.getServer()));
+        });
+
+        // Receive a slider-menu edit from ANY client (access = everyone, by design — the cheat
+        // risk was accepted). Store + persist, apply the live side-effects, then re-broadcast
+        // the authoritative config so every client (sender included) converges on it.
+        ServerPlayNetworking.registerGlobalReceiver(ConfigUpdatePayload.ID, (payload, context) -> {
+            ServerPlayerEntity player = context.player();
+            player.getServer().execute(() -> {
+                configManager.set(payload.config());
+                broadcastConfig(player.getServer());
+            });
         });
 
         // When a Randomizer bottle shatters, re-roll EVERY online player's role.
@@ -172,7 +193,8 @@ public class BlindDeafMutedServer implements ModInitializer {
             if (source.isBuiltin() && RANDOMIZER_CHESTS.contains(key)) {
                 tableBuilder.pool(LootPool.builder()
                         .rolls(ConstantLootNumberProvider.create(1))
-                        .conditionally(RandomChanceLootCondition.builder(RANDOMIZER_CHANCE))
+                        .conditionally(RandomChanceLootCondition.builder(
+                                configManager.get().randomizerChestChance()))
                         .with(ItemEntry.builder(ModItems.RANDOMIZER)));
             }
             // Piglin bartering: a reliable Nether source. Adds an independent pool that
@@ -204,9 +226,12 @@ public class BlindDeafMutedServer implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, access, env) ->
                 BlindDeafMutedCommand.register(dispatcher, roleManager, skinVisibility, randomEvents));
 
-        // When a player joins, immediately sync whatever role they have.
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
-                roleManager.sync(handler.getPlayer()));
+        // When a player joins, immediately sync their role AND the live config (so their
+        // slider menu opens on the real current values right away).
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            roleManager.sync(handler.getPlayer());
+            ServerPlayNetworking.send(handler.getPlayer(), new ConfigPayload(configManager.get()));
+        });
 
         // Hand the role store to the Simple Voice Chat integration — but ONLY if
         // the voice-chat mod is actually installed. SVC is an optional soft
@@ -220,6 +245,8 @@ public class BlindDeafMutedServer implements ModInitializer {
         if (FabricLoader.getInstance().isModLoaded("voicechat")) {
             BlindDeafMutedVoicechatPlugin.bind(roleManager);
             BlindDeafMutedVoicechatPlugin.bindMegaphone(megaphoneState);
+            // VoiceFx reads the live audio tunables off this supplier each frame.
+            BlindDeafMutedVoicechatPlugin.bindConfig(configManager::get);
         }
 
         // Drop a leaver's megaphone flag so a disconnect mid-press can't leave it stuck on.
@@ -235,6 +262,14 @@ public class BlindDeafMutedServer implements ModInitializer {
         // leaderboard HUD. The list is identical for every recipient, so it's built
         // once and sent to all.
         ServerTickEvents.END_SERVER_TICK.register(this::broadcastRoster);
+    }
+
+    /** Push the live config to every online player (after a slider edit). */
+    private void broadcastConfig(net.minecraft.server.MinecraftServer server) {
+        ConfigPayload payload = new ConfigPayload(configManager.get());
+        for (ServerPlayerEntity recipient : server.getPlayerManager().getPlayerList()) {
+            ServerPlayNetworking.send(recipient, payload);
+        }
     }
 
     /** Send each online player a {@link TrackerPayload} of every other player's position. */

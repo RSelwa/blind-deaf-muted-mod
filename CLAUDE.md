@@ -244,6 +244,44 @@ no-comments rule.
   `JAVA_HOME=/opt/homebrew/opt/openjdk@21/.../Home ./gradlew :mod:build --no-daemon
   -Porg.gradle.java.installations.paths=/opt/homebrew/opt/openjdk@21/.../Home`.
 
+### Recent additions (live-tuning slider menu)
+
+- **In-game settings menu (no restart, no config file editing):** all the sensory
+  tunables that used to be `static final` constants are now one live `ModConfig`
+  record in `common/` (14 fields: deaf/muted voice cutoffs + volumes, deaf+megaphone
+  and muted+megaphone variants, blind fog HARD/MEDIUM ends, deaf ambient volume,
+  auto-reroll min/max minutes, randomizer chest chance). Press **`O`** to open
+  `ConfigScreen` — a 2-column slider menu (`SliderWidget` per knob, value formatted
+  per style: Hz / ×gain / blocks / min / %). Reset-defaults + Done buttons.
+- **Server = source of truth; clients listen.** `ConfigManager` (server) holds the
+  live `ModConfig`, persists it to `config/blind-deaf-muted.json` (Gson, tolerant of
+  missing keys), broadcasts `ConfigPayload` (S2C) on join + after every change.
+  A slider edit sends `ConfigUpdatePayload` (C2S) → server stores+persists+re-broadcasts.
+  Protocol bumped to **v7**. **Access is open to everyone** (no op gate — cheat risk
+  accepted per the user).
+- **Live application, no restart:**
+  - `VoiceFx` (server-enforced deaf/muted audio) reads cutoffs/volumes from a
+    `Supplier<ModConfig>` (bound via `BlindDeafMutedVoicechatPlugin.bindConfig`) and
+    recomputes the one-pole `lowpassAlpha` inline each 20 ms frame — a slider change
+    lands on the next voice frame. The comedic bystander-bullhorn shaping stays a
+    hard-coded constant (nobody asked to tune it).
+  - Client vision knobs (`BackgroundRendererMixin` fog ends, `SoundSystemMixin` deaf
+    ambient volume) read `ClientConfigState` (the client's mirror) → instant local
+    preview while dragging.
+  - `RandomEventManager` reads min/max interval from config in `scheduleNext()`
+    (applies from the next scheduled fire).
+- **Two caveats (documented in code):**
+  - **Myopia blur radius is NOT in the menu** — it's a GLSL constant in
+    `myopia.fsh`, not a runtime uniform, so it can't be nudged live yet (would need a
+    uniform injection).
+  - **`randomizerChestChance` is read live but loot tables only re-roll on resource
+    load**, so that one knob takes effect on the next `/reload` or restart, not
+    instantly (unlike audio/fog). All other knobs are truly live.
+- **Editing tips:** to add a knob, extend the `ModConfig` record + `DEFAULT` + `CODEC`
+  + `toArray`/`fromArray` + `ConfigManager` JSON + a `ConfigScreen` `Spec`, and bump
+  the protocol. New lang keys `config.blind-deaf-muted.*` (en + fr) + keybind
+  `key.blind-deaf-muted.open_config`.
+
 ### Must-verify before first build
 
 - Fabric version strings in `gradle.properties` (minecraft/yarn/loader/fabric-api)
