@@ -7,6 +7,7 @@
     "ArmedEntityRenderStateMixin",
     "BackgroundRendererMixin",
     "GameRendererAccessor",
+    "HeldItemRendererMixin",
     "InGameHudMixin",
     "PlayerEntityModelMixin",
     "SoundSystemMixin",

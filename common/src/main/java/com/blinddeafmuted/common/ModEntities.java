@@ -17,6 +17,9 @@ public final class ModEntities {
     /** The thrown Randomizer bottle entity type. Assigned in {@link #register()}. */
     public static EntityType<RandomizerBottleEntity> RANDOMIZER_BOTTLE;
 
+    /** The thrown Potion of Relief entity type. Assigned in {@link #register()}. */
+    public static EntityType<ReliefPotionEntity> RELIEF_POTION_BOTTLE;
+
     public static void register() {
         // Idempotent — see ModItems.register() for why (unified jar, two entrypoints).
         if (RANDOMIZER_BOTTLE != null) return;
@@ -28,5 +31,14 @@ public final class ModEntities {
                         .maxTrackingRange(4)
                         .trackingTickInterval(10)
                         .build(key));
+
+        RegistryKey<EntityType<?>> reliefKey =
+                RegistryKey.of(RegistryKeys.ENTITY_TYPE, ModConstants.id("relief_potion_bottle"));
+        RELIEF_POTION_BOTTLE = Registry.register(Registries.ENTITY_TYPE, reliefKey,
+                EntityType.Builder.<ReliefPotionEntity>create(ReliefPotionEntity::new, SpawnGroup.MISC)
+                        .dimensions(0.25f, 0.25f)
+                        .maxTrackingRange(4)
+                        .trackingTickInterval(10)
+                        .build(reliefKey));
     }
 }

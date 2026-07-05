@@ -84,9 +84,12 @@ public final class RoleState {
      */
     public static BlindMode effectiveBlindMode() {
         switch (blindMode) {
-            // Gameplay default: cane picks soft (MYOPIA) vs harsh (MYOPIA_HARD).
+            // Gameplay default: cane picks soft (MYOPIA) vs harsh (MYOPIA_HARD). A Potion of
+            // Relief eases it the same way a cane does (the blur is a GLSL constant, so relief
+            // steps hard→soft rather than scaling continuously like the other effects).
             case MYOPIA:
-                return localHoldsCane() ? BlindMode.MYOPIA : BlindMode.MYOPIA_HARD;
+                return (localHoldsCane() || ReliefState.localActive())
+                        ? BlindMode.MYOPIA : BlindMode.MYOPIA_HARD;
             // Manual B-cycle test looks (kept, but off the gameplay path): shown as-is.
             case MYOPIA_HARD:
             case BLACKOUT_HUD:

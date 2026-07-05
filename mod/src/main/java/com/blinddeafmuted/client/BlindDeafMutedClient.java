@@ -7,6 +7,7 @@ import com.blinddeafmuted.common.ModConstants;
 import com.blinddeafmuted.common.ModEntities;
 import com.blinddeafmuted.common.Role;
 import com.blinddeafmuted.common.RolePayload;
+import com.blinddeafmuted.common.ReliefPayload;
 import com.blinddeafmuted.common.RollPayload;
 import com.blinddeafmuted.common.RosterPayload;
 import com.blinddeafmuted.common.SkinVisibilityPayload;
@@ -42,8 +43,10 @@ public class BlindDeafMutedClient implements ClientModInitializer {
         // them here too would double-register and crash. By the time we run, the
         // item/entity already exist — we only add the client-only renderers + receivers.
 
-        // The thrown bottle renders as its flat item, like a splash potion / XP bottle.
+        // The thrown bottles render as their flat item, like a splash potion / XP bottle.
         EntityRendererRegistry.register(ModEntities.RANDOMIZER_BOTTLE,
+                ctx -> new FlyingItemEntityRenderer<>(ctx));
+        EntityRendererRegistry.register(ModEntities.RELIEF_POTION_BOTTLE,
                 ctx -> new FlyingItemEntityRenderer<>(ctx));
 
         // Add the blind cane as a feature layer on every player renderer. It decides
@@ -81,6 +84,9 @@ public class BlindDeafMutedClient implements ClientModInitializer {
 
         ClientPlayNetworking.registerGlobalReceiver(CardBrandishStatePayload.ID, (payload, context) ->
                 context.client().execute(() -> CardBrandishState.setOthers(java.util.Set.copyOf(payload.activeNames()))));
+
+        ClientPlayNetworking.registerGlobalReceiver(ReliefPayload.ID, (payload, context) ->
+                context.client().execute(() -> ReliefState.set(java.util.Set.copyOf(payload.relievedNames()))));
 
         // Live tunables: mirror the server's config so the effect mixins + slider menu read it.
         ClientPlayNetworking.registerGlobalReceiver(ConfigPayload.ID, (payload, context) ->

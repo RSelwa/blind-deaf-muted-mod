@@ -12,6 +12,8 @@ import com.blinddeafmuted.common.ModConstants;
 import com.blinddeafmuted.common.ModEntities;
 import com.blinddeafmuted.common.ModItems;
 import com.blinddeafmuted.common.RandomizerBottleEntity;
+import com.blinddeafmuted.common.ReliefPayload;
+import com.blinddeafmuted.common.ReliefPotionEntity;
 import com.blinddeafmuted.common.RolePayload;
 import com.blinddeafmuted.common.RollPayload;
 import com.blinddeafmuted.common.RosterPayload;
@@ -36,6 +38,7 @@ import net.minecraft.loot.provider.number.ConstantLootNumberProvider;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.slf4j.Logger;
@@ -78,6 +81,9 @@ public class BlindDeafMutedServer implements ModInitializer {
 
     /** Who is currently brandishing a note card outward (fed by CardBrandishPayload). */
     private final CardBrandishState cardBrandishState = new CardBrandishState();
+
+    /** Who is currently under a Potion of Relief (disability temporarily reduced). */
+    private final ReliefManager reliefManager = new ReliefManager();
 
     /** Push teammate positions every N server ticks (20 ticks = 1s). 4/sec is smooth
      *  for a direction arrow without being chatty. */
@@ -158,6 +164,7 @@ public class BlindDeafMutedServer implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(MegaphoneStatePayload.ID, MegaphoneStatePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ConfigPayload.ID, ConfigPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(CardBrandishStatePayload.ID, CardBrandishStatePayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(ReliefPayload.ID, ReliefPayload.CODEC);
         // Inbound: clients report their megaphone key press/release + slider-menu config edits
         // + note-card writes and brandish toggles.
         PayloadTypeRegistry.playC2S().register(MegaphonePayload.ID, MegaphonePayload.CODEC);
@@ -256,6 +263,28 @@ public class BlindDeafMutedServer implements ModInitializer {
             }
         };
 
+        // When a Potion of Relief shatters, temporarily reduce the disability of every player
+        // within range (the co-op boost for the dragon fight). Range + duration are live config.
+        ReliefPotionEntity.SHATTER_HANDLER = bottle -> {
+            MinecraftServer server = bottle.getServer();
+            if (server == null || !(bottle.getWorld() instanceof ServerWorld world)) return;
+            var cfg = configManager.get();
+            double range = cfg.reliefRangeBlocks();
+            double range2 = range * range;
+            long durationMs = (long) (cfg.reliefDurationSeconds() * 1000f);
+            double bx = bottle.getX(), by = bottle.getY(), bz = bottle.getZ();
+            int affected = 0;
+            for (ServerPlayerEntity player : world.getPlayers()) {
+                if (player.squaredDistanceTo(bx, by, bz) <= range2) {
+                    reliefManager.apply(player.getUuid(), durationMs);
+                    player.sendMessage(Text.translatable("msg.blind-deaf-muted.relief_active",
+                            Math.round(cfg.reliefDurationSeconds())).formatted(Formatting.AQUA), true);
+                    affected++;
+                }
+            }
+            if (affected > 0) broadcastReliefState(server);
+        };
+
         // Make the Randomizer lootable in structure chests. Works on already-generated
         // worlds: a chest only rolls its loot table the first time it's opened, so any
         // unopened chest (old or new) can yield it.
@@ -315,6 +344,7 @@ public class BlindDeafMutedServer implements ModInitializer {
         if (FabricLoader.getInstance().isModLoaded("voicechat")) {
             BlindDeafMutedVoicechatPlugin.bind(roleManager);
             BlindDeafMutedVoicechatPlugin.bindMegaphone(megaphoneState);
+            BlindDeafMutedVoicechatPlugin.bindRelief(reliefManager);
             // VoiceFx reads the live audio tunables off this supplier each frame.
             BlindDeafMutedVoicechatPlugin.bindConfig(configManager::get);
         }
@@ -323,6 +353,7 @@ public class BlindDeafMutedServer implements ModInitializer {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             megaphoneState.clear(handler.getPlayer().getUuid());
             cardBrandishState.clear(handler.getPlayer().getUuid());
+            reliefManager.clear(handler.getPlayer().getUuid());
         });
 
         // A few times per second, send every player the positions of all the others,
@@ -398,6 +429,25 @@ public class BlindDeafMutedServer implements ModInitializer {
         // both are also pushed immediately on each transition for snappiness.
         broadcastMegaphoneState(server);
         broadcastCardBrandishState(server);
+        broadcastReliefState(server);
+    }
+
+    /** Broadcast the names of everyone currently under a Potion of Relief, so each client can
+     *  scale down its own disability effects. Built from online players (no stale uuids). */
+    private void broadcastReliefState(net.minecraft.server.MinecraftServer server) {
+        List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
+        if (players.isEmpty()) return;
+
+        List<String> relieved = new ArrayList<>();
+        for (ServerPlayerEntity player : players) {
+            if (reliefManager.isActive(player.getUuid())) {
+                relieved.add(player.getName().getString());
+            }
+        }
+        ReliefPayload payload = new ReliefPayload(relieved);
+        for (ServerPlayerEntity recipient : players) {
+            ServerPlayNetworking.send(recipient, payload);
+        }
     }
 
     /** Broadcast the names of everyone currently brandishing a note card, so every client can

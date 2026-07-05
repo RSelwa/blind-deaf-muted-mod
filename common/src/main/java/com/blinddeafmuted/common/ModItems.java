@@ -37,6 +37,12 @@ public final class ModItems {
      *  card payloads. */
     public static Item NOTE_CARD;
 
+    /** Throwable "Potion of Relief" — a splash-style bottle (craft: water potion + diamond +
+     *  lapis). On shatter, every player within range has their disability temporarily reduced
+     *  (default 75%). Meant as a co-op boost for the Ender Dragon fight. Behaviour lives in
+     *  {@link ReliefPotionEntity} (server shatter handler) + the effect scaling. */
+    public static Item RELIEF_POTION;
+
     public static void register() {
         // Idempotent: in the unified jar this can be reached from more than one
         // entrypoint on a physical client. Registering twice would throw, so bail
@@ -54,6 +60,9 @@ public final class ModItems {
         NOTE_CARD = register("note_card",
                 Item::new,
                 new Item.Settings().maxCount(1));
+        RELIEF_POTION = register("relief_potion",
+                ReliefPotionItem::new,
+                new Item.Settings().maxCount(16));
     }
 
     private static Item register(String path, Function<Item.Settings, Item> factory, Item.Settings settings) {

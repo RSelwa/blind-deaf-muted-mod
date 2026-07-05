@@ -19,8 +19,8 @@ import java.util.List;
 public final class NoteCardHud {
     private NoteCardHud() {}
 
-    private static final int PAPER = 0xF2E8DCB5;
-    private static final int PAPER_BORDER = 0xFFB4A06E;
+    private static final int PAPER = 0xF8F7EFD6;
+    private static final int PAPER_BORDER = 0xFFC4B07E;
     private static final int INK = 0xFF3A2E12;
     private static final int PAD = 6;
 

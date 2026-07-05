@@ -1,8 +1,6 @@
 package com.blinddeafmuted.client.mixin;
 
-import com.blinddeafmuted.client.RosterState;
 import com.blinddeafmuted.common.ModItems;
-import com.blinddeafmuted.common.Role;
 import net.minecraft.client.item.ItemModelManager;
 import net.minecraft.client.render.entity.model.BipedEntityModel;
 import net.minecraft.client.render.entity.state.ArmedEntityRenderState;
@@ -15,17 +13,17 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Hides the VANILLA held-item model of our cane in a BLIND player's hand, so the only
- * cane on screen is the 3D one drawn by {@code BlindCaneFeatureRenderer} (which always
- * sits in the left hand with the swept-forward arm pose).
+ * Hides the VANILLA held-item model of our cane in ANY holder's hand, so the only cane
+ * on screen is the 3D one drawn by {@code BlindCaneFeatureRenderer} in the holding hand
+ * with the swept-forward arm pose.
  *
  * <p>Without this, holding the cane gives you two canes: vanilla renders the item model
  * in whichever hand actually holds it, AND our feature renderer draws its own cane on
- * the left arm. We clear the matching hand's {@code ItemRenderState} right after vanilla
- * fills it (and blank that arm's pose so the empty hand hangs naturally).
+ * the same arm. We clear the matching hand's {@code ItemRenderState} right after vanilla
+ * fills it (and blank that arm's pose so vanilla doesn't re-bend the arm).
  *
- * <p>Only blind players are affected — a non-blind player holding the cane still sees the
- * normal held item. Role is looked up from the roster by name (same as the accessories).
+ * <p>Applies to any player holding the cane (matches the arm-pose mixin and the feature
+ * renderer), so the cane looks identical whether the holder is blind or not.
  */
 @Mixin(ArmedEntityRenderState.class)
 public class ArmedEntityRenderStateMixin {
@@ -35,7 +33,6 @@ public class ArmedEntityRenderStateMixin {
                                                     ItemModelManager itemModelManager, CallbackInfo ci) {
         if (ModItems.CANE == null) return;
         if (!(entity instanceof PlayerEntity)) return;
-        if (RosterState.roleOf(entity.getName().getString()) != Role.BLIND) return;
 
         if (entity.getStackInArm(Arm.RIGHT).isOf(ModItems.CANE)) {
             state.rightHandItemState.clear();
@@ -48,16 +45,18 @@ public class ArmedEntityRenderStateMixin {
     }
 
     /**
-     * Hide the VANILLA held-item model of the note card, so the only card on screen is the 3D
-     * one drawn by {@code NoteCardFeatureRenderer} (held up at the chest, both hands raised by
-     * {@code PlayerEntityModelMixin}). Applies to ANY player holding a card (unlike the cane,
-     * which is BLIND-only) — the note card is everyone's comms tool.
+     * Hide the VANILLA held-item model of the note card WHILE ITS HOLDER IS BRANDISHING it,
+     * so the only card on screen during a show is the big 3D one drawn by
+     * {@code NoteCardFeatureRenderer} (held up at the chest, both hands raised by
+     * {@code PlayerEntityModelMixin}). When not brandishing, the vanilla item stays visible —
+     * the card just sits in the hand like any item (Sea-of-Thieves: map lowered vs held up).
      */
     @Inject(method = "updateRenderState", at = @At("TAIL"))
     private static void blinddeafmuted$hideHeldNoteCard(LivingEntity entity, ArmedEntityRenderState state,
                                                         ItemModelManager itemModelManager, CallbackInfo ci) {
         if (ModItems.NOTE_CARD == null) return;
         if (!(entity instanceof PlayerEntity)) return;
+        if (!com.blinddeafmuted.client.CardBrandishState.isBrandishing(entity.getName().getString())) return;
 
         if (entity.getStackInArm(Arm.RIGHT).isOf(ModItems.NOTE_CARD)) {
             state.rightHandItemState.clear();

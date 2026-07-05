@@ -65,6 +65,9 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     /** Set once at server-mod init: who is currently holding the megaphone key. */
     private static volatile MegaphoneState megaphones;
 
+    /** Set once at server-mod init: who is currently under a Potion of Relief. */
+    private static volatile ReliefManager relief;
+
     /** Live audio tunables, supplied from {@link ConfigManager}. Never null once bound. */
     private static volatile Supplier<ModConfig> config = () -> ModConfig.DEFAULT;
 
@@ -87,6 +90,11 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     /** Wire in the megaphone key-state store. Called from {@link BlindDeafMutedServer#onInitialize()}. */
     public static void bindMegaphone(MegaphoneState state) {
         megaphones = state;
+    }
+
+    /** Wire in the relief-potion store. Called from {@link BlindDeafMutedServer#onInitialize()}. */
+    public static void bindRelief(ReliefManager manager) {
+        relief = manager;
     }
 
     /** Wire in the live-config supplier. Called from {@link BlindDeafMutedServer#onInitialize()}. */
@@ -127,7 +135,8 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         MicrophonePacket packet = event.getPacket();
         UUID senderId = uuidOf(sender);
         boolean megaphone = megaphoneActive(senderId);
-        byte[] garbled = fx.distort(senderId, packet.getOpusEncodedData(), megaphone);
+        boolean relieved = reliefActive(senderId); // relief eases the muted speaker's own garble
+        byte[] garbled = fx.distort(senderId, packet.getOpusEncodedData(), megaphone, relieved);
         if (garbled != null) {
             packet.setOpusEncodedData(garbled);
         } else {
@@ -216,8 +225,11 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
 
         if (roleOf(receiver) == Role.DEAF) {
             // A muted speaker never gets the megaphone clarity boost to a deaf listener — mute
-            // wins (VoiceFx keeps it muffled even with a megaphone).
-            return fx.forDeaf(receiverId, senderId, packet.getOpusEncodedData(), megaphone, speakerMuted);
+            // wins (VoiceFx keeps it muffled even with a megaphone). Relief on the DEAF LISTENER
+            // eases their muffle so they hear better during the potion window.
+            boolean receiverRelieved = reliefActive(receiverId);
+            return fx.forDeaf(receiverId, senderId, packet.getOpusEncodedData(),
+                    megaphone, speakerMuted, receiverRelieved);
         }
         if (megaphone && !speakerMuted) {
             byte[] out = fx.forMegaphoneBystander(receiverId, senderId, packet.getOpusEncodedData());
@@ -230,6 +242,12 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     private static boolean megaphoneActive(UUID senderId) {
         MegaphoneState state = megaphones;
         return state != null && state.isActive(senderId);
+    }
+
+    /** Whether the given player is under a Potion of Relief (see {@link ReliefManager}). */
+    private static boolean reliefActive(UUID playerId) {
+        ReliefManager manager = relief;
+        return manager != null && manager.isActive(playerId);
     }
 
     // ---- shared helpers ----------------------------------------------------

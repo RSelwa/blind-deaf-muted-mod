@@ -45,7 +45,11 @@ public record ModConfig(
         float randomizerChestChance,
         // ---- megaphone timing (server) ----
         float megaphoneBurstSeconds,
-        float megaphoneCooldownSeconds) {
+        float megaphoneCooldownSeconds,
+        // ---- relief potion (server sets, both sides scale) ----
+        float reliefReductionPercent,
+        float reliefRangeBlocks,
+        float reliefDurationSeconds) {
 
     /** Factory defaults. The DEAF/MUTED voice values are the ones validated with the client in
      *  the {@code feat-muffle-effect} PR (deaf = 3-pole "through a wall" muffle @210 Hz kept
@@ -59,7 +63,8 @@ public record ModConfig(
             300f, 0.05f, 1800f, 1.1f,
             2.0f, 7.0f, 1.0f,
             3.0f, 8.0f, 0.55f,
-            5.0f, 120.0f);
+            5.0f, 120.0f,
+            0.75f, 8.0f, 30.0f);
 
     public static final PacketCodec<PacketByteBuf, ModConfig> CODEC = PacketCodec.of(
             ModConfig::write, ModConfig::read);
@@ -81,6 +86,9 @@ public record ModConfig(
         buf.writeFloat(c.randomizerChestChance);
         buf.writeFloat(c.megaphoneBurstSeconds);
         buf.writeFloat(c.megaphoneCooldownSeconds);
+        buf.writeFloat(c.reliefReductionPercent);
+        buf.writeFloat(c.reliefRangeBlocks);
+        buf.writeFloat(c.reliefDurationSeconds);
     }
 
     private static ModConfig read(PacketByteBuf buf) {
@@ -89,11 +97,12 @@ public record ModConfig(
                 buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(), buf.readFloat(),
-                buf.readFloat(), buf.readFloat());
+                buf.readFloat(), buf.readFloat(),
+                buf.readFloat(), buf.readFloat(), buf.readFloat());
     }
 
     /** Number of tunable fields — the length of {@link #toArray()}. */
-    public static final int FIELD_COUNT = 16;
+    public static final int FIELD_COUNT = 19;
 
     /** Flatten to a float[] in declaration order. The slider menu edits this array in place and
      *  rebuilds via {@link #fromArray}, so the field↔index mapping lives ONLY here. Keep this,
@@ -104,7 +113,8 @@ public record ModConfig(
                 mutedLowpassHz, mutedVolume, mutedMegaphoneLowpassHz, mutedMegaphoneVolume,
                 blindFogHardEnd, blindFogMediumEnd, deafEnvVolume,
                 eventMinMinutes, eventMaxMinutes, randomizerChestChance,
-                megaphoneBurstSeconds, megaphoneCooldownSeconds};
+                megaphoneBurstSeconds, megaphoneCooldownSeconds,
+                reliefReductionPercent, reliefRangeBlocks, reliefDurationSeconds};
     }
 
     /** Inverse of {@link #toArray()}. */
@@ -114,6 +124,7 @@ public record ModConfig(
                 a[4], a[5], a[6], a[7],
                 a[8], a[9], a[10],
                 a[11], a[12], a[13],
-                a[14], a[15]);
+                a[14], a[15],
+                a[16], a[17], a[18]);
     }
 }

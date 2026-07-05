@@ -32,6 +32,9 @@ public final class DeafAudioFilter {
     private static boolean unavailable = false;
     /** Which {@link DeafMuffle} the filter is currently tuned to (null = not yet set). */
     private static DeafMuffle appliedLevel = null;
+    /** Relief "disability remaining" the filter is currently tuned to (-1 = not yet set), so a
+     *  Potion of Relief re-tunes the shared filter as it eases the muffle. */
+    private static float appliedRem = -1f;
 
     /** Lazily create the shared low-pass filter object (audio thread only). */
     private static int filter() {
@@ -68,12 +71,22 @@ public final class DeafAudioFilter {
         }
     }
 
-    /** Push the level's gains into the filter object if the level changed since last time. */
-    private static void tune(int f, DeafMuffle level) {
-        if (level == appliedLevel) return;
-        EXTEfx.alFilterf(f, EXTEfx.AL_LOWPASS_GAIN, level.gain());
-        EXTEfx.alFilterf(f, EXTEfx.AL_LOWPASS_GAINHF, level.gainHf());
+    /** Push the level's gains into the filter object if the level (or relief) changed since last
+     *  time. A Potion of Relief lerps the gains toward 1.0 (fully clear) by the reduction amount:
+     *  {@code rem=1} → full muffle, {@code rem=0} → transparent. */
+    private static void tune(int f, DeafMuffle level, float rem) {
+        if (level == appliedLevel && rem == appliedRem) return;
+        float gain = lerp(rem, 1.0f, level.gain());
+        float gainHf = lerp(rem, 1.0f, level.gainHf());
+        EXTEfx.alFilterf(f, EXTEfx.AL_LOWPASS_GAIN, gain);
+        EXTEfx.alFilterf(f, EXTEfx.AL_LOWPASS_GAINHF, gainHf);
         appliedLevel = level;
+        appliedRem = rem;
+    }
+
+    /** {@code a} at t=0, {@code b} at t=1. */
+    private static float lerp(float t, float a, float b) {
+        return a + t * (b - a);
     }
 
     /**
@@ -93,7 +106,7 @@ public final class DeafAudioFilter {
             if (unavailable) return;
             int f = filter();
             if (f == 0) return;
-            tune(f, DeafState.getMuffle());
+            tune(f, DeafState.getMuffle(), ReliefState.disabilityRemaining());
             AL10.alSourcei(sourcePointer, EXTEfx.AL_DIRECT_FILTER, f);
         } catch (Throwable t) {
             unavailable = true;

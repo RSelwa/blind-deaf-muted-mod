@@ -299,27 +299,55 @@ no-comments rule.
   + sends `CardBrandishPayload` C2S. `NoteCardController` also auto-clears the toggle when
   the card leaves the hand.
 - **Sea-of-Thieves inversion (per the user):** *brandishing → others read it, you don't;
-  not brandishing → only YOU read it.* Implemented as:
-  - `NoteCardFeatureRenderer` (feature layer on all player renderers) draws the real **3D
-    paper card** at chest height (attached to `body`), text drawn on the +Z face via
-    `TextRenderer.draw`. Brandishing rotates the card 180° so the FACE turns OUTWARD (viewers
-    in front read it); otherwise the face points back at the writer and others see the blank
-    back. Reads brandish from `CardBrandishState.isBrandishing(name)`, text from the tracked
-    stack. **All geometry constants (`CARD_W/H`, `CHEST_DOWN`, `FORWARD`, `TEXT_SCALE`,
-    `TEXT_Z`) need in-game visual calibration** — like the other accessories. Text-face
-    orientation/mirroring especially may need a flip after testing.
+  not brandishing → only YOU read it.* Implemented as (reworked after first in-game test):
+  - **Not brandishing** = card is just a normal vanilla held item (no 3D panel at all);
+    the writer reads privately via `NoteCardHud`. **Brandishing** = vanilla item hidden,
+    both arms raised, big 3D panel held up with text facing OUTWARD (-Z, the player's
+    front) — viewers in front read it. Right-click truly toggles show/lower.
+  - `NoteCardFeatureRenderer` (feature layer on all player renderers) draws the **3D paper
+    card** attached to `body` (follows sneak tilt), ONLY while
+    `CardBrandishState.isBrandishing(name)`. Text via `TextRenderer.draw` on the -Z face.
+    **Unit gotcha (was the original bug):** feature-renderer matrices are in BLOCK units,
+    ModelPart cuboids in px — all placement translates multiply by `PX = 1/16` (the first
+    version translated whole blocks → card metres away + text 16× too big: "giant floating
+    text, no paper"). Text needs no mirror compensation: the entity-render `scale(-1,-1,1)`
+    flip makes glyph +x/+y project to a front viewer's screen right/down. Constants
+    (`CARD_CENTER_DOWN=3.5px`, `CARD_FORWARD=9px`) may still want minor in-game polish.
+    **Text auto-fits + fullbright** (2nd test-pass feedback "too dark, too small"): the
+    font scale grows until the widest line fills the card width or the lines fill its
+    height, capped at `MAX_TEXT_SCALE=0.02` (short notes render BIG; a worst-case
+    22-char×6-line note shrinks back to ≈0.0045); lines are centred like a sign; paper +
+    text render at `LightmapTextureManager.MAX_LIGHT_COORDINATE` (readable at night —
+    it's a comms tool). Private-read HUD paper brightened; `CardEditScreen` world-dim
+    lightened to `0x50` alpha.
   - `NoteCardHud` (drawn from `InGameHudMixin` TAIL) is the writer's **private 2D read**: a
     paper panel above the hotbar, shown only while holding a card AND not brandishing. Hides
     the instant you brandish.
-  - `PlayerEntityModelMixin` raises both arms to hold the card up; `ArmedEntityRenderStateMixin`
-    hides the vanilla held-item model of the card (any holder) so only the 3D card shows.
+  - `PlayerEntityModelMixin` raises both arms (pitch -0.9 so the hands land at the panel) and
+    `ArmedEntityRenderStateMixin` hides the vanilla held-item model — **both gated on
+    brandishing** now, not on merely holding the card.
+  - **First-person "am I showing it?" feedback:** `HeldItemRendererMixin` (client mixin,
+    registered in the client mixins json) — while the LOCAL player brandishes, both
+    first-person hand passes are cancelled and replaced by a two-arm hold copied from
+    vanilla's `renderMapInBothHands` (same sway/equip/pitch curves, `@Shadow renderArm`
+    ×2) with the card panel sunk low (`BDM_CARD_SINK=0.6`, tunable) so just its TOP peeks
+    into view — you see your raised arms + card top, but not the text (it faces the
+    audience). Exact `renderFirstPersonItem`/`renderArm` signatures verified against the
+    yarn-mapped jar via `javap`.
+  - **Pre-made messages:** a column of 8 buttons LEFT of the book in `CardEditScreen`
+    (Yes/No/Help!/Danger!/Follow me/Wait here/Come here/RUN!) — clicking REPLACES the whole
+    note with the localized label (line 1, cursor at end; still editable before Done).
+    Lang keys `card.blind-deaf-muted.preset.*` (en+fr). Write-screen background dim fully
+    removed (any fill read as a black veil vanilla book-and-quill doesn't have).
 - **Server:** `CardBrandishState` (like `MegaphoneState`) tracks who's brandishing; broadcast
   via `CardBrandishStatePayload` (S2C) on the roster tick + on each toggle. Cleared on
   disconnect. Protocol bumped to **v8**.
-- **Texture:** `assets/blind-deaf-muted/textures/item/note_card.png` (16×16 beige paper w/
-  ruled lines, generated — repaintable) + item-model defs under `items/` + `models/item/`.
-  Lang keys en+fr (`item…note_card`, `screen…card`, `hud…card_reading/card_empty`,
-  `key…write_card`).
+- **Textures:** `assets/blind-deaf-muted/textures/item/note_card.png` (16×16 inventory icon)
+  + `textures/entity/note_card.png` (**32×32**, generated: ruled front face, plain darker
+  back — the 12×16×1 cuboid needs a 26×18 UV area, which overflowed the 16×16 icon the
+  renderer first pointed at → invisible paper). Item-model defs under `items/` +
+  `models/item/`. Lang keys en+fr (`item…note_card`, `screen…card`,
+  `hud…card_reading/card_empty`, `key…write_card`).
 
 ### Recent additions (muffle rebalance — client-validated, from PR `feat-muffle-effect`)
 
@@ -380,6 +408,35 @@ no-comments rule.
   the same values drive the action-bar text + the hotbar cooldown-overlay length. Protocol bumped
   to **v9** (2 floats added to the `ConfigPayload` wire format). Same fresh-config caveat as the
   other tunables (an existing `blind-deaf-muted.json` keeps its values → reset in menu / delete json).
+
+### Recent additions (Potion of Relief — co-op dragon-fight boost)
+
+- **Throwable "Potion of Relief" (`ModItems.RELIEF_POTION`)** — a splash-style bottle
+  (`ReliefPotionItem` + `ReliefPotionEntity`, modelled on the Randomizer). Craft: **water potion +
+  diamond + lapis lazuli** (shapeless, `data/blind-deaf-muted/recipe/relief_potion.json`; the
+  `minecraft:potion` ingredient accepts any potion — water is the cheap intended one, vanilla JSON
+  can't match potion contents). On shatter, every player within range has their disability
+  temporarily reduced. Green-sparkle + instant-effect particles, glass-break sound.
+- **Server-authoritative** (`server/ReliefManager`, per-UUID wall-clock expiry like `MegaphoneState`).
+  `ReliefPotionEntity.SHATTER_HANDLER` (installed in `BlindDeafMutedServer`) finds players within
+  `reliefRangeBlocks` of the impact, `apply(uuid, durationMs)`, action-bar message. Broadcast the
+  relieved-name set via `ReliefPayload` (S2C) on the roster tick + on shatter; cleared on disconnect.
+- **All three disabilities scale by `reliefReductionPercent` (default 0.75 = −75%)** via a single
+  scalar `remaining = 1 − reduction` (`client/ReliefState.disabilityRemaining()`, local player;
+  server reads the config for voice):
+  - **Voice** (`VoiceFx`, bound `ReliefManager`): DEAF listener + MUTED speaker lerp cutoff → clear
+    (`RELIEF_CLEAR_HZ` 4 kHz) + volume → 1.0. The headline dragon-coordination win.
+  - **Deaf world sound**: `DeafAudioFilter` low-pass gains lerp → 1.0 (clear); `SoundSystemMixin`
+    hearing range + ambient volume lerp → normal.
+  - **Blind fog** (`BackgroundRendererMixin`): fog end lerps out toward `RELIEF_FOG_END` (64).
+  - **Blind blackout** (`InGameHudMixin`): black-fill alpha × remaining.
+  - **Blind myopia**: eased **HARD→SOFT** like a cane (stepped, not continuous — the blur is a GLSL
+    constant, same limitation noted for the menu). So myopia relief is partial, not a true 75%.
+- **Config (3 new sliders, `O` menu):** `reliefReductionPercent` (PERCENT, 0.75), `reliefRangeBlocks`
+  (BLOCKS, 8), `reliefDurationSeconds` (SECONDS, 30). Grid now 19 knobs / 10 rows × 2 cols. Protocol
+  bumped **v10**. Fresh-config caveat applies (existing json keeps old values; new keys default in).
+- Texture `textures/item/relief_potion.png` (generated aqua bottle, repaintable) + item/model defs +
+  lang en/fr (`item…relief_potion`, `msg…relief_active`, `config…relief*`).
 
 ### Must-verify before first build
 

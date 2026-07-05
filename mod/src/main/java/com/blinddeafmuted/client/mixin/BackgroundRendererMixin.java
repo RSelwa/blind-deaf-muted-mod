@@ -3,10 +3,12 @@ package com.blinddeafmuted.client.mixin;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.blinddeafmuted.client.BlindMode;
 import com.blinddeafmuted.client.ClientConfigState;
+import com.blinddeafmuted.client.ReliefState;
 import com.blinddeafmuted.client.RoleState;
 import com.blinddeafmuted.common.Role;
 import net.minecraft.client.render.BackgroundRenderer;
 import net.minecraft.client.render.Fog;
+import net.minecraft.util.math.MathHelper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -28,6 +30,10 @@ public class BackgroundRendererMixin {
     /** Fog start while blind (both levels start at the camera). */
     private static final float BLIND_FOG_START = 0.0F;
 
+    /** Where the fog is eased toward under a full Potion of Relief — far enough to read as
+     *  near-normal sight (blocks). */
+    private static final float RELIEF_FOG_END = 64.0F;
+
     @ModifyReturnValue(method = "applyFog", at = @At("RETURN"))
     private static Fog blinddeafmuted$tightenBlindFog(Fog fog) {
         if (!RoleState.blindEffectActive()) return fog;
@@ -40,6 +46,12 @@ public class BackgroundRendererMixin {
             end = ClientConfigState.get().blindFogMediumEnd();
         } else {
             return fog; // BLACKOUT_HUD / MYOPIA don't use fog
+        }
+        // A Potion of Relief pushes the fog back out toward normal sight (rem=1 → full blind
+        // fog, rem=0 → RELIEF_FOG_END). Continuous, unlike the myopia step.
+        float rem = ReliefState.disabilityRemaining();
+        if (rem < 1.0f) {
+            end = MathHelper.lerp(rem, RELIEF_FOG_END, end);
         }
         return new Fog(BLIND_FOG_START, end, fog.shape(),
                 fog.red(), fog.green(), fog.blue(), fog.alpha());

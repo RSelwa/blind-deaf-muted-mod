@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.blinddeafmuted.client.ClientConfigState;
 import com.blinddeafmuted.client.DeafMuffle;
 import com.blinddeafmuted.client.DeafState;
+import com.blinddeafmuted.client.ReliefState;
 import com.blinddeafmuted.client.RoleState;
 import com.blinddeafmuted.common.Role;
 import net.minecraft.client.MinecraftClient;
@@ -34,21 +35,29 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(SoundSystem.class)
 public class SoundSystemMixin {
 
+    /** Hearing radius (blocks) the deaf range-cap is eased toward under a full Potion of Relief. */
+    private static final float RELIEF_RANGE = 48.0F;
+
     @ModifyReturnValue(
             method = "getAdjustedVolume(Lnet/minecraft/client/sound/SoundInstance;)F",
             at = @At("RETURN"))
     private float blinddeafmuted$deafenVolume(float original, SoundInstance sound) {
         if (!RoleState.is(Role.DEAF)) return original;
 
-        // Ambient loudness trim (1.0 = none) is live-tunable from the slider menu.
-        float v = original * ClientConfigState.get().deafEnvVolume();
+        // A Potion of Relief eases the deafness: rem=1 → full effect, rem→0 → back to normal.
+        float rem = ReliefState.disabilityRemaining();
+
+        // Ambient loudness trim (1.0 = none) is live-tunable from the slider menu; relief lerps it
+        // back toward 1.0 (no trim).
+        float v = original * MathHelper.lerp(rem, 1.0f, ClientConfigState.get().deafEnvVolume());
 
         // Distance cap: only for positional (attenuated) sounds — global UI/music have no
         // position, leave them. Fade from full at half-range to silent at full range.
         if (sound.getAttenuationType() == SoundInstance.AttenuationType.LINEAR) {
             ClientPlayerEntity player = MinecraftClient.getInstance().player;
             if (player != null) {
-                float range = DeafState.getMuffle().range();
+                // Relief pushes the hearing radius back out toward normal.
+                float range = MathHelper.lerp(rem, RELIEF_RANGE, DeafState.getMuffle().range());
                 double dx = sound.getX() - player.getX();
                 double dy = sound.getY() - player.getY();
                 double dz = sound.getZ() - player.getZ();

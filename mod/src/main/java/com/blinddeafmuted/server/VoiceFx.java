@@ -60,6 +60,11 @@ final class VoiceFx {
      *  cutoff itself is the live {@code deafLowpassHz} knob. */
     private static final int DEAF_LOWPASS_POLES = 3;
 
+    /** Target low-pass cutoff a Potion of Relief lerps DEAF/MUTED voice toward — high enough that
+     *  voice passes essentially clear. The reduction fraction ({@code reliefReductionPercent})
+     *  controls how far toward this + toward full volume the muffle is eased. */
+    private static final float RELIEF_CLEAR_HZ = 4000f;
+
     /** Clip ceiling (fraction of full scale) for the role-enforcement megaphone paths
      *  (deaf-listener + muted-speaker megaphone). Loud peaks saturate a touch for bullhorn bite
      *  without blasting — the validated value. The drive/gain is the per-path megaphone volume
@@ -130,7 +135,7 @@ final class VoiceFx {
      * Opus bytes to put back on the mic packet, or {@code null} if decoding failed (caller
      * falls back to cancel).
      */
-    byte[] distort(UUID sender, byte[] opus, boolean megaphone) {
+    byte[] distort(UUID sender, byte[] opus, boolean megaphone, boolean relieved) {
         OpusDecoder decoder = micDecoders.computeIfAbsent(sender, k -> api.createDecoder());
         OpusEncoder encoder = micEncoders.computeIfAbsent(sender, k -> api.createEncoder());
         short[] pcm = decode(decoder, opus);
@@ -144,9 +149,17 @@ final class VoiceFx {
             saturate(pcm, cfg.mutedMegaphoneVolume(), (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
         } else {
             // No megaphone: 1-pole "in a box" muffle + very faint — a dull murmur you only catch
-            // point-blank (validated: 300 Hz / 0.05).
-            lowpassCore(pcm, lp, lowpassAlpha(cfg.mutedLowpassHz()));
-            scale(pcm, cfg.mutedVolume());
+            // point-blank (validated: 300 Hz / 0.05). A Potion of Relief on the speaker eases both
+            // the muffle (cutoff → clear) and the loudness (→ 1.0) by reliefReductionPercent.
+            float lpHz = cfg.mutedLowpassHz();
+            float vol = cfg.mutedVolume();
+            if (relieved) {
+                float r = cfg.reliefReductionPercent();
+                lpHz = lerp(lpHz, RELIEF_CLEAR_HZ, r);
+                vol = lerp(vol, 1.0f, r);
+            }
+            lowpassCore(pcm, lp, lowpassAlpha(lpHz));
+            scale(pcm, vol);
         }
         return encoder.encode(pcm);
     }
@@ -161,7 +174,8 @@ final class VoiceFx {
      * here we keep it faint too, so a muted+megaphone player is still (near) inaudible to a
      * deaf listener — two disabilities don't cancel out into clear audio.
      */
-    byte[] forDeaf(UUID receiver, UUID sender, byte[] opus, boolean megaphone, boolean speakerMuted) {
+    byte[] forDeaf(UUID receiver, UUID sender, byte[] opus, boolean megaphone, boolean speakerMuted,
+                   boolean receiverRelieved) {
         String key = receiver + "|" + sender;
         OpusDecoder decoder = deafDecoders.computeIfAbsent(key, k -> api.createDecoder());
         OpusEncoder encoder = deafEncoders.computeIfAbsent(receiver, k -> api.createEncoder());
@@ -181,11 +195,19 @@ final class VoiceFx {
             // "through a wall" muffle (validated 3 stages @ deafLowpassHz), kept audible via a
             // slight makeup gain — smothered and dull, not silent. A muted speaker's mic is
             // already garbled at source, so this leaves them near-inaudible. One float of filter
-            // memory per cascade stage, kept across frames.
-            for (int stage = 0; stage < DEAF_LOWPASS_POLES; stage++) {
-                lowpassStage(pcm, lp, stage, lowpassAlpha(cfg.deafLowpassHz()));
+            // memory per cascade stage, kept across frames. A Potion of Relief on the LISTENER
+            // eases the muffle (cutoff → clear) + loudness (→ 1.0) by reliefReductionPercent.
+            float lpHz = cfg.deafLowpassHz();
+            float vol = cfg.deafVolume();
+            if (receiverRelieved) {
+                float r = cfg.reliefReductionPercent();
+                lpHz = lerp(lpHz, RELIEF_CLEAR_HZ, r);
+                vol = lerp(vol, 1.0f, r);
             }
-            scale(pcm, cfg.deafVolume());
+            for (int stage = 0; stage < DEAF_LOWPASS_POLES; stage++) {
+                lowpassStage(pcm, lp, stage, lowpassAlpha(lpHz));
+            }
+            scale(pcm, vol);
         }
         return encoder.encode(pcm);
     }
@@ -219,6 +241,11 @@ final class VoiceFx {
         } catch (RuntimeException e) {
             return null;
         }
+    }
+
+    /** Linear interpolation: {@code a} at t=0, {@code b} at t=1. */
+    private static float lerp(float a, float b, float t) {
+        return a + (b - a) * t;
     }
 
     /** Linear volume scale with clamping. */

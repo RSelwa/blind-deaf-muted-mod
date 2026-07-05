@@ -53,6 +53,9 @@ public final class ConfigScreen extends Screen {
             new Spec(13, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.randomizerChestChance"),
             new Spec(14, 1f, 30f, Style.SECONDS, "config.blind-deaf-muted.megaphoneBurstSeconds"),
             new Spec(15, 5f, 600f, Style.SECONDS, "config.blind-deaf-muted.megaphoneCooldownSeconds"),
+            new Spec(16, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.reliefReductionPercent"),
+            new Spec(17, 1f, 32f, Style.BLOCKS, "config.blind-deaf-muted.reliefRangeBlocks"),
+            new Spec(18, 5f, 300f, Style.SECONDS, "config.blind-deaf-muted.reliefDurationSeconds"),
     };
 
     /** Working copy edited by the sliders; rebuilt into a ModConfig on each send. */
@@ -66,7 +69,7 @@ public final class ConfigScreen extends Screen {
     @Override
     protected void init() {
         sliders.clear();
-        int rows = 8;                     // 16 knobs over 2 columns
+        int rows = 10;                    // 19 knobs over 2 columns
         int sliderW = 150, sliderH = 20, gapY = 24, topY = 34;
         int leftX = this.width / 2 - sliderW - 5;
         int rightX = this.width / 2 + 5;

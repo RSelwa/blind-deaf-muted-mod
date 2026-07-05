@@ -1,6 +1,7 @@
 package com.blinddeafmuted.client.mixin;
 
 import com.blinddeafmuted.client.BlindCaneFeatureRenderer;
+import com.blinddeafmuted.client.CardBrandishState;
 import com.blinddeafmuted.client.MegaphoneState;
 import com.blinddeafmuted.client.NoteCardFeatureRenderer;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
@@ -31,6 +32,11 @@ public class PlayerEntityModelMixin {
      *  the arm. Flip to {@code true} to bring it back. (The blind left-arm pose stays on.) */
     private static final boolean MEGAPHONE_ARM_POSE_ENABLED = false;
 
+    /** Raise both arms to "hold the card up" while BRANDISHING. (The card itself is drawn
+     *  body-attached by {@code NoteCardFeatureRenderer}, so this pose can't turn it edge-on —
+     *  the old failure mode when the card was arm-attached.) */
+    private static final boolean NOTE_CARD_ARM_POSE_ENABLED = true;
+
     /** Left-arm pitch while blind. ~-69°: forward and angled down, like a held cane.
      *  0 = hanging down, -π/2 ≈ -1.57 = straight forward. Tweak to taste. */
     private static final float BLIND_LEFT_ARM_PITCH = -1.2F;
@@ -42,10 +48,12 @@ public class PlayerEntityModelMixin {
     private static final float MEGAPHONE_ARM_PITCH = -2.3F;
     private static final float MEGAPHONE_ARM_ROLL = -0.5F;
 
-    /** Both arms raised forward to hold the note card up in front of the chest (reading /
-     *  showing pose). Pitch raises forward (0 = down, -π/2 ≈ straight ahead); roll angles the
-     *  hands inward toward the card centre. Tweak to taste. */
-    private static final float NOTE_CARD_ARM_PITCH = -1.35F;
+    /** Both arms raised forward to hold the note card up in front of the chest (showing
+     *  pose). Pitch raises forward (0 = down, -π/2 ≈ straight ahead); -0.9 puts the hands
+     *  right about where the card panel floats (~9 px forward, chest height — see
+     *  {@code NoteCardFeatureRenderer.CARD_FORWARD}). Roll angles the hands inward toward
+     *  the card centre. Tweak to taste. */
+    private static final float NOTE_CARD_ARM_PITCH = -0.9F;
     private static final float NOTE_CARD_ARM_ROLL = 0.25F;
 
     @Inject(
@@ -97,14 +105,17 @@ public class PlayerEntityModelMixin {
         model.rightSleeve.roll = model.rightArm.roll;
     }
 
-    /** Raise BOTH arms to hold the note card up in front, whenever it's in hand — so it reads
-     *  as reading/showing a card (the card itself is drawn by {@code NoteCardFeatureRenderer}
-     *  attached to the body). */
+    /** Raise BOTH arms to hold the note card up in front, while its holder is BRANDISHING it
+     *  — so it reads as showing the card (the card itself is drawn by
+     *  {@code NoteCardFeatureRenderer} attached to the body). Not brandishing → vanilla pose,
+     *  card in hand like a normal item. */
     @Inject(
             method = "setAngles(Lnet/minecraft/client/render/entity/state/PlayerEntityRenderState;)V",
             at = @At("TAIL"))
     private void blinddeafmuted$holdCardArms(PlayerEntityRenderState state, CallbackInfo ci) {
+        if (!NOTE_CARD_ARM_POSE_ENABLED) return;
         if (!NoteCardFeatureRenderer.holdsCard(state.name)) return;
+        if (!CardBrandishState.isBrandishing(state.name)) return;
 
         PlayerEntityModel model = (PlayerEntityModel) (Object) this;
         model.leftArm.pitch = NOTE_CARD_ARM_PITCH;

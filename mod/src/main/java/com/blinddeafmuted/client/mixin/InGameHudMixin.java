@@ -1,7 +1,7 @@
 package com.blinddeafmuted.client.mixin;
 
 import com.blinddeafmuted.client.BlindMode;
-import com.blinddeafmuted.client.NoteCardHud;
+import com.blinddeafmuted.client.ReliefState;
 import com.blinddeafmuted.client.RoleState;
 import com.blinddeafmuted.client.RosterHud;
 import com.blinddeafmuted.client.RouletteAnimation;
@@ -43,7 +43,11 @@ public class InGameHudMixin {
 
         int w = context.getScaledWindowWidth();
         int h = context.getScaledWindowHeight();
-        context.fill(0, 0, w, h, 0xFF000000);
+        // A Potion of Relief fades the blackout toward transparent (rem=1 → fully black,
+        // rem=0.25 at the default 75% → ~25% black), so the player sees mostly through it.
+        int alpha = (int) (255 * ReliefState.disabilityRemaining());
+        if (alpha <= 0) return;
+        context.fill(0, 0, w, h, alpha << 24);
     }
 
     @Inject(
@@ -52,7 +56,8 @@ public class InGameHudMixin {
     private void blinddeafmuted$drawTracker(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
         TrackerHud.render(context);
         RosterHud.render(context);
-        NoteCardHud.render(context); // your private card read (hidden while you brandish it)
+        // NoteCardHud disabled: the owner's "your note" rectangle was unwanted. The writer
+        // reads their note by opening the editor (G); the world card is for showing others.
         RouletteAnimation.render(context); // last = on top of everything
     }
 }

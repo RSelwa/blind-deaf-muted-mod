@@ -2,7 +2,6 @@ package com.blinddeafmuted.client;
 
 import com.blinddeafmuted.common.ModConstants;
 import com.blinddeafmuted.common.ModItems;
-import com.blinddeafmuted.common.Role;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.model.ModelData;
 import net.minecraft.client.model.ModelPart;
@@ -23,15 +22,17 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.RotationAxis;
 
 /**
- * Renders a 3D white cane in a BLIND player's left hand, visible to everyone (so
- * teammates can spot who's blind). This is the first of the role "accessories"
- * (idea #2); glasses / bandage / hard-hat will reuse the exact same mechanism,
+ * Renders a 3D white cane in the holding hand of ANY player carrying the cane item,
+ * visible to everyone. (Originally BLIND-only, but the arm pose applies to any holder,
+ * so the cane draws for any holder too — otherwise a non-blind holder got the swept
+ * arm with a misaligned vanilla held item.) This is the first of the role
+ * "accessories" (idea #2); glasses / bandage / hard-hat reuse the same mechanism,
  * attached to {@code head} instead of {@code leftArm}.
  *
  * <p>The cane is real geometry — a {@link ModelPart} cuboid (2×24×2 px, ~1.5 blocks
  * long) — not a flat texture, baked once in the constructor. Whether to draw it is
- * decided per-player from the roster ({@link RosterState#roleOf}), since a feature
- * renderer only gets the render state, not the entity.
+ * decided per-player from the holder's live hand stacks ({@link #caneArm}), since a
+ * feature renderer only gets the render state, not the entity.
  */
 public final class BlindCaneFeatureRenderer
         extends FeatureRenderer<PlayerEntityRenderState, PlayerEntityModel> {
@@ -74,7 +75,6 @@ public final class BlindCaneFeatureRenderer
     public void render(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light,
                        PlayerEntityRenderState state, float limbAngle, float limbDistance) {
         if (!SkinVisibilityState.isEnabled()) return; // op toggled accessories off
-        if (RosterState.roleOf(state.name) != Role.BLIND) return;
         Arm arm = caneArm(state.name); // which hand holds the cane (null = not holding)
         if (arm == null) return; // only show the cane while it's actually in hand
 

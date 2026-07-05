@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:paper",
+    "minecraft:feather"
+  ],
+  "result": {
+    "id": "blind-deaf-muted:note_card",
+    "count": 1
+  }
+}

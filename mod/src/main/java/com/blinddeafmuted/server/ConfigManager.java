@@ -77,7 +77,10 @@ public final class ConfigManager {
                     f(o, "eventMaxMinutes", d.eventMaxMinutes()),
                     f(o, "randomizerChestChance", d.randomizerChestChance()),
                     f(o, "megaphoneBurstSeconds", d.megaphoneBurstSeconds()),
-                    f(o, "megaphoneCooldownSeconds", d.megaphoneCooldownSeconds()));
+                    f(o, "megaphoneCooldownSeconds", d.megaphoneCooldownSeconds()),
+                    f(o, "reliefReductionPercent", d.reliefReductionPercent()),
+                    f(o, "reliefRangeBlocks", d.reliefRangeBlocks()),
+                    f(o, "reliefDurationSeconds", d.reliefDurationSeconds()));
         } catch (IOException | RuntimeException e) {
             BlindDeafMutedServer.LOGGER.warn("Failed to read {} — using defaults ({})",
                     FILE, e.toString());
@@ -103,6 +106,9 @@ public final class ConfigManager {
         o.addProperty("randomizerChestChance", c.randomizerChestChance());
         o.addProperty("megaphoneBurstSeconds", c.megaphoneBurstSeconds());
         o.addProperty("megaphoneCooldownSeconds", c.megaphoneCooldownSeconds());
+        o.addProperty("reliefReductionPercent", c.reliefReductionPercent());
+        o.addProperty("reliefRangeBlocks", c.reliefRangeBlocks());
+        o.addProperty("reliefDurationSeconds", c.reliefDurationSeconds());
         try {
             Files.createDirectories(FILE.getParent());
             Files.writeString(FILE, GSON.toJson(o));

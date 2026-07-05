@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:potion",
+    "minecraft:diamond",
+    "minecraft:lapis_lazuli"
+  ],
+  "result": {
+    "id": "blind-deaf-muted:relief_potion",
+    "count": 1
+  }
+}

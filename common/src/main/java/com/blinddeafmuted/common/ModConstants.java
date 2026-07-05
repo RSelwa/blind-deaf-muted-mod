@@ -27,8 +27,10 @@ public final class ModConstants {
      *      (C2S) and {@link CardBrandishStatePayload} (S2C) + the {@link ModComponents#CARD_TEXT}
      *      data component.
      *  v9: two new {@link ModConfig} fields (megaphoneBurstSeconds + megaphoneCooldownSeconds)
-     *      changed the {@link ConfigPayload}/{@link ConfigUpdatePayload} wire format. */
-    public static final int PROTOCOL_VERSION = 9;
+     *      changed the {@link ConfigPayload}/{@link ConfigUpdatePayload} wire format.
+     *  v10: the Potion of Relief — {@link ReliefPayload} (S2C) + three new {@link ModConfig}
+     *       fields (reliefReductionPercent + reliefRangeBlocks + reliefDurationSeconds). */
+    public static final int PROTOCOL_VERSION = 10;
 
     /** Helper to build identifiers under our namespace. */
     public static Identifier id(String path) {

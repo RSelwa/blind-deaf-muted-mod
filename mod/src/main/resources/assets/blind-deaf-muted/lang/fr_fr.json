@@ -27,15 +27,28 @@
   "config.blind-deaf-muted.randomizerChestChance": "Chance randomiseur (coffres)",
   "config.blind-deaf-muted.megaphoneBurstSeconds": "Rafale mégaphone",
   "config.blind-deaf-muted.megaphoneCooldownSeconds": "Recharge mégaphone",
+  "config.blind-deaf-muted.reliefReductionPercent": "Réduction (soulagement)",
+  "config.blind-deaf-muted.reliefRangeBlocks": "Portée (soulagement)",
+  "config.blind-deaf-muted.reliefDurationSeconds": "Durée (soulagement)",
 
   "item.blind-deaf-muted.randomizer": "Randomiseur",
   "item.blind-deaf-muted.megaphone": "Mégaphone",
   "item.blind-deaf-muted.cane": "Canne",
   "item.blind-deaf-muted.note_card": "Carte à écrire",
+  "item.blind-deaf-muted.relief_potion": "Potion de soulagement",
 
   "screen.blind-deaf-muted.card": "Carte à écrire",
   "hud.blind-deaf-muted.card_reading": "Ta note (clic droit pour montrer)",
   "hud.blind-deaf-muted.card_empty": "(vide — appuie sur la touche d'écriture)",
+
+  "card.blind-deaf-muted.preset.yes": "Oui",
+  "card.blind-deaf-muted.preset.no": "Non",
+  "card.blind-deaf-muted.preset.help": "À l'aide !",
+  "card.blind-deaf-muted.preset.danger": "Danger !",
+  "card.blind-deaf-muted.preset.follow": "Suis-moi",
+  "card.blind-deaf-muted.preset.wait": "Attends ici",
+  "card.blind-deaf-muted.preset.come": "Viens ici",
+  "card.blind-deaf-muted.preset.run": "COURS !",
 
   "role.blind-deaf-muted.none": "Aucun",
   "role.blind-deaf-muted.blind": "Aveugle",
@@ -46,6 +59,7 @@
   "msg.blind-deaf-muted.now": "Tu es maintenant %s",
   "msg.blind-deaf-muted.megaphone_active": "📢 Mégaphone actif — %ss",
   "msg.blind-deaf-muted.megaphone_cooldown": "Mégaphone en recharge — %ss restantes",
+  "msg.blind-deaf-muted.relief_active": "✨ Soulagement — handicap réduit pendant %ss",
 
   "hud.blind-deaf-muted.assigning": "Attribution de ton rôle…",
   "hud.blind-deaf-muted.now": "Tu es maintenant",
