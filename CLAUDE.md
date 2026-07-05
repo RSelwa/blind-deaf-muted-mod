@@ -321,6 +321,32 @@ no-comments rule.
   Lang keys en+fr (`item…note_card`, `screen…card`, `hud…card_reading/card_empty`,
   `key…write_card`).
 
+### Recent additions (muffle rebalance — client-validated, from PR `feat-muffle-effect`)
+
+- **DEAF/MUTED voice + deaf ambient retuned to the values the client validated** in the
+  `ToHold:feat-muffle-effect` PR (PR #1). That PR branched *before* the live-config refactor
+  so it couldn't merge; its parameters were ported into main's `ModConfig`/`VoiceFx` instead of
+  merging the branch (which would have reintroduced `static final` constants and regressed the
+  slider menu).
+- **`VoiceFx` algorithm now matches the validated build:**
+  - DEAF (no megaphone) — **3-pole** cascaded low-pass "through a wall" (`lowpassStage` ×
+    `DEAF_LOWPASS_POLES=3`) at `deafLowpassHz`, kept audible via `deafVolume` makeup gain
+    (was a 2-pole `lowpass2`). `lowpass2` removed; muted now uses a single `lowpassCore` (1-pole).
+  - DEAF + megaphone — near-transparent 1-pole (slot 0) + `saturate(deafMegaphoneVolume, 0.80)`
+    (clean+loud; was `lowpass2`+`scale`). New `MEGAPHONE_CEILING=0.80` constant.
+  - MUTED (no megaphone) — 1-pole box `lowpassCore(mutedLowpassHz)` + `scale(mutedVolume)`.
+  - MUTED + megaphone — 1-pole `lowpassCore(mutedMegaphoneLowpassHz)` + `saturate(mutedMegaphoneVolume, 0.80)`.
+- **New `ModConfig.DEFAULT` voice values (validated):** deaf `210 Hz / 1.1`, deaf+meg `3000 Hz / 1.1`,
+  muted `300 Hz / 0.05`, muted+meg `1800 Hz / 1.1`. All still live-tunable via the `O` menu; the
+  values map to `saturate` GAIN on the two megaphone paths (not `scale`). No protocol/field
+  change — the 8 voice knobs are unchanged in shape.
+- **`DeafMuffle` (client world/ambient) reverted to the PR's validated levels**
+  (`LIGHT 0.20/1.0/40 … EXTREME 0.01/0.85/8`) — milder + longer range than the interim
+  post-PR tuning that had crept onto main.
+- **⚠ Defaults only apply to a FRESH config.** `ConfigManager` keeps every key already present in
+  `config/blind-deaf-muted.json`, so a server with a saved config keeps its old numbers — hit
+  *Reset defaults* in the `O` menu (or delete the json) to pick up the validated values.
+
 ### Must-verify before first build
 
 - Fabric version strings in `gradle.properties` (minecraft/yarn/loader/fabric-api)

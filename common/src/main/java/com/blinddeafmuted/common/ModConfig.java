@@ -44,10 +44,16 @@ public record ModConfig(
         float eventMaxMinutes,
         float randomizerChestChance) {
 
-    /** Factory defaults — the exact values the old {@code static final} constants held. */
+    /** Factory defaults. The DEAF/MUTED voice values are the ones validated with the client in
+     *  the {@code feat-muffle-effect} PR (deaf = 3-pole "through a wall" muffle @210 Hz kept
+     *  audible at 1.1; deaf+megaphone = clean saturate; muted = faint 1-pole box @300 Hz/0.05;
+     *  muted+megaphone = opened @1800 Hz + saturate). See {@code VoiceFx} for how each is used.
+     *  NOTE: these apply to a FRESH config only — a server with an existing
+     *  {@code config/blind-deaf-muted.json} keeps its saved values (reset in the in-game menu
+     *  or delete the file to pick these up). */
     public static final ModConfig DEFAULT = new ModConfig(
-            130f, 1.0f, 750f, 2.9f,
-            95f, 1.8f, 140f, 2.1f,
+            210f, 1.1f, 3000f, 1.1f,
+            300f, 0.05f, 1800f, 1.1f,
             2.0f, 7.0f, 1.0f,
             3.0f, 8.0f, 0.55f);
 

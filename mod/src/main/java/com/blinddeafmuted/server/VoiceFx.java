@@ -22,11 +22,16 @@ import java.util.concurrent.ConcurrentHashMap;
  *       voice still leaks through but sounds like a dull "talking in a box" murmur, barely
  *       intelligible (not full silence like the old cancel). A muted speaker holding a
  *       megaphone instead gets a lighter bit-crush garble, driven loud so it cuts through.</li>
- *   <li><b>DEAF → {@link #forDeaf}</b>: the voice is muffled through an "in a box" low-pass
- *       at near-normal loudness (same hearing-loss character the environment gets), NOT
- *       turned down to silence — muffled but present. A speaker holding a megaphone overrides
- *       this: amplified and lightly saturated (no muffle) so it cuts clean through.</li>
+ *   <li><b>DEAF → {@link #forDeaf}</b>: the voice is heavily muffled through a <em>multi-pole</em>
+ *       "through a wall" low-pass (3 cascaded stages) and kept audible but dull — smothered,
+ *       not silenced, so consonants blur and words get hard to follow. A speaker holding a
+ *       megaphone overrides this: amplified and lightly saturated (near-clean, no heavy muffle)
+ *       so it cuts through.</li>
  * </ul>
+ *
+ * <p>The DEAF/MUTED voice character + values here are the ones validated with the client in the
+ * {@code feat-muffle-effect} PR; the numeric cutoffs/volumes are read live from {@link ModConfig}
+ * (slider menu) with those validated numbers as {@link ModConfig#DEFAULT}.</p>
  *
  * <p><b>Opus is a stateful stream codec</b> — a decoder/encoder carries state between
  * the 20&nbsp;ms frames of one continuous voice stream. So we keep one codec per
@@ -49,6 +54,17 @@ final class VoiceFx {
 
     /** Simple Voice Chat decodes to 48 kHz mono PCM. */
     private static final float SAMPLE_RATE = 48_000f;
+
+    /** How many one-pole low-pass stages to cascade for the DEAF muffle (validated: 3 = a firm
+     *  but still natural "through a wall" muffle; many more start sounding artificial). The
+     *  cutoff itself is the live {@code deafLowpassHz} knob. */
+    private static final int DEAF_LOWPASS_POLES = 3;
+
+    /** Clip ceiling (fraction of full scale) for the role-enforcement megaphone paths
+     *  (deaf-listener + muted-speaker megaphone). Loud peaks saturate a touch for bullhorn bite
+     *  without blasting — the validated value. The drive/gain is the per-path megaphone volume
+     *  knob. Distinct from the comedic {@link #MEGAPHONE_SATURATE_CEILING} bystander bullhorn. */
+    private static final float MEGAPHONE_CEILING = 0.80f;
 
     /** Bystander bullhorn (a NON-deaf listener hearing a megaphone speaker): band-pass to a
      *  thin, honky "through a horn" timbre, then overdrive hard into a low clip ceiling — a
@@ -81,16 +97,17 @@ final class VoiceFx {
     private final Map<UUID, OpusDecoder> micDecoders = new ConcurrentHashMap<>();
     /** One encoder per sender stream, for the mic (MUTED) path. */
     private final Map<UUID, OpusEncoder> micEncoders = new ConcurrentHashMap<>();
-    /** Per-sender low-pass filter memory for the MUTED muffle (2 slots: the bare-mute path runs a
-     *  2-pole cascade; the megaphone path uses only slot 0), so it's continuous across frames. */
+    /** Per-sender low-pass filter memory for the MUTED muffle (1-pole, one slot), continuous
+     *  across frames. */
     private final Map<UUID, float[]> muteLowpassState = new ConcurrentHashMap<>();
 
     /** One decoder per (receiver,sender) stream, for the deaf rebuild path. */
     private final Map<String, OpusDecoder> deafDecoders = new ConcurrentHashMap<>();
     /** One encoder per receiver, for the deaf rebuild path. */
     private final Map<UUID, OpusEncoder> deafEncoders = new ConcurrentHashMap<>();
-    /** Per-(receiver,sender) 2-pole low-pass memory (2 slots) for the DEAF "in a box" muffle,
-     *  so it's continuous across frames. */
+    /** Per-(receiver,sender) low-pass memory for the DEAF muffle: {@link #DEAF_LOWPASS_POLES}
+     *  slots for the cascaded "through a wall" muffle (slot 0 is also reused by the lighter
+     *  deaf+megaphone low-pass). Continuous across frames. */
     private final Map<String, float[]> deafLowpassState = new ConcurrentHashMap<>();
 
     /** One decoder per (receiver,sender) stream, for the non-deaf bystander bullhorn path. */
@@ -118,17 +135,17 @@ final class VoiceFx {
         OpusEncoder encoder = micEncoders.computeIfAbsent(sender, k -> api.createEncoder());
         short[] pcm = decode(decoder, opus);
         if (pcm == null) return null;
-        float[] lp = muteLowpassState.computeIfAbsent(sender, k -> new float[2]);
+        float[] lp = muteLowpassState.computeIfAbsent(sender, k -> new float[1]);
         com.blinddeafmuted.common.ModConfig cfg = config.get();
         if (megaphone) {
-            // Megaphone barely helps a muted player: SAME heavy 2-pole box muffle, only a hair
-            // higher cutoff + a hair louder than bare — still boxed-in, just slightly clearer.
-            lowpass2(pcm, lp, lowpassAlpha(cfg.mutedMegaphoneLowpassHz()));
-            scale(pcm, cfg.mutedMegaphoneVolume());
+            // Megaphone: a much more open 1-pole low-pass so the voice opens up, then amplified
+            // and lightly saturated (bullhorn bite) so a muted player can be heard at range.
+            lowpassCore(pcm, lp, lowpassAlpha(cfg.mutedMegaphoneLowpassHz()));
+            saturate(pcm, cfg.mutedMegaphoneVolume(), (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
         } else {
-            // No megaphone: heavy 2-pole "in a box" muffle — words smother into an
-            // unintelligible dull murmur, mild makeup gain so it's still audible.
-            lowpass2(pcm, lp, lowpassAlpha(cfg.mutedLowpassHz()));
+            // No megaphone: 1-pole "in a box" muffle + very faint — a dull murmur you only catch
+            // point-blank (validated: 300 Hz / 0.05).
+            lowpassCore(pcm, lp, lowpassAlpha(cfg.mutedLowpassHz()));
             scale(pcm, cfg.mutedVolume());
         }
         return encoder.encode(pcm);
@@ -150,18 +167,24 @@ final class VoiceFx {
         OpusEncoder encoder = deafEncoders.computeIfAbsent(receiver, k -> api.createEncoder());
         short[] pcm = decode(decoder, opus);
         if (pcm == null) return null;
-        float[] lp = deafLowpassState.computeIfAbsent(key, k -> new float[2]);
+        float[] lp = deafLowpassState.computeIfAbsent(key, k -> new float[DEAF_LOWPASS_POLES]);
         com.blinddeafmuted.common.ModConfig cfg = config.get();
         if (megaphone && !speakerMuted) {
-            // Megaphone EASES the deafness: the "in a box" muffle opens up a bit (higher cutoff)
-            // and comes a touch louder — less painful and clearer, but still muffled, NOT normal.
-            lowpass2(pcm, lp, lowpassAlpha(cfg.deafMegaphoneLowpassHz()));
-            scale(pcm, cfg.deafMegaphoneVolume());
+            // Megaphone cuts through the deafness: a light near-transparent low-pass (so the
+            // deafMegaphoneLowpassHz slider still bites if lowered) then amplify + lightly
+            // saturate — loud and clear, NOT the heavy wall muffle. (The PR saturated with no
+            // low-pass; the high default cutoff keeps it audibly identical while keeping the knob.)
+            lowpassStage(pcm, lp, 0, lowpassAlpha(cfg.deafMegaphoneLowpassHz()));
+            saturate(pcm, cfg.deafMegaphoneVolume(), (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
         } else {
-            // Default deaf (and any muted speaker, megaphone or not): NOT turned down — the
-            // deafness is a heavy 2-pole "in a box" muffle, then makeup gain so the muffled
-            // voice stays present. Muffled/dull, not just quieter.
-            lowpass2(pcm, lp, lowpassAlpha(cfg.deafLowpassHz()));
+            // Default deaf (and any muted speaker, megaphone or not): a heavy MULTI-pole
+            // "through a wall" muffle (validated 3 stages @ deafLowpassHz), kept audible via a
+            // slight makeup gain — smothered and dull, not silent. A muted speaker's mic is
+            // already garbled at source, so this leaves them near-inaudible. One float of filter
+            // memory per cascade stage, kept across frames.
+            for (int stage = 0; stage < DEAF_LOWPASS_POLES; stage++) {
+                lowpassStage(pcm, lp, stage, lowpassAlpha(cfg.deafLowpassHz()));
+            }
             scale(pcm, cfg.deafVolume());
         }
         return encoder.encode(pcm);
@@ -216,19 +239,17 @@ final class VoiceFx {
         state[0] = y;
     }
 
-    /** Two cascaded one-pole low-passes (~12 dB/oct) — a much steeper, boxier roll-off than
-     *  {@link #lowpassCore}, for the heavy DEAF voice muffle. {@code state} holds both stages'
-     *  previous outputs so it's continuous across frames. */
-    private static void lowpass2(short[] pcm, float[] state, float alpha) {
-        float y1 = state[0];
-        float y2 = state[1];
+    /** One low-pass stage of a cascade: the same one-pole filter as {@link #lowpassCore} but
+     *  keeping its memory in {@code state[stage]}, so several stages chain on one buffer for a
+     *  steeper (more muffled) roll-off while each stays continuous across frames. Cascading N
+     *  stages ≈ N·6 dB/oct — the heavy DEAF "through a wall" muffle uses {@link #DEAF_LOWPASS_POLES}. */
+    private static void lowpassStage(short[] pcm, float[] state, int stage, float alpha) {
+        float y = state[stage];
         for (int i = 0; i < pcm.length; i++) {
-            y1 += alpha * (pcm[i] - y1);
-            y2 += alpha * (y1 - y2);
-            pcm[i] = clamp((int) y2);
+            y += alpha * (pcm[i] - y);
+            pcm[i] = clamp((int) y);
         }
-        state[0] = y1;
-        state[1] = y2;
+        state[stage] = y;
     }
 
     /** One-pole band-pass: subtract a low-freq tracker (high-pass, edge {@code hpAlpha}) to kill

@@ -15,10 +15,12 @@ package com.blinddeafmuted.client;
  * </ul>
  */
 public enum DeafMuffle {
-    LIGHT(0.08F, 0.95F, 14.0F),
-    MODERATE(0.02F, 0.85F, 8.0F),
-    STRONG(0.01F, 0.75F, 5.0F),
-    EXTREME(0.005F, 0.60F, 3.0F);
+    // Values validated with the client in the feat-muffle-effect PR (milder + longer range than
+    // the interim tuning that had followed on main).
+    LIGHT(0.20F, 1.0F, 40.0F),
+    MODERATE(0.09F, 1.0F, 24.0F),
+    STRONG(0.03F, 0.95F, 14.0F),
+    EXTREME(0.01F, 0.85F, 8.0F);
 
     private final float gainHf;
     private final float gain;
