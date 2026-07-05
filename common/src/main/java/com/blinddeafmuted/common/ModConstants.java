@@ -25,8 +25,10 @@ public final class ModConstants {
      *      {@link ConfigUpdatePayload} (C2S slider-menu edits).
      *  v8: added the note card — {@link CardWritePayload} + {@link CardBrandishPayload}
      *      (C2S) and {@link CardBrandishStatePayload} (S2C) + the {@link ModComponents#CARD_TEXT}
-     *      data component. */
-    public static final int PROTOCOL_VERSION = 8;
+     *      data component.
+     *  v9: two new {@link ModConfig} fields (megaphoneBurstSeconds + megaphoneCooldownSeconds)
+     *      changed the {@link ConfigPayload}/{@link ConfigUpdatePayload} wire format. */
+    public static final int PROTOCOL_VERSION = 9;
 
     /** Helper to build identifiers under our namespace. */
     public static Identifier id(String path) {

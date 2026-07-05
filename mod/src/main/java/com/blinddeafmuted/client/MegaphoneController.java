@@ -1,23 +1,25 @@
 package com.blinddeafmuted.client;
 
 import com.blinddeafmuted.common.MegaphonePayload;
+import com.blinddeafmuted.common.ModItems;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.entity.player.PlayerEntity;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * Push-to-megaphone: while the megaphone key (default {@code R}) is held, this client
- * tells the server (via {@link MegaphonePayload}) that the local player is megaphoning,
- * so the voice-chat plugin renders their voice loud + saturated for DEAF listeners and
- * every client draws the megaphone-at-the-mouth model ({@link MegaphoneFeatureRenderer}).
+ * Megaphone activation: pressing the megaphone key (default {@code R}) while holding a
+ * megaphone item asks the server to fire a timed burst — {@link MegaphonePayload} with
+ * {@code active=true} = "activate now".
  *
- * <p>Modelled on Simple Voice Chat's own push-to-talk: voice itself stays on (no PTT);
- * this key only flips the megaphone overlay. We send a packet <em>only on the
- * down→up / up→down transition</em>, not every tick, so it's one packet per press and
- * one per release.
+ * <p>The megaphone is no longer push-to-talk: the server owns a fixed 5&nbsp;s burst + a
+ * 2&nbsp;min per-player cooldown ({@code MegaphoneState}), so this only needs to send a single
+ * request on the key press. The server replies with an action-bar message (burst started, or
+ * how long the cooldown has left) and, while the burst is live, renders the speaker loud for
+ * deaf listeners. We only send while a megaphone is actually in hand (the server re-checks).
  */
 public final class MegaphoneController {
     private MegaphoneController() {}
@@ -28,23 +30,24 @@ public final class MegaphoneController {
             GLFW.GLFW_KEY_R,
             "key.categories.blind-deaf-muted");
 
-    /** Last state we told the server, so we only send on change. */
-    private static boolean lastSent = false;
-
     public static void register() {
         KeyBindingHelper.registerKeyBinding(KEY);
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            // No connection → reset, so the first press after (re)connecting always sends.
-            if (client.player == null || client.getNetworkHandler() == null) {
-                lastSent = false;
-                return;
-            }
-            boolean down = KEY.isPressed();
-            if (down != lastSent) {
-                lastSent = down;
-                ClientPlayNetworking.send(new MegaphonePayload(down));
+            if (client.player == null || client.getNetworkHandler() == null) return;
+            // Discrete presses (queued), not a held state — one activation request per press.
+            while (KEY.wasPressed()) {
+                if (holdsMegaphone(client.player)) {
+                    ClientPlayNetworking.send(new MegaphonePayload(true));
+                }
             }
         });
+    }
+
+    /** Whether the local player holds a megaphone in either hand. */
+    private static boolean holdsMegaphone(PlayerEntity player) {
+        if (ModItems.MEGAPHONE == null) return false;
+        return player.getMainHandStack().isOf(ModItems.MEGAPHONE)
+                || player.getOffHandStack().isOf(ModItems.MEGAPHONE);
     }
 }

@@ -75,7 +75,9 @@ public final class ConfigManager {
                     f(o, "deafEnvVolume", d.deafEnvVolume()),
                     f(o, "eventMinMinutes", d.eventMinMinutes()),
                     f(o, "eventMaxMinutes", d.eventMaxMinutes()),
-                    f(o, "randomizerChestChance", d.randomizerChestChance()));
+                    f(o, "randomizerChestChance", d.randomizerChestChance()),
+                    f(o, "megaphoneBurstSeconds", d.megaphoneBurstSeconds()),
+                    f(o, "megaphoneCooldownSeconds", d.megaphoneCooldownSeconds()));
         } catch (IOException | RuntimeException e) {
             BlindDeafMutedServer.LOGGER.warn("Failed to read {} — using defaults ({})",
                     FILE, e.toString());
@@ -99,6 +101,8 @@ public final class ConfigManager {
         o.addProperty("eventMinMinutes", c.eventMinMinutes());
         o.addProperty("eventMaxMinutes", c.eventMaxMinutes());
         o.addProperty("randomizerChestChance", c.randomizerChestChance());
+        o.addProperty("megaphoneBurstSeconds", c.megaphoneBurstSeconds());
+        o.addProperty("megaphoneCooldownSeconds", c.megaphoneCooldownSeconds());
         try {
             Files.createDirectories(FILE.getParent());
             Files.writeString(FILE, GSON.toJson(o));

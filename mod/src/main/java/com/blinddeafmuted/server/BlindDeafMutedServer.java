@@ -165,14 +165,44 @@ public class BlindDeafMutedServer implements ModInitializer {
         PayloadTypeRegistry.playC2S().register(CardWritePayload.ID, CardWritePayload.CODEC);
         PayloadTypeRegistry.playC2S().register(CardBrandishPayload.ID, CardBrandishPayload.CODEC);
 
-        // Receive megaphone key transitions. The concurrent set mutation is thread-safe,
-        // but rebroadcasting the visual state touches the player list, so hop to the
-        // server thread for that. Broadcasting on each transition (not just the slow
-        // roster tick) keeps the mouth-model animation snappy on press/release.
+        // Receive a megaphone ACTIVATION request (client sends active=true on the key press).
+        // The megaphone is now a timed burst with a per-player cooldown (MegaphoneState), so a
+        // press either fires a fresh burst or is refused (mid-burst / on cooldown). Everything
+        // runs on the server thread: it reads the player's hands + player list and sends feedback.
         ServerPlayNetworking.registerGlobalReceiver(MegaphonePayload.ID, (payload, context) -> {
             ServerPlayerEntity player = context.player();
-            megaphoneState.set(player.getUuid(), payload.active());
-            player.getServer().execute(() -> broadcastMegaphoneState(player.getServer()));
+            if (!payload.active()) return; // releases no longer matter — the burst is time-boxed
+            player.getServer().execute(() -> {
+                if (!holdsMegaphoneItem(player)) return; // must actually hold a megaphone to fire
+                // Burst + cooldown durations are live ModConfig knobs (slider menu).
+                var cfg = configManager.get();
+                long burstMs = (long) (cfg.megaphoneBurstSeconds() * 1000f);
+                long cooldownMs = (long) (cfg.megaphoneCooldownSeconds() * 1000f);
+                MegaphoneState.Result result =
+                        megaphoneState.tryActivate(player.getUuid(), burstMs, cooldownMs);
+                switch (result) {
+                    case ACTIVATED -> {
+                        // Vanilla hotbar cooldown overlay (the white sweep) on the megaphone item,
+                        // for the whole burst+cooldown so it empties exactly when usable again. Keyed
+                        // by cooldown GROUP (= item id), so it covers every megaphone the player holds
+                        // — auto-synced to the client by ServerItemCooldownManager.
+                        ItemStack mega = player.getMainHandStack().isOf(ModItems.MEGAPHONE)
+                                ? player.getMainHandStack() : player.getOffHandStack();
+                        int ticks = (int) ((burstMs + cooldownMs) / 50L);
+                        player.getItemCooldownManager().set(mega, ticks);
+
+                        player.sendMessage(Text.translatable("msg.blind-deaf-muted.megaphone_active",
+                                Math.round(cfg.megaphoneBurstSeconds())).formatted(Formatting.GOLD), true);
+                        broadcastMegaphoneState(player.getServer());
+                    }
+                    case ON_COOLDOWN -> {
+                        long secs = (megaphoneState.cooldownRemainingMs(player.getUuid()) + 999L) / 1000L;
+                        player.sendMessage(Text.translatable("msg.blind-deaf-muted.megaphone_cooldown", secs)
+                                .formatted(Formatting.GRAY), true);
+                    }
+                    case ALREADY_ACTIVE -> { /* mid-burst: ignore repeat presses */ }
+                }
+            });
         });
 
         // Receive a note-card brandish toggle. Store it and re-broadcast the visual state at
@@ -397,8 +427,9 @@ public class BlindDeafMutedServer implements ModInitializer {
 
         List<String> megaphoning = new ArrayList<>();
         for (ServerPlayerEntity player : players) {
-            // Visual triggers on either path: holding the megaphone key (R) OR the item.
-            if (megaphoneState.isActive(player.getUuid()) || holdsMegaphoneItem(player)) {
+            // Visual matches the actual burst window (the roster tick refreshes it within ~1s of
+            // the 5s burst ending; the audio itself stops exactly on time via isActive()).
+            if (megaphoneState.isActive(player.getUuid())) {
                 megaphoning.add(player.getName().getString());
             }
         }

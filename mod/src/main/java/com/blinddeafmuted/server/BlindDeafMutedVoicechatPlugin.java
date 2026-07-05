@@ -19,8 +19,6 @@ import de.maxhenkel.voicechat.api.packets.MicrophonePacket;
 import de.maxhenkel.voicechat.api.packets.SoundPacket;
 import de.maxhenkel.voicechat.api.packets.StaticSoundPacket;
 import com.blinddeafmuted.common.ModConfig;
-import net.minecraft.item.ItemStack;
-import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -128,7 +126,7 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         }
         MicrophonePacket packet = event.getPacket();
         UUID senderId = uuidOf(sender);
-        boolean megaphone = megaphoneKeyDown(senderId) || holdsMegaphone(sender);
+        boolean megaphone = megaphoneActive(senderId);
         byte[] garbled = fx.distort(senderId, packet.getOpusEncodedData(), megaphone);
         if (garbled != null) {
             packet.setOpusEncodedData(garbled);
@@ -212,8 +210,8 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         if (receiverId == null || senderId == null) {
             return UNTOUCHED;
         }
-        // Megaphone is on if the speaker holds the item OR is pressing the megaphone key.
-        boolean megaphone = megaphoneKeyDown(senderId) || holdsMegaphone(sender);
+        // Megaphone is on only during the speaker's timed burst (5s, then cooldown).
+        boolean megaphone = megaphoneActive(senderId);
         boolean speakerMuted = roleOf(sender) == Role.MUTED;
 
         if (roleOf(receiver) == Role.DEAF) {
@@ -228,23 +226,10 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         return UNTOUCHED;
     }
 
-    /** Whether the speaker is currently holding the push-to-megaphone key. */
-    private static boolean megaphoneKeyDown(UUID senderId) {
+    /** Whether the speaker is inside their timed megaphone burst (see {@link MegaphoneState}). */
+    private static boolean megaphoneActive(UUID senderId) {
         MegaphoneState state = megaphones;
         return state != null && state.isActive(senderId);
-    }
-
-    /** Whether the speaker is holding a {@link ModItems#MEGAPHONE} in either hand. */
-    private boolean holdsMegaphone(VoicechatConnection sender) {
-        ServerPlayerEntity player = serverPlayer(sender);
-        if (player == null || ModItems.MEGAPHONE == null) {
-            return false;
-        }
-        return isMegaphone(player.getMainHandStack()) || isMegaphone(player.getOffHandStack());
-    }
-
-    private static boolean isMegaphone(ItemStack stack) {
-        return stack != null && stack.isOf(ModItems.MEGAPHONE);
     }
 
     // ---- shared helpers ----------------------------------------------------
@@ -260,14 +245,5 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         if (connection == null) return null;
         ServerPlayer player = connection.getPlayer();
         return player == null ? null : player.getUuid();
-    }
-
-    /** The vanilla {@link ServerPlayerEntity} behind an SVC connection, or null. */
-    private static ServerPlayerEntity serverPlayer(VoicechatConnection connection) {
-        if (connection == null) return null;
-        ServerPlayer svc = connection.getPlayer();
-        if (svc == null) return null;
-        Object handle = svc.getPlayer(); // platform player object
-        return (handle instanceof ServerPlayerEntity sp) ? sp : null;
     }
 }

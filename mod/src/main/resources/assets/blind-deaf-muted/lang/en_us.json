@@ -5,7 +5,7 @@
   "key.blind-deaf-muted.cycle_deaf_muffle": "Cycle deaf muffle intensity",
   "key.blind-deaf-muted.toggle_tracker": "Toggle teammate tracker HUD",
   "key.blind-deaf-muted.toggle_roster": "Toggle who-is-what leaderboard HUD",
-  "key.blind-deaf-muted.megaphone": "Megaphone (hold to talk loud to deaf players)",
+  "key.blind-deaf-muted.megaphone": "Megaphone (press to fire a 5s burst)",
   "key.blind-deaf-muted.open_config": "Open settings menu (live sliders)",
   "key.blind-deaf-muted.write_card": "Write on the note card (hold one)",
 
@@ -25,6 +25,8 @@
   "config.blind-deaf-muted.eventMinMinutes": "Auto re-roll min",
   "config.blind-deaf-muted.eventMaxMinutes": "Auto re-roll max",
   "config.blind-deaf-muted.randomizerChestChance": "Randomizer chest chance",
+  "config.blind-deaf-muted.megaphoneBurstSeconds": "Megaphone burst",
+  "config.blind-deaf-muted.megaphoneCooldownSeconds": "Megaphone cooldown",
 
   "item.blind-deaf-muted.randomizer": "Randomizer",
   "item.blind-deaf-muted.megaphone": "Megaphone",
@@ -42,6 +44,8 @@
 
   "msg.blind-deaf-muted.cleared": "Your disability has been cleared — you're back to normal.",
   "msg.blind-deaf-muted.now": "You're now %s",
+  "msg.blind-deaf-muted.megaphone_active": "📢 Megaphone active — %ss",
+  "msg.blind-deaf-muted.megaphone_cooldown": "Megaphone recharging — %ss left",
 
   "hud.blind-deaf-muted.assigning": "Assigning your role…",
   "hud.blind-deaf-muted.now": "You're now",

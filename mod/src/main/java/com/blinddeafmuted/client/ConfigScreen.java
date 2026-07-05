@@ -31,7 +31,7 @@ import java.util.List;
 public final class ConfigScreen extends Screen {
 
     /** How a slider renders its value + the sensible drag range for each knob. */
-    private enum Style { HZ, GAIN, BLOCKS, MINUTES, PERCENT }
+    private enum Style { HZ, GAIN, BLOCKS, MINUTES, PERCENT, SECONDS }
 
     private record Spec(int index, float min, float max, Style style, String labelKey) {}
 
@@ -51,6 +51,8 @@ public final class ConfigScreen extends Screen {
             new Spec(11, 0.5f, 30f, Style.MINUTES, "config.blind-deaf-muted.eventMinMinutes"),
             new Spec(12, 0.5f, 60f, Style.MINUTES, "config.blind-deaf-muted.eventMaxMinutes"),
             new Spec(13, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.randomizerChestChance"),
+            new Spec(14, 1f, 30f, Style.SECONDS, "config.blind-deaf-muted.megaphoneBurstSeconds"),
+            new Spec(15, 5f, 600f, Style.SECONDS, "config.blind-deaf-muted.megaphoneCooldownSeconds"),
     };
 
     /** Working copy edited by the sliders; rebuilt into a ModConfig on each send. */
@@ -64,7 +66,7 @@ public final class ConfigScreen extends Screen {
     @Override
     protected void init() {
         sliders.clear();
-        int rows = 7;                     // 14 knobs over 2 columns
+        int rows = 8;                     // 16 knobs over 2 columns
         int sliderW = 150, sliderH = 20, gapY = 24, topY = 34;
         int leftX = this.width / 2 - sliderW - 5;
         int rightX = this.width / 2 + 5;
@@ -165,6 +167,7 @@ public final class ConfigScreen extends Screen {
             case BLOCKS -> String.format("%.1f", v) + " blk";
             case MINUTES -> String.format("%.1f", v) + " min";
             case PERCENT -> Math.round(v * 100f) + "%";
+            case SECONDS -> Math.round(v) + " s";
         };
     }
 }
