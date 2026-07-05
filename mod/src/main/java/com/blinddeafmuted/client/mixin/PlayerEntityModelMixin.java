@@ -2,8 +2,6 @@ package com.blinddeafmuted.client.mixin;
 
 import com.blinddeafmuted.client.BlindCaneFeatureRenderer;
 import com.blinddeafmuted.client.MegaphoneState;
-import com.blinddeafmuted.client.RosterState;
-import com.blinddeafmuted.common.Role;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
 import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
 import net.minecraft.util.Arm;
@@ -13,15 +11,17 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Holds a BLIND player's LEFT arm out in front (instead of hanging at their side), so
- * they read as sweeping their cane forward. Purely client-side cosmetic: it overrides
- * the arm rotation AFTER vanilla has posed the model.
+ * Holds the cane-gripping arm out in front (instead of hanging at the side) for ANY
+ * player currently holding the cane item, so they read as sweeping their cane forward.
+ * Purely client-side cosmetic: it overrides the arm rotation AFTER vanilla has posed the
+ * model.
  *
- * <p>The cane ({@code BlindCaneFeatureRenderer}) follows the left arm's transform, so
+ * <p>The cane ({@code BlindCaneFeatureRenderer}) follows the same arm's transform, so
  * pinning the arm forward swings the cane forward too — no change needed there.
  *
- * <p>The role is looked up from the roster by name (same as the accessories), so every
- * client poses each blind player's arm identically.
+ * <p>The holding hand is resolved live from the player's hand stacks
+ * ({@code BlindCaneFeatureRenderer.caneArm}), so every client poses each cane-holder's
+ * arm identically.
  */
 @Mixin(PlayerEntityModel.class)
 public class PlayerEntityModelMixin {
@@ -45,9 +45,9 @@ public class PlayerEntityModelMixin {
             method = "setAngles(Lnet/minecraft/client/render/entity/state/PlayerEntityRenderState;)V",
             at = @At("TAIL"))
     private void blinddeafmuted$extendBlindArm(PlayerEntityRenderState state, CallbackInfo ci) {
-        if (RosterState.roleOf(state.name) != Role.BLIND) return;
-        // Only sweep the arm forward when the cane is actually in hand, and sweep the
-        // SAME arm that grips it (matches the cane accessory, which renders in that hand).
+        // Sweep the arm forward whenever the cane is actually in hand (any player, not
+        // just BLIND), and sweep the SAME arm that grips it (matches the cane accessory,
+        // which renders in that hand).
         Arm arm = BlindCaneFeatureRenderer.caneArm(state.name);
         if (arm == null) return;
 
