@@ -22,10 +22,11 @@ import java.util.concurrent.ConcurrentHashMap;
  *       voice still leaks through but sounds like a dull "talking in a box" murmur, barely
  *       intelligible (not full silence like the old cancel). A muted speaker holding a
  *       megaphone instead gets a lighter bit-crush garble, driven loud so it cuts through.</li>
- *   <li><b>DEAF → {@link #forDeaf}</b>: the speaker's clean voice is simply turned right
- *       down to a faint murmur — no noise/garble, just quiet (that's the deafness). A
- *       speaker holding a megaphone overrides this: amplified and lightly saturated so it's
- *       loud enough to cut clean through.</li>
+ *   <li><b>DEAF → {@link #forDeaf}</b>: the speaker's voice is heavily low-pass muffled
+ *       (like through a wall) AND turned right down to a faint murmur — so even the little
+ *       that gets through is smothered, not a clear whisper (that's the deafness). A speaker
+ *       holding a megaphone overrides this: amplified, unmuffled and lightly saturated so it's
+ *       loud and clear enough to cut through.</li>
  * </ul>
  *
  * <p><b>Opus is a stateful stream codec</b> — a decoder/encoder carries state between
@@ -46,11 +47,21 @@ final class VoiceFx {
     /** Simple Voice Chat decodes to 48 kHz mono PCM. */
     private static final float SAMPLE_RATE = 48_000f;
 
-    /** Deaf listener hears everyone at this fraction of normal volume — clean audio, just
-     *  turned right down to a barely-there murmur (no garble/noise/muffle). Deliberately very
-     *  low: normal speech is almost inaudible to a deaf player, so others must use a megaphone
-     *  to actually get through. Raise for a louder baseline, lower for more profound deafness. */
-    private static final float DEAF_VOLUME = 0.05f;
+    /** Deaf listener hears everyone at this fraction of normal volume — quieter, but still
+     *  clearly audible. Bumped a little to make up for the energy the heavier muffle strips.
+     *  Raise for louder, lower for more profound deafness. */
+    private static final float DEAF_VOLUME = 1.1f;
+
+    /** DEAF low-pass cutoff: a natural "muffled through a wall / pillow" tone. Set LOW enough
+     *  to roll off the consonants (fricatives/plosives live in the highs) so words get hard to
+     *  make out, while the low vowel energy survives so it stays audible and natural — NOT a
+     *  robotic rumble (that's what a near-zero cutoff gives). ~350 Hz is the sweet spot: dull
+     *  and hard to follow, still a real voice. Lower = more smothered; higher = clearer. */
+    private static final float DEAF_LOWPASS_HZ = 210f;
+    private static final float DEAF_LOWPASS_ALPHA = lowpassAlpha(DEAF_LOWPASS_HZ);
+    /** How many one-pole low-pass stages to cascade for the DEAF muffle. 3 = a firm but still
+     *  natural muffle; many more stages start sounding artificial. */
+    private static final int DEAF_LOWPASS_POLES = 3;
 
     /** Megaphone drive (gain). Modest on purpose: normal speech stays fairly quiet, so a
      *  speaker has to SCREAM (loud input) to actually be heard — and that's when it pushes
@@ -70,7 +81,7 @@ final class VoiceFx {
     /** MUTED bare-mic volume. Set so a muted player (muffled) is heard at roughly the same
      *  faintness a deaf listener hears others ({@link #DEAF_VOLUME}) — a hair higher to make
      *  up for the energy the box muffle strips out. Audible up close, not silent. */
-    private static final float MUTED_VOLUME = 0.10f;
+    private static final float MUTED_VOLUME = 0.05f;
 
     /** MUTED + megaphone low-pass: a much higher cutoff than the bare-mute box muffle, so the
      *  voice opens up and is clear-ish (only lightly filtered), not boxed-in. */
@@ -103,6 +114,8 @@ final class VoiceFx {
     private final Map<String, OpusDecoder> deafDecoders = new ConcurrentHashMap<>();
     /** One encoder per receiver, for the deaf rebuild path. */
     private final Map<UUID, OpusEncoder> deafEncoders = new ConcurrentHashMap<>();
+    /** Per-(receiver,sender) low-pass filter memory for the DEAF muffle, so it's continuous across frames. */
+    private final Map<String, float[]> deafLowpassState = new ConcurrentHashMap<>();
 
     VoiceFx(VoicechatApi api) {
         this.api = api;
@@ -137,9 +150,10 @@ final class VoiceFx {
     }
 
     /**
-     * Re-render a voice frame as a DEAF listener should hear it: near-silent normally,
-     * or loud and saturated if the speaker uses a megaphone. Returns new Opus bytes for a
-     * rebuilt sound packet, or {@code null} on decode failure (caller falls back to cancel).
+     * Re-render a voice frame as a DEAF listener should hear it: heavily low-pass muffled and
+     * turned right down to a faint murmur, or loud and clear if the speaker uses a megaphone.
+     * Returns new Opus bytes for a rebuilt sound packet, or {@code null} on decode failure
+     * (caller falls back to cancel).
      *
      * <p>The megaphone boost only applies when the speaker is NOT muted. A MUTED speaker's
      * disability wins even with a megaphone: their mic is already garbled at the source, and
@@ -157,9 +171,15 @@ final class VoiceFx {
             // level so it cuts through the deafness. Clean apart from the hot drive.
             saturate(pcm, MEGAPHONE_GAIN, (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
         } else {
-            // Default deaf (and any muted speaker, megaphone or not): the voice turned right
-            // down to a faint murmur. A muted speaker's audio is already garbled at source,
-            // so this leaves it near-inaudible.
+            // Default deaf (and any muted speaker, megaphone or not): the voice is HEAVILY
+            // muffled (multi-pole low-pass, like through a wall) AND turned right down to a
+            // faint murmur. A muted speaker's audio is already garbled at source, so this
+            // leaves it near-inaudible. The megaphone path above skips the muffle so it stays
+            // clear. One float of filter memory per cascade stage, kept across frames.
+            float[] lp = deafLowpassState.computeIfAbsent(key, k -> new float[DEAF_LOWPASS_POLES]);
+            for (int stage = 0; stage < DEAF_LOWPASS_POLES; stage++) {
+                lowpassStage(pcm, lp, stage, DEAF_LOWPASS_ALPHA);
+            }
             scale(pcm, DEAF_VOLUME);
         }
         return encoder.encode(pcm);
@@ -192,6 +212,18 @@ final class VoiceFx {
             pcm[i] = clamp((int) y);
         }
         state[0] = y;
+    }
+
+    /** One low-pass stage of a cascade: same one-pole filter as {@link #lowpassCore} but keeps
+     *  its memory in {@code state[stage]}, so several stages can be chained on one buffer for a
+     *  steeper (more muffled) roll-off while each stays continuous across frames. */
+    private static void lowpassStage(short[] pcm, float[] state, int stage, float alpha) {
+        float y = state[stage];
+        for (int i = 0; i < pcm.length; i++) {
+            y += alpha * (pcm[i] - y);
+            pcm[i] = clamp((int) y);
+        }
+        state[stage] = y;
     }
 
     /** Boost then hard-clip to {@code ceiling} — amplification with light saturation only on
