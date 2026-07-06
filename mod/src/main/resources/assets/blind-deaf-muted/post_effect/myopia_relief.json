@@ -1,0 +1,32 @@
+{
+    "__comment": "RELIEF myopia (Potion of Relief active) — same program/shader as blind-deaf-muted:myopia, but Intensity=-1 so the fsh extrapolates to the near-clear relief params (long sharp range, faint far smear, no vignette). Installed by MyopiaController while the blind player is relieved, cane or not.",
+    "targets": {
+        "temp": {}
+    },
+    "passes": [
+        {
+            "program": "blind-deaf-muted:post/myopia",
+            "inputs": [
+                { "sampler_name": "In", "target": "minecraft:main", "bilinear": true },
+                { "sampler_name": "InDepth", "target": "minecraft:main", "use_depth_buffer": true }
+            ],
+            "output": "temp",
+            "uniforms": [
+                { "name": "BlurDir", "values": [ 1.0, 0.0 ] },
+                { "name": "Intensity", "values": [ -1.0 ] }
+            ]
+        },
+        {
+            "program": "blind-deaf-muted:post/myopia",
+            "inputs": [
+                { "sampler_name": "In", "target": "temp", "bilinear": true },
+                { "sampler_name": "InDepth", "target": "minecraft:main", "use_depth_buffer": true }
+            ],
+            "output": "minecraft:main",
+            "uniforms": [
+                { "name": "BlurDir", "values": [ 0.0, 1.0 ] },
+                { "name": "Intensity", "values": [ -1.0 ] }
+            ]
+        }
+    ]
+}

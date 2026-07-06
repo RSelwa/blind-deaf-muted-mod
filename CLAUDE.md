@@ -441,8 +441,13 @@ no-comments rule.
     hearing range + ambient volume lerp → normal.
   - **Blind fog** (`BackgroundRendererMixin`): fog end lerps out toward `RELIEF_FOG_END` (64).
   - **Blind blackout** (`InGameHudMixin`): black-fill alpha × remaining.
-  - **Blind myopia**: eased **HARD→SOFT** like a cane (stepped, not continuous — the blur is a GLSL
-    constant, same limitation noted for the menu). So myopia relief is partial, not a true 75%.
+  - **Blind myopia**: a dedicated third pipeline `post_effect/myopia_relief.json` (Intensity=-1)
+    gives **near-clear sight** (sharp to ~10 blocks, faint far smear, no vignette), overriding
+    BOTH the cane step and no-cane harsh blur while relieved. The `Intensity` uniform now blends
+    a relief/soft/hard param TRIPLE in `myopia.fsh` (`pick()`: -1→0 relief→soft, 0→1 soft→hard).
+    Originally relief only stepped HARD→SOFT like a cane — invisible to a blind player already
+    holding their cane (the bug that prompted this). Still stepped (pipeline uniforms are baked
+    per-JSON), not scaled by `reliefReductionPercent`.
 - **Config (3 new sliders, `O` menu):** `reliefReductionPercent` (PERCENT, 0.75), `reliefRangeBlocks`
   (BLOCKS, 8), `reliefDurationSeconds` (SECONDS, 30). Grid now 19 knobs / 10 rows × 2 cols. Protocol
   bumped **v10**. Fresh-config caveat applies (existing json keeps old values; new keys default in).

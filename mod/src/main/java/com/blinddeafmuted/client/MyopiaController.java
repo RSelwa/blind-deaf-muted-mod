@@ -29,6 +29,9 @@ public final class MyopiaController {
     private static final Identifier MYOPIA = Identifier.of(ModConstants.MOD_ID, "myopia");
     /** HARD myopia (no cane) → assets/blind-deaf-muted/post_effect/myopia_hard.json. */
     private static final Identifier MYOPIA_HARD = Identifier.of(ModConstants.MOD_ID, "myopia_hard");
+    /** RELIEF myopia (Potion of Relief) → post_effect/myopia_relief.json — near-clear sight,
+     *  overriding cane/no-cane while the relief effect is active. */
+    private static final Identifier MYOPIA_RELIEF = Identifier.of(ModConstants.MOD_ID, "myopia_relief");
 
     /** Pipeline currently installed by us, or null if none. Reinstall on any change. */
     private static Identifier applied = null;
@@ -38,9 +41,11 @@ public final class MyopiaController {
             // Which pipeline (if any) the current blind state wants this tick.
             Identifier want = null;
             if (RoleState.blindEffectActive()) {
+                // A Potion of Relief trumps the cane step: near-clear sight for its duration.
+                boolean relieved = ReliefState.localActive();
                 switch (RoleState.effectiveBlindMode()) {
-                    case MYOPIA -> want = MYOPIA;           // cane held → soft
-                    case MYOPIA_HARD -> want = MYOPIA_HARD; // no cane → harsh
+                    case MYOPIA -> want = relieved ? MYOPIA_RELIEF : MYOPIA;           // cane → soft
+                    case MYOPIA_HARD -> want = relieved ? MYOPIA_RELIEF : MYOPIA_HARD; // no cane → harsh
                     default -> want = null;                 // fog/blackout: not our shader
                 }
             }
