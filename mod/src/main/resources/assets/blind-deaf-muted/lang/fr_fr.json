@@ -37,6 +37,8 @@
   "item.blind-deaf-muted.note_card": "Carte à écrire",
   "item.blind-deaf-muted.relief_potion": "Potion de soulagement",
 
+  "effect.blind-deaf-muted.relief": "Soulagement",
+
   "screen.blind-deaf-muted.card": "Carte à écrire",
   "hud.blind-deaf-muted.card_reading": "Ta note (clic droit pour montrer)",
   "hud.blind-deaf-muted.card_empty": "(vide — appuie sur la touche d'écriture)",
@@ -59,7 +61,6 @@
   "msg.blind-deaf-muted.now": "Tu es maintenant %s",
   "msg.blind-deaf-muted.megaphone_active": "📢 Mégaphone actif — %ss",
   "msg.blind-deaf-muted.megaphone_cooldown": "Mégaphone en recharge — %ss restantes",
-  "msg.blind-deaf-muted.relief_active": "✨ Soulagement — handicap réduit pendant %ss",
 
   "hud.blind-deaf-muted.assigning": "Attribution de ton rôle…",
   "hud.blind-deaf-muted.now": "Tu es maintenant",

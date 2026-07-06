@@ -1,38 +1,42 @@
 package com.blinddeafmuted.server;
 
-import java.util.Map;
+import com.blinddeafmuted.common.ModEffects;
+import net.minecraft.server.network.ServerPlayerEntity;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Server-side record of which players are currently under a Potion of Relief (their
- * disability temporarily reduced), keyed by player UUID with a wall-clock expiry.
+ * Thread-safe mirror of which players currently have the Relief status effect (their
+ * disability temporarily reduced by a Potion of Relief).
  *
- * <p>Read from two threads — the SVC audio threads ({@code BlindDeafMutedVoicechatPlugin}
- * via {@link #isActive}, so a relieved deaf listener / muted speaker hears/speaks clearer)
- * and the server thread (applying + the visual broadcast). {@link System#currentTimeMillis()}
- * deadlines in a concurrent map → lock-free reads, no shared clock. Not persisted; cleared on
- * disconnect. Same shape as {@link MegaphoneState}.
+ * <p>The vanilla {@code ModEffects.RELIEF} status effect on the player is the SOURCE OF
+ * TRUTH (it carries the HUD icon + countdown, persists across relog, is cleared by milk).
+ * But the SVC audio threads ({@code BlindDeafMutedVoicechatPlugin} via {@link #isActive})
+ * must not touch entity state off the server thread — so the server thread rebuilds this
+ * immutable snapshot once per tick ({@link #refresh}) and the audio threads read it
+ * lock-free. Worst-case staleness is one tick (50 ms), inaudible.
  */
 public final class ReliefManager {
 
-    /** Wall-clock ms at which each player's relief ends. */
-    private final Map<UUID, Long> reliefUntil = new ConcurrentHashMap<>();
+    /** Immutable snapshot of who has the Relief effect; swapped whole each tick. */
+    private volatile Set<UUID> relieved = Set.of();
 
-    /** Grant (or refresh) relief for this player, lasting {@code durationMs} from now. */
-    public void apply(UUID player, long durationMs) {
-        reliefUntil.put(player, System.currentTimeMillis() + durationMs);
+    /** Rebuild the snapshot from the online players' actual effects. Server thread only. */
+    public void refresh(Collection<ServerPlayerEntity> players) {
+        Set<UUID> next = new HashSet<>();
+        for (ServerPlayerEntity player : players) {
+            if (player.hasStatusEffect(ModEffects.RELIEF)) {
+                next.add(player.getUuid());
+            }
+        }
+        relieved = Set.copyOf(next);
     }
 
-    /** Whether this player's relief is currently active. */
+    /** Whether this player's relief is currently active. Safe from any thread. */
     public boolean isActive(UUID player) {
-        if (player == null) return false;
-        Long until = reliefUntil.get(player);
-        return until != null && System.currentTimeMillis() < until;
-    }
-
-    /** Drop a player entirely (e.g. on disconnect). */
-    public void clear(UUID player) {
-        reliefUntil.remove(player);
+        return player != null && relieved.contains(player);
     }
 }

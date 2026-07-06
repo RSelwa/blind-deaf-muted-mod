@@ -28,9 +28,11 @@ public final class ModConstants {
      *      data component.
      *  v9: two new {@link ModConfig} fields (megaphoneBurstSeconds + megaphoneCooldownSeconds)
      *      changed the {@link ConfigPayload}/{@link ConfigUpdatePayload} wire format.
-     *  v10: the Potion of Relief — {@link ReliefPayload} (S2C) + three new {@link ModConfig}
-     *       fields (reliefReductionPercent + reliefRangeBlocks + reliefDurationSeconds). */
-    public static final int PROTOCOL_VERSION = 10;
+     *  v10: the Potion of Relief — ReliefPayload (S2C) + three new {@link ModConfig}
+     *       fields (reliefReductionPercent + reliefRangeBlocks + reliefDurationSeconds).
+     *  v11: ReliefPayload REMOVED — relief became a real vanilla status effect
+     *       ({@link ModEffects#RELIEF}), synced to the client by vanilla itself. */
+    public static final int PROTOCOL_VERSION = 11;
 
     /** Helper to build identifiers under our namespace. */
     public static Identifier id(String path) {

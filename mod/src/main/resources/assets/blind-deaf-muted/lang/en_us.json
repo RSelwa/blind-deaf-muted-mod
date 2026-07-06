@@ -37,6 +37,8 @@
   "item.blind-deaf-muted.note_card": "Note Card",
   "item.blind-deaf-muted.relief_potion": "Potion of Relief",
 
+  "effect.blind-deaf-muted.relief": "Relief",
+
   "screen.blind-deaf-muted.card": "Note Card",
   "hud.blind-deaf-muted.card_reading": "Your note (right-click to show)",
   "hud.blind-deaf-muted.card_empty": "(blank — press the write key)",
@@ -59,7 +61,6 @@
   "msg.blind-deaf-muted.now": "You're now %s",
   "msg.blind-deaf-muted.megaphone_active": "📢 Megaphone active — %ss",
   "msg.blind-deaf-muted.megaphone_cooldown": "Megaphone recharging — %ss left",
-  "msg.blind-deaf-muted.relief_active": "✨ Relief — disability eased for %ss",
 
   "hud.blind-deaf-muted.assigning": "Assigning your role…",
   "hud.blind-deaf-muted.now": "You're now",

@@ -417,10 +417,21 @@ no-comments rule.
   `minecraft:potion` ingredient accepts any potion — water is the cheap intended one, vanilla JSON
   can't match potion contents). On shatter, every player within range has their disability
   temporarily reduced. Green-sparkle + instant-effect particles, glass-break sound.
-- **Server-authoritative** (`server/ReliefManager`, per-UUID wall-clock expiry like `MegaphoneState`).
-  `ReliefPotionEntity.SHATTER_HANDLER` (installed in `BlindDeafMutedServer`) finds players within
-  `reliefRangeBlocks` of the impact, `apply(uuid, durationMs)`, action-bar message. Broadcast the
-  relieved-name set via `ReliefPayload` (S2C) on the roster tick + on shatter; cleared on disconnect.
+- **Relief is a REAL vanilla status effect** (`ModEffects.RELIEF`, registered from `main` like
+  items) — so the player gets the standard potion interface for free: **top-right HUD icon +
+  vanilla countdown**, inventory-screen entry, survives relog (saved on the player), milk clears
+  it. Icon texture: `assets/blind-deaf-muted/textures/mob_effect/relief.png` (18×18, placeholder
+  aqua-cross — repaintable; the vanilla `mob_effects` atlas scans every namespace's
+  `textures/mob_effect/` dir automatically). Lang `effect.blind-deaf-muted.relief` en+fr. The old
+  custom plumbing (`ReliefPayload` S2C + action-bar message + wall-clock ReliefManager) was
+  REMOVED — protocol bumped **v11**.
+- `ReliefPotionEntity.SHATTER_HANDLER` (installed in `BlindDeafMutedServer`) finds players within
+  `reliefRangeBlocks` of the impact and applies a `StatusEffectInstance` (`reliefDurationSeconds`
+  × 20 ticks, no particles, icon on). `server/ReliefManager` is now just a **thread-safe mirror**
+  of who has the effect (immutable `Set<UUID>` rebuilt on the server thread every tick + on
+  shatter), because the SVC audio threads can't touch entity state; `ReliefState` (client) reads
+  the local player's effect directly (vanilla syncs it — no custom packet, `disabilityRemaining()`
+  API unchanged so all the effect mixins are untouched).
 - **All three disabilities scale by `reliefReductionPercent` (default 0.75 = −75%)** via a single
   scalar `remaining = 1 − reduction` (`client/ReliefState.disabilityRemaining()`, local player;
   server reads the config for voice):

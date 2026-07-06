@@ -7,7 +7,6 @@ import com.blinddeafmuted.common.ModConstants;
 import com.blinddeafmuted.common.ModEntities;
 import com.blinddeafmuted.common.Role;
 import com.blinddeafmuted.common.RolePayload;
-import com.blinddeafmuted.common.ReliefPayload;
 import com.blinddeafmuted.common.RollPayload;
 import com.blinddeafmuted.common.RosterPayload;
 import com.blinddeafmuted.common.SkinVisibilityPayload;
@@ -85,8 +84,8 @@ public class BlindDeafMutedClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(CardBrandishStatePayload.ID, (payload, context) ->
                 context.client().execute(() -> CardBrandishState.setOthers(java.util.Set.copyOf(payload.activeNames()))));
 
-        ClientPlayNetworking.registerGlobalReceiver(ReliefPayload.ID, (payload, context) ->
-                context.client().execute(() -> ReliefState.set(java.util.Set.copyOf(payload.relievedNames()))));
+        // (Relief has no receiver: it's a vanilla status effect, synced by vanilla itself;
+        // ReliefState reads it straight off the local player.)
 
         // Live tunables: mirror the server's config so the effect mixins + slider menu read it.
         ClientPlayNetworking.registerGlobalReceiver(ConfigPayload.ID, (payload, context) ->
