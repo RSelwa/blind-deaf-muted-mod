@@ -31,8 +31,10 @@ public final class ModConstants {
      *  v10: the Potion of Relief — ReliefPayload (S2C) + three new {@link ModConfig}
      *       fields (reliefReductionPercent + reliefRangeBlocks + reliefDurationSeconds).
      *  v11: ReliefPayload REMOVED — relief became a real vanilla status effect
-     *       ({@link ModEffects#RELIEF}), synced to the client by vanilla itself. */
-    public static final int PROTOCOL_VERSION = 11;
+     *       ({@link ModEffects#RELIEF}), synced to the client by vanilla itself.
+     *  v12: MegaphonePayload (C2S) REMOVED — megaphone activation is now a plain
+     *       right-click ({@code UseItemCallback}, server-side), no custom packet. */
+    public static final int PROTOCOL_VERSION = 12;
 
     /** Helper to build identifiers under our namespace. */
     public static Identifier id(String path) {

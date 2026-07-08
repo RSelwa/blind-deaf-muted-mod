@@ -377,25 +377,31 @@ no-comments rule.
 
 ### Recent additions (megaphone → timed burst + cooldown)
 
-- **Megaphone is now a rate-limited burst, keyed to the PLAYER (UUID), not the item.** Press the
-  megaphone key (`R`) while holding a megaphone → a **5 s** active burst, then a **2 min**
-  cooldown before it can fire again. Carrying several megaphones does NOT bypass the cooldown
-  (it's per-player). Constants: `MegaphoneState.ACTIVE_MS` / `COOLDOWN_MS`.
+- **Megaphone is now a rate-limited burst, keyed to the PLAYER (UUID), not the item.**
+  **Right-click** with the megaphone in hand (like any vanilla usable item) → a **5 s** active
+  burst, then a **2 min** cooldown before it can fire again. Carrying several megaphones does
+  NOT bypass the cooldown (it's per-player). Constants: `MegaphoneState.ACTIVE_MS` / `COOLDOWN_MS`.
+  *(Was originally an `R` keybind + `MegaphonePayload` C2S — both removed; see below.)*
 - **Server-authoritative** (`server/MegaphoneState` reworked from a UUID set into a timed state
   machine): per-UUID `activeUntil` + `readyAt` deadlines in concurrent maps, `System.currentTimeMillis()`
   (thread-safe read from the SVC audio threads + server thread, no shared clock). `tryActivate()`
   returns `ACTIVATED` / `ALREADY_ACTIVE` / `ON_COOLDOWN`.
-- **Flow:** client `MegaphoneController` no longer push-to-talk — it sends `MegaphonePayload(true)`
-  once per key press (only while a megaphone is in hand; server re-checks `holdsMegaphoneItem`).
-  Server fires the burst or refuses, and replies with an **action-bar** message (translated:
-  `msg.blind-deaf-muted.megaphone_active` / `…_cooldown` with seconds left) — no new packet, no
-  protocol bump.
+- **Flow (right-click, no packet):** a server-side `UseItemCallback` in `BlindDeafMutedServer`
+  (guards: `world.isClient` PASS, spectator PASS — the callback hooks in before vanilla's
+  spectator check) catches a right-click with the megaphone and calls `activateMegaphone()`,
+  which fires the burst or refuses and replies with an **action-bar** message (translated:
+  `msg.blind-deaf-muted.megaphone_active` / `…_cooldown` with seconds left). The old client
+  `MegaphoneController` (R keybind) + `MegaphonePayload` (C2S) were **deleted**, along with the
+  `key.blind-deaf-muted.megaphone` lang keys — protocol bumped to **v12**. The vanilla item
+  cooldown (below) also makes vanilla swallow right-clicks until usable again, so the
+  ON_COOLDOWN action-bar branch is mostly a fallback.
 - **Hotbar cooldown overlay (vanilla):** on activation the server sets a vanilla item cooldown
   (`player.getItemCooldownManager().set(stack, ticks)`) for the full burst+cooldown (~125 s), so
   the megaphone shows the white sweeping overlay in the hotbar, emptying exactly when usable
   again. Keyed by cooldown GROUP (= item id) so it covers every megaphone the player holds, and
-  `ServerItemCooldownManager` auto-syncs it to the client. Purely visual (activation is the `R`
-  key, not item use); the authoritative gate is still `MegaphoneState`.
+  `ServerItemCooldownManager` auto-syncs it to the client. Since activation IS item use now,
+  the overlay also blocks right-clicks until ready; the authoritative gate is still
+  `MegaphoneState`.
 - **Audio/visual now read the burst only.** `BlindDeafMutedVoicechatPlugin` megaphone check is
   just `megaphoneState.isActive(uuid)` (renamed `megaphoneActive`); the old "holding the item =
   continuous megaphone" path is gone (removed `holdsMegaphone`/`isMegaphone`/`serverPlayer`). The
