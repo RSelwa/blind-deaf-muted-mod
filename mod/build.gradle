@@ -116,9 +116,12 @@ loom {
             vmArg svcAddModsArg
         }
         // Dev server (runServer) also gets SVC, so voice works dev-client↔dev-server
-        // too (not only against the Docker server).
+        // too (not only against the Docker server). runDir is set explicitly so the
+        // server's .fabric/processedMods cache is separate from the client's (run/),
+        // preventing Windows file-lock conflicts when client + server run simultaneously.
         server {
             server()
+            runDir = 'runServer'
             vmArg svcAddModsArg
         }
     }
