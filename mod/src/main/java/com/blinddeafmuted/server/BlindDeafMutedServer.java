@@ -5,7 +5,6 @@ import com.blinddeafmuted.common.CardBrandishStatePayload;
 import com.blinddeafmuted.common.CardWritePayload;
 import com.blinddeafmuted.common.ConfigPayload;
 import com.blinddeafmuted.common.ConfigUpdatePayload;
-import com.blinddeafmuted.common.MegaphonePayload;
 import com.blinddeafmuted.common.MegaphoneStatePayload;
 import com.blinddeafmuted.common.ModComponents;
 import com.blinddeafmuted.common.ModConstants;
@@ -23,6 +22,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.loot.v2.LootTableEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -41,6 +41,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +78,7 @@ public class BlindDeafMutedServer implements ModInitializer {
      *  Reads its re-roll interval live from {@link #configManager}. */
     private final RandomEventManager randomEvents = new RandomEventManager(roleManager, configManager);
 
-    /** Who is currently holding the push-to-megaphone key (fed by MegaphonePayload). */
+    /** Per-player megaphone burst/cooldown state (fed by right-clicking the megaphone). */
     private final MegaphoneState megaphoneState = new MegaphoneState();
 
     /** Who is currently brandishing a note card outward (fed by CardBrandishPayload). */
@@ -166,51 +167,25 @@ public class BlindDeafMutedServer implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(MegaphoneStatePayload.ID, MegaphoneStatePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ConfigPayload.ID, ConfigPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(CardBrandishStatePayload.ID, CardBrandishStatePayload.CODEC);
-        // Inbound: clients report their megaphone key press/release + slider-menu config edits
-        // + note-card writes and brandish toggles.
-        PayloadTypeRegistry.playC2S().register(MegaphonePayload.ID, MegaphonePayload.CODEC);
+        // Inbound: slider-menu config edits + note-card writes and brandish toggles.
         PayloadTypeRegistry.playC2S().register(ConfigUpdatePayload.ID, ConfigUpdatePayload.CODEC);
         PayloadTypeRegistry.playC2S().register(CardWritePayload.ID, CardWritePayload.CODEC);
         PayloadTypeRegistry.playC2S().register(CardBrandishPayload.ID, CardBrandishPayload.CODEC);
 
-        // Receive a megaphone ACTIVATION request (client sends active=true on the key press).
-        // The megaphone is now a timed burst with a per-player cooldown (MegaphoneState), so a
-        // press either fires a fresh burst or is refused (mid-burst / on cooldown). Everything
-        // runs on the server thread: it reads the player's hands + player list and sends feedback.
-        ServerPlayNetworking.registerGlobalReceiver(MegaphonePayload.ID, (payload, context) -> {
-            ServerPlayerEntity player = context.player();
-            if (!payload.active()) return; // releases no longer matter — the burst is time-boxed
-            player.getServer().execute(() -> {
-                if (!holdsMegaphoneItem(player)) return; // must actually hold a megaphone to fire
-                // Burst + cooldown durations are live ModConfig knobs (slider menu).
-                var cfg = configManager.get();
-                long burstMs = (long) (cfg.megaphoneBurstSeconds() * 1000f);
-                long cooldownMs = (long) (cfg.megaphoneCooldownSeconds() * 1000f);
-                MegaphoneState.Result result =
-                        megaphoneState.tryActivate(player.getUuid(), burstMs, cooldownMs);
-                switch (result) {
-                    case ACTIVATED -> {
-                        // Vanilla hotbar cooldown overlay (the white sweep) on the megaphone item,
-                        // for the whole burst+cooldown so it empties exactly when usable again. Keyed
-                        // by cooldown GROUP (= item id), so it covers every megaphone the player holds
-                        // — auto-synced to the client by ServerItemCooldownManager.
-                        ItemStack mega = player.getMainHandStack().isOf(ModItems.MEGAPHONE)
-                                ? player.getMainHandStack() : player.getOffHandStack();
-                        int ticks = (int) ((burstMs + cooldownMs) / 50L);
-                        player.getItemCooldownManager().set(mega, ticks);
-
-                        player.sendMessage(Text.translatable("msg.blind-deaf-muted.megaphone_active",
-                                Math.round(cfg.megaphoneBurstSeconds())).formatted(Formatting.GOLD), true);
-                        broadcastMegaphoneState(player.getServer());
-                    }
-                    case ON_COOLDOWN -> {
-                        long secs = (megaphoneState.cooldownRemainingMs(player.getUuid()) + 999L) / 1000L;
-                        player.sendMessage(Text.translatable("msg.blind-deaf-muted.megaphone_cooldown", secs)
-                                .formatted(Formatting.GRAY), true);
-                    }
-                    case ALREADY_ACTIVE -> { /* mid-burst: ignore repeat presses */ }
-                }
-            });
+        // Megaphone activation = plain right-click with the item in hand, like any vanilla
+        // usable item (was a keybind + MegaphonePayload). The megaphone is a timed burst with
+        // a per-player cooldown (MegaphoneState); a use either fires a fresh burst or is
+        // refused (mid-burst / on cooldown). Vanilla already blocks item use while the hotbar
+        // cooldown overlay runs, so the ON_COOLDOWN feedback below is mostly a fallback.
+        // Server side only — the client PASSes and the use packet re-fires this here, already
+        // on the server thread.
+        UseItemCallback.EVENT.register((player, world, hand) -> {
+            if (world.isClient) return ActionResult.PASS;
+            if (player.isSpectator()) return ActionResult.PASS; // hooked before vanilla's check
+            ItemStack stack = player.getStackInHand(hand);
+            if (!stack.isOf(ModItems.MEGAPHONE)) return ActionResult.PASS;
+            activateMegaphone((ServerPlayerEntity) player, stack);
+            return ActionResult.SUCCESS;
         });
 
         // Receive a note-card brandish toggle. Store it and re-broadcast the visual state at
@@ -482,10 +457,34 @@ public class BlindDeafMutedServer implements ModInitializer {
         }
     }
 
-    /** Whether the player is holding the megaphone item in either hand (drives the
-     *  arm-pose + horn visual, same as the push-to-megaphone key). */
-    private static boolean holdsMegaphoneItem(ServerPlayerEntity player) {
-        return player.getMainHandStack().isOf(ModItems.MEGAPHONE)
-                || player.getOffHandStack().isOf(ModItems.MEGAPHONE);
+    /** Fire (or refuse) a megaphone burst for the player — right-click activation.
+     *  Burst + cooldown durations are live ModConfig knobs (slider menu). */
+    private void activateMegaphone(ServerPlayerEntity player, ItemStack mega) {
+        var cfg = configManager.get();
+        long burstMs = (long) (cfg.megaphoneBurstSeconds() * 1000f);
+        long cooldownMs = (long) (cfg.megaphoneCooldownSeconds() * 1000f);
+        MegaphoneState.Result result =
+                megaphoneState.tryActivate(player.getUuid(), burstMs, cooldownMs);
+        switch (result) {
+            case ACTIVATED -> {
+                // Vanilla hotbar cooldown overlay (the white sweep) on the megaphone item,
+                // for the whole burst+cooldown so it empties exactly when usable again. Keyed
+                // by cooldown GROUP (= item id), so it covers every megaphone the player holds
+                // — auto-synced to the client by ServerItemCooldownManager. It also makes
+                // vanilla swallow right-clicks until the megaphone is usable again.
+                int ticks = (int) ((burstMs + cooldownMs) / 50L);
+                player.getItemCooldownManager().set(mega, ticks);
+
+                player.sendMessage(Text.translatable("msg.blind-deaf-muted.megaphone_active",
+                        Math.round(cfg.megaphoneBurstSeconds())).formatted(Formatting.GOLD), true);
+                broadcastMegaphoneState(player.getServer());
+            }
+            case ON_COOLDOWN -> {
+                long secs = (megaphoneState.cooldownRemainingMs(player.getUuid()) + 999L) / 1000L;
+                player.sendMessage(Text.translatable("msg.blind-deaf-muted.megaphone_cooldown", secs)
+                        .formatted(Formatting.GRAY), true);
+            }
+            case ALREADY_ACTIVE -> { /* mid-burst: ignore repeat uses */ }
+        }
     }
 }

@@ -105,7 +105,7 @@ public class BlindDeafMutedClient implements ClientModInitializer {
         TrackerHud.register();    // teammate tracker keybind (HUD draw is in InGameHudMixin)
         RosterHud.register();     // who-is-what leaderboard keybind (HUD draw is in InGameHudMixin)
         RouletteAnimation.register(); // roulette reveal countdown (HUD draw is in InGameHudMixin)
-        MegaphoneController.register(); // push-to-megaphone keybind (R) → tells the server
+        // (Megaphone: no client controller — activation is a plain right-click, server-side.)
         ConfigMenu.register();    // live-tuning slider menu keybind (O)
         NoteCardController.register(); // note card: write keybind (G) + right-click brandish
 

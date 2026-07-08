@@ -5,7 +5,6 @@
   "key.blind-deaf-muted.cycle_deaf_muffle": "Cycle deaf muffle intensity",
   "key.blind-deaf-muted.toggle_tracker": "Toggle teammate tracker HUD",
   "key.blind-deaf-muted.toggle_roster": "Toggle who-is-what leaderboard HUD",
-  "key.blind-deaf-muted.megaphone": "Megaphone (press to fire a 5s burst)",
   "key.blind-deaf-muted.open_config": "Open settings menu (live sliders)",
 
   "config.blind-deaf-muted.title": "Blind Deaf Muted — Settings",
