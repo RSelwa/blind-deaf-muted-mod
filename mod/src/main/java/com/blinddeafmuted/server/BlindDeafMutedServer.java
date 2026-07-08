@@ -222,6 +222,10 @@ public class BlindDeafMutedServer implements ModInitializer {
             player.getServer().execute(() -> {
                 configManager.set(payload.config());
                 broadcastConfig(player.getServer());
+                LOGGER.info("Config updated by {} — broadcasting to all clients", player.getName().getString());
+                // Action-bar confirmation so the sender knows the server actually got it.
+                player.sendMessage(
+                        Text.literal("✓ Config saved").formatted(Formatting.GREEN), true);
             });
         });
 
