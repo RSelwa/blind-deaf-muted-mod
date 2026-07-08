@@ -456,6 +456,20 @@ no-comments rule.
     Originally relief only stepped HARD→SOFT like a cane — invisible to a blind player already
     holding their cane (the bug that prompted this). Still stepped (pipeline uniforms are baked
     per-JSON), not scaled by `reliefReductionPercent`.
+- **Relief downside (BLIND): nausea wobble, visual only.** While a BLIND player is relieved, the
+  screen wobbles exactly like vanilla NAUSEA — NO `StatusEffectInstance` (no HUD icon, no inventory
+  entry, nothing extra for milk to clear). `client/ReliefNauseaController` owns a ramped strength
+  (in/out over ~1 s, peak `TARGET=1.0` = full nausea; lower to soften); `GameRendererNauseaMixin`
+  injects it into `GameRenderer.renderWorld` (MixinExtras): `@WrapOperation` on the single
+  `MathHelper.lerp` that computes the wobble intensity (lift via `max()`, so real nausea/portals
+  still win, and the accessibility Distortion-Effects scale² still applies) + `@ModifyExpressionValue`
+  forcing the `hasStatusEffect(NAUSEA)` branch true (nausea's gentle wobble speed, divisor 7).
+  **Gotcha (why not write `ClientPlayerEntity.nauseaIntensity` directly):** vanilla treats
+  intensity-without-the-effect as *standing in a nether portal* — `InGameHud` draws the purple
+  portal overlay + `GameRenderer` uses the frantic portal wobble (divisor 20). First attempt did
+  that and looked like a nether trip. Keeping our value out of the field = no overlay, true nausea
+  look. Gated on `blindEffectActive()` + `ReliefState.localActive()`; purely client-side, no
+  protocol change. Trade-off: clear sight during relief, but the world sways.
 - **Config (3 new sliders, `O` menu):** `reliefReductionPercent` (PERCENT, 0.75), `reliefRangeBlocks`
   (BLOCKS, 8), `reliefDurationSeconds` (SECONDS, 30). Grid now 19 knobs / 10 rows × 2 cols. Protocol
   bumped **v10**. Fresh-config caveat applies (existing json keeps old values; new keys default in).

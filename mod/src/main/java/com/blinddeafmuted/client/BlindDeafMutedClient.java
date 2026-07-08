@@ -100,6 +100,7 @@ public class BlindDeafMutedClient implements ClientModInitializer {
         // live in mixins — InGameHudMixin / SoundSystemMixin — and need no registration.)
         BlindHandler.register();  // blind-mode keybind + vanilla Blindness effect
         MyopiaController.register(); // installs the MYOPIA blur post-effect while blind
+        ReliefNauseaController.register(); // relief's downside for BLIND: nausea wobble (visual only)
         DeafHandler.register();   // deaf muffle-intensity cycle keybind (H)
         DeafListenerGain.register(); // deaf world-loudness boost on the listener gain (deafEnvVolume)
         MuteHandler.register();   // blocks outgoing chat
