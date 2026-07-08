@@ -56,6 +56,7 @@ public final class MyopiaController {
 
             if (want != null) {
                 // Switching soft<->hard just re-sets the processor to the new pipeline.
+                // The live BlurStrength config knob is applied per-frame in PostEffectPassMixin.
                 ((GameRendererAccessor) client.gameRenderer).blinddeafmuted$setPostProcessor(want);
             } else {
                 client.gameRenderer.clearPostProcessor();

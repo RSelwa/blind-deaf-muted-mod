@@ -28,6 +28,11 @@
   "config.blind-deaf-muted.reliefReductionPercent": "Relief reduction",
   "config.blind-deaf-muted.reliefRangeBlocks": "Relief range",
   "config.blind-deaf-muted.reliefDurationSeconds": "Relief duration",
+  "config.blind-deaf-muted.myopiaBlurStrength": "Myopia blur strength",
+  "config.blind-deaf-muted.myopiaDarkness": "Myopia darkness",
+  "config.blind-deaf-muted.deafHearingRange": "Deaf hearing range",
+  "config.blind-deaf-muted.deafWorldLowpassHz": "Deaf world muffle (Hz)",
+  "config.blind-deaf-muted.deafWorldVolume": "Deaf world volume",
 
   "item.blind-deaf-muted.randomizer": "Randomizer",
   "item.blind-deaf-muted.megaphone": "Megaphone",

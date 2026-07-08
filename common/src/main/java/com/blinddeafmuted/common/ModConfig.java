@@ -49,7 +49,14 @@ public record ModConfig(
         // ---- relief potion (server sets, both sides scale) ----
         float reliefReductionPercent,
         float reliefRangeBlocks,
-        float reliefDurationSeconds) {
+        float reliefDurationSeconds,
+        // ---- myopia blur (client-only) ----
+        float myopiaBlurStrength,
+        float myopiaDarkness,
+        // ---- deaf WORLD sound (client-only: blocks/mobs/weather/music, NOT voice) ----
+        float deafHearingRange,
+        float deafWorldLowpassHz,
+        float deafWorldVolume) {
 
     /** Factory defaults. The DEAF/MUTED voice values are the ones validated with the client in
      *  the {@code feat-muffle-effect} PR (deaf = 3-pole "through a wall" muffle @210 Hz kept
@@ -60,11 +67,13 @@ public record ModConfig(
      *  or delete the file to pick these up). */
     public static final ModConfig DEFAULT = new ModConfig(
             210f, 1.1f, 3000f, 1.1f,
-            300f, 0.05f, 1800f, 1.1f,
+            200f, 2.0f, 1800f, 1.1f,
             2.0f, 7.0f, 1.0f,
             3.0f, 8.0f, 0.55f,
             5.0f, 120.0f,
-            0.75f, 8.0f, 30.0f);
+            0.75f, 8.0f, 30.0f,
+            1.0f, 0.15f,
+            40.0f, 120.0f, 0.5f);
 
     public static final PacketCodec<PacketByteBuf, ModConfig> CODEC = PacketCodec.of(
             ModConfig::write, ModConfig::read);
@@ -89,6 +98,11 @@ public record ModConfig(
         buf.writeFloat(c.reliefReductionPercent);
         buf.writeFloat(c.reliefRangeBlocks);
         buf.writeFloat(c.reliefDurationSeconds);
+        buf.writeFloat(c.myopiaBlurStrength);
+        buf.writeFloat(c.myopiaDarkness);
+        buf.writeFloat(c.deafHearingRange);
+        buf.writeFloat(c.deafWorldLowpassHz);
+        buf.writeFloat(c.deafWorldVolume);
     }
 
     private static ModConfig read(PacketByteBuf buf) {
@@ -98,11 +112,19 @@ public record ModConfig(
                 buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(),
+                buf.readFloat(), buf.readFloat(), buf.readFloat(),
+                buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(), buf.readFloat());
     }
 
     /** Number of tunable fields — the length of {@link #toArray()}. */
-    public static final int FIELD_COUNT = 19;
+    public static final int FIELD_COUNT = 24;
+
+    /** Index into {@link #toArray()} for the deaf hearing-range knob, so the H-key preset
+     *  cycler ({@code DeafHandler}) can set it without hard-coding a raw number. */
+    public static final int IDX_DEAF_HEARING_RANGE = 21;
+    /** Index of the deaf WORLD low-pass cutoff, so the H-key preset cycler can set it too. */
+    public static final int IDX_DEAF_WORLD_LOWPASS_HZ = 22;
 
     /** Flatten to a float[] in declaration order. The slider menu edits this array in place and
      *  rebuilds via {@link #fromArray}, so the field↔index mapping lives ONLY here. Keep this,
@@ -114,7 +136,9 @@ public record ModConfig(
                 blindFogHardEnd, blindFogMediumEnd, deafEnvVolume,
                 eventMinMinutes, eventMaxMinutes, randomizerChestChance,
                 megaphoneBurstSeconds, megaphoneCooldownSeconds,
-                reliefReductionPercent, reliefRangeBlocks, reliefDurationSeconds};
+                reliefReductionPercent, reliefRangeBlocks, reliefDurationSeconds,
+                myopiaBlurStrength, myopiaDarkness,
+                deafHearingRange, deafWorldLowpassHz, deafWorldVolume};
     }
 
     /** Inverse of {@link #toArray()}. */
@@ -125,6 +149,8 @@ public record ModConfig(
                 a[8], a[9], a[10],
                 a[11], a[12], a[13],
                 a[14], a[15],
-                a[16], a[17], a[18]);
+                a[16], a[17], a[18],
+                a[19], a[20],
+                a[21], a[22], a[23]);
     }
 }

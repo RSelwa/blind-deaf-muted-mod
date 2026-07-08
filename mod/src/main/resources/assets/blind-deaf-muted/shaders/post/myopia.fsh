@@ -5,6 +5,8 @@ uniform sampler2D InDepthSampler;
 uniform vec2 InSize;    // render target size in px — used to keep the vignette circle round
 uniform vec2 BlurDir;   // (1,0) on pass 1, (0,1) on pass 2 — vignette only on pass 2
 uniform float Intensity; // -1 = relief potion, 0 = soft (cane held), 1 = hard (no cane) — set per pipeline
+uniform float BlurStrength; // 0 = no far-field blur, 1 = full effect — live-tuned from config (ConfigScreen)
+uniform float Darkness; // 0 = no haze/vignette darkening (pure blur), 1 = full — live-tuned from config
 
 in vec2 texCoord;
 in vec2 sampleStep; // oneTexel * BlurDir (from the vanilla post/blur vertex shader)
@@ -76,7 +78,7 @@ void main() {
     float d = texture(InDepthSampler, texCoord).r;
     float dist = NEAR / max(1.0e-4, 1.0 - d); // approx distance to the fragment, in blocks
     float amt = smoothstep(sharpBlocks, fullBlurBlocks, dist);
-    float radius = amt * maxTexelRadius;
+    float radius = amt * maxTexelRadius * BlurStrength; // BlurStrength=0 → no blur, 1 → full
 
     vec4 color = texture(InSampler, texCoord);
     if (radius >= 0.5) {
@@ -99,16 +101,19 @@ void main() {
     if (BlurDir.y > 0.5) {
         // Gray haze: wash the blurred far field toward dark gray so distant things read as
         // soft dark-gray shapes, not sharp silhouettes. Scales with the blur amount, so the
-        // near/clear field is untouched and only the far field greys out.
-        color.rgb = mix(color.rgb, HAZE_COLOR, amt * hazeStr);
+        // near/clear field is untouched and only the far field greys out. Darkness scales it
+        // (0 = no haze, pure blur).
+        color.rgb = mix(color.rgb, HAZE_COLOR, amt * hazeStr * Darkness);
 
         // Tunnel-vision vignette: fade the surround toward the SAME dark gray (not pure
         // black), so the edge is a soft dark-gray stroke rather than a hard black frame.
+        // Darkness scales it too: at 0 the surround stays fully visible (vv=1 everywhere).
         vec2 p = texCoord - 0.5;
         p.x *= InSize.x / max(1.0, InSize.y); // correct aspect so the clear zone is a circle
         float r = length(p);
         float vis = 1.0 - smoothstep(vClear, vBlack, r);
-        color.rgb = mix(HAZE_COLOR, color.rgb, vis);
+        float vv = mix(1.0, vis, Darkness);
+        color.rgb = mix(HAZE_COLOR, color.rgb, vv);
     }
 
     fragColor = color;
