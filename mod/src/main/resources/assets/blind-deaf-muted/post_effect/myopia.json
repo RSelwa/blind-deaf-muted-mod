@@ -12,7 +12,9 @@
             "output": "temp",
             "uniforms": [
                 { "name": "BlurDir", "values": [ 1.0, 0.0 ] },
-                { "name": "Intensity", "values": [ 0.0 ] }
+                { "name": "Intensity", "values": [ 0.0 ] },
+                { "name": "BlurStrength", "values": [ 1.0 ] },
+                { "name": "Darkness", "values": [ 1.0 ] }
             ]
         },
         {
@@ -24,7 +26,9 @@
             "output": "minecraft:main",
             "uniforms": [
                 { "name": "BlurDir", "values": [ 0.0, 1.0 ] },
-                { "name": "Intensity", "values": [ 0.0 ] }
+                { "name": "Intensity", "values": [ 0.0 ] },
+                { "name": "BlurStrength", "values": [ 1.0 ] },
+                { "name": "Darkness", "values": [ 1.0 ] }
             ]
         }
     ]
