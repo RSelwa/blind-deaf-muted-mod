@@ -7,7 +7,6 @@
   "key.blind-deaf-muted.toggle_roster": "Afficher/masquer le tableau des rôles",
   "key.blind-deaf-muted.megaphone": "Mégaphone (appuyer pour une rafale de 5s)",
   "key.blind-deaf-muted.open_config": "Ouvrir le menu des réglages (curseurs en direct)",
-  "key.blind-deaf-muted.write_card": "Écrire sur la carte (en tenir une)",
 
   "config.blind-deaf-muted.title": "Aveugle Sourd Muet — Réglages",
   "config.blind-deaf-muted.reset": "Valeurs par défaut",
@@ -41,7 +40,7 @@
 
   "screen.blind-deaf-muted.card": "Carte à écrire",
   "hud.blind-deaf-muted.card_reading": "Ta note (clic droit pour montrer)",
-  "hud.blind-deaf-muted.card_empty": "(vide — appuie sur la touche d'écriture)",
+  "hud.blind-deaf-muted.card_empty": "(vide — shift + clic droit pour écrire)",
 
   "card.blind-deaf-muted.preset.yes": "Oui",
   "card.blind-deaf-muted.preset.no": "Non",

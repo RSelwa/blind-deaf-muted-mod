@@ -291,13 +291,15 @@ no-comments rule.
   and a **packet codec, so a held card's text auto-syncs to the clients tracking that
   player**; that's how everyone reads a brandished card with NO extra text packet (the
   feature renderer reads it off the tracked stack). Give via `/bdm card`.
-- **Interaction:** write = a **rebindable keybind** (`key.blind-deaf-muted.write_card`,
-  default **`G`**) → opens `CardEditScreen` (6 text fields on a paper panel, prefilled from
-  the held card; on close sends `CardWritePayload` C2S → server writes the component
-  authoritatively, clamping count+length). Brandish = **right-click** (`UseItemCallback`,
-  client-side, returns `ActionResult.SUCCESS`) → toggles, flips `CardBrandishState` locally
-  + sends `CardBrandishPayload` C2S. `NoteCardController` also auto-clears the toggle when
-  the card leaves the hand.
+- **Interaction (both on right-click, no keybind):** brandish = **right-click**
+  (`UseItemCallback`, client-side, returns `ActionResult.SUCCESS`) → toggles, flips
+  `CardBrandishState` locally + sends `CardBrandishPayload` C2S. Write = **sneak (shift) +
+  right-click** → opens `CardEditScreen` (6 text fields on a paper panel, prefilled from the
+  held card; on close sends `CardWritePayload` C2S → server writes the component
+  authoritatively, clamping count+length). The old rebindable `G` write keybind
+  (`key.blind-deaf-muted.write_card`) was removed (lang keys too; `hud…card_empty` hint now
+  says sneak+right-click). `NoteCardController` also auto-clears the toggle when the card
+  leaves the hand.
 - **Sea-of-Thieves inversion (per the user):** *brandishing → others read it, you don't;
   not brandishing → only YOU read it.* Implemented as (reworked after first in-game test):
   - **Not brandishing** = card is just a normal vanilla held item (no 3D panel at all);
