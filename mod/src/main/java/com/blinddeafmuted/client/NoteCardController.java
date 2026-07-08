@@ -3,24 +3,22 @@ package com.blinddeafmuted.client;
 import com.blinddeafmuted.common.CardBrandishPayload;
 import com.blinddeafmuted.common.ModItems;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import org.lwjgl.glfw.GLFW;
 
 /**
- * Drives the note card on the client:
+ * Drives the note card on the client — both gestures live on right-click now
+ * (was: a separate rebindable write key, default {@code G}):
  * <ul>
- *   <li><b>Write</b> — the write key (default {@code G}, rebindable in Controls) opens the
- *       {@link CardEditScreen} while a card is in hand.</li>
- *   <li><b>Brandish</b> — right-clicking with a card in hand toggles brandishing it outward
+ *   <li><b>Brandish</b> — right-click with a card in hand toggles brandishing it outward
  *       (Sea-of-Thieves style). We flip {@link CardBrandishState} instantly for a snappy local
  *       reaction and tell the server ({@link CardBrandishPayload}) so it echoes to everyone.</li>
+ *   <li><b>Write</b> — sneak (shift) + right-click opens the {@link CardEditScreen} instead
+ *       of toggling.</li>
  * </ul>
  *
  * <p>The toggle auto-resets when the card leaves the hand, so re-selecting the card always
@@ -29,20 +27,21 @@ import org.lwjgl.glfw.GLFW;
 public final class NoteCardController {
     private NoteCardController() {}
 
-    private static final KeyBinding WRITE_KEY = new KeyBinding(
-            "key.blind-deaf-muted.write_card",
-            InputUtil.Type.KEYSYM,
-            GLFW.GLFW_KEY_G,
-            "key.categories.blind-deaf-muted");
-
     public static void register() {
-        KeyBindingHelper.registerKeyBinding(WRITE_KEY);
-
-        // Right-click with a card in hand = toggle brandish. Return SUCCESS to consume the
-        // click + swing; the server does nothing on use, so this is purely the show gesture.
+        // Right-click with a card in hand: sneaking → open the write screen; otherwise toggle
+        // brandish. Return SUCCESS to consume the click + swing; the server does nothing on
+        // use (the card is a plain item), so both are purely client gestures.
         UseItemCallback.EVENT.register((player, world, hand) -> {
             if (!world.isClient) return ActionResult.PASS;
             if (!player.getStackInHand(hand).isOf(ModItems.NOTE_CARD)) return ActionResult.PASS;
+
+            if (player.isSneaking()) {
+                // The callback runs on the render thread during input handling, so opening
+                // the screen directly is safe (same thread setScreen is always called on).
+                MinecraftClient.getInstance().setScreen(new CardEditScreen(hand));
+                return ActionResult.SUCCESS;
+            }
+
             boolean now = CardBrandishState.toggleLocal();
             if (ClientPlayNetworking.canSend(CardBrandishPayload.ID)) {
                 ClientPlayNetworking.send(new CardBrandishPayload(now));
@@ -54,15 +53,6 @@ public final class NoteCardController {
             if (client.player == null) {
                 CardBrandishState.clearLocal();
                 return;
-            }
-
-            // Open the editor on the write key, only while holding a card and with no screen up.
-            while (WRITE_KEY.wasPressed()) {
-                if (client.currentScreen != null) break;
-                Hand hand = holdingHand(client.player);
-                if (hand != null) {
-                    client.setScreen(new CardEditScreen(hand));
-                }
             }
 
             // Stopped holding a card → drop the brandish toggle so it never lingers on the next card.
