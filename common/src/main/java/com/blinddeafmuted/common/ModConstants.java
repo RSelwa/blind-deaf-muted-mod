@@ -33,8 +33,11 @@ public final class ModConstants {
      *  v11: ReliefPayload REMOVED — relief became a real vanilla status effect
      *       ({@link ModEffects#RELIEF}), synced to the client by vanilla itself.
      *  v12: MegaphonePayload (C2S) REMOVED — megaphone activation is now a plain
-     *       right-click ({@code UseItemCallback}, server-side), no custom packet. */
-    public static final int PROTOCOL_VERSION = 12;
+     *       right-click ({@code UseItemCallback}, server-side), no custom packet.
+     *  v13: the three dead deaf-WORLD {@link ModConfig} knobs (deafHearingRange /
+     *       deafWorldLowpassHz / deafWorldVolume) became the live DeafMuffle base trio
+     *       (deafMuffleGainHf / deafMuffleGain / deafMuffleRange) — same wire size, new meaning. */
+    public static final int PROTOCOL_VERSION = 13;
 
     /** Helper to build identifiers under our namespace. */
     public static Identifier id(String path) {

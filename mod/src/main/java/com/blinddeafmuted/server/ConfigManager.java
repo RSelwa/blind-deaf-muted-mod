@@ -83,9 +83,9 @@ public final class ConfigManager {
                     f(o, "reliefDurationSeconds", d.reliefDurationSeconds()),
                     f(o, "myopiaBlurStrength", d.myopiaBlurStrength()),
                     f(o, "myopiaDarkness", d.myopiaDarkness()),
-                    f(o, "deafHearingRange", d.deafHearingRange()),
-                    f(o, "deafWorldLowpassHz", d.deafWorldLowpassHz()),
-                    f(o, "deafWorldVolume", d.deafWorldVolume()));
+                    f(o, "deafMuffleGainHf", d.deafMuffleGainHf()),
+                    f(o, "deafMuffleGain", d.deafMuffleGain()),
+                    f(o, "deafMuffleRange", d.deafMuffleRange()));
         } catch (IOException | RuntimeException e) {
             BlindDeafMutedServer.LOGGER.warn("Failed to read {} — using defaults ({})",
                     FILE, e.toString());
@@ -116,9 +116,9 @@ public final class ConfigManager {
         o.addProperty("reliefDurationSeconds", c.reliefDurationSeconds());
         o.addProperty("myopiaBlurStrength", c.myopiaBlurStrength());
         o.addProperty("myopiaDarkness", c.myopiaDarkness());
-        o.addProperty("deafHearingRange", c.deafHearingRange());
-        o.addProperty("deafWorldLowpassHz", c.deafWorldLowpassHz());
-        o.addProperty("deafWorldVolume", c.deafWorldVolume());
+        o.addProperty("deafMuffleGainHf", c.deafMuffleGainHf());
+        o.addProperty("deafMuffleGain", c.deafMuffleGain());
+        o.addProperty("deafMuffleRange", c.deafMuffleRange());
         try {
             Files.createDirectories(FILE.getParent());
             Files.writeString(FILE, GSON.toJson(o));
