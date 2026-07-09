@@ -11,6 +11,7 @@
     "InGameHudMixin",
     "PlayerEntityModelMixin",
     "PostEffectPassMixin",
+    "SoundListenerMixin",
     "SoundSystemMixin",
     "SourceMixin"
   ],

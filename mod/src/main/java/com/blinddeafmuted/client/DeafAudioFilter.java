@@ -30,11 +30,11 @@ public final class DeafAudioFilter {
     private static int filter = 0;
     /** True once we know EFX is unavailable, so we stop retrying. */
     private static boolean unavailable = false;
-    /** Which {@link DeafMuffle} the filter is currently tuned to (null = not yet set). */
-    private static DeafMuffle appliedLevel = null;
-    /** Relief "disability remaining" the filter is currently tuned to (-1 = not yet set), so a
-     *  Potion of Relief re-tunes the shared filter as it eases the muffle. */
-    private static float appliedRem = -1f;
+    /** The gain/gainHf the filter object currently holds (-1 = nothing pushed yet). We cache the
+     *  COMPUTED values (not the preset), so a live slider edit to the muffle base re-pushes even
+     *  when the preset and the Potion-of-Relief amount are unchanged. */
+    private static float appliedGain = -1f;
+    private static float appliedGainHf = -1f;
 
     /** Lazily create the shared low-pass filter object (audio thread only). */
     private static int filter() {
@@ -71,17 +71,29 @@ public final class DeafAudioFilter {
         }
     }
 
-    /** Push the level's gains into the filter object if the level (or relief) changed since last
-     *  time. A Potion of Relief lerps the gains toward 1.0 (fully clear) by the reduction amount:
-     *  {@code rem=1} → full muffle, {@code rem=0} → transparent. */
+    /** Push the level's gains into the filter object if they changed since last time. The gains
+     *  come from the live base trio ({@link DeafMuffle} × the settings-menu sliders), so a slider
+     *  drag lands here on the next source tick. A Potion of Relief lerps them toward 1.0 (fully
+     *  clear) by the reduction amount: {@code rem=1} → full muffle, {@code rem=0} → transparent. */
     private static void tune(int f, DeafMuffle level, float rem) {
-        if (level == appliedLevel && rem == appliedRem) return;
-        float gain = lerp(rem, 1.0f, level.gain());
-        float gainHf = lerp(rem, 1.0f, level.gainHf());
+        // OpenAL's low-pass filter only accepts gain/gainHf in [0,1] (AL_LOWPASS_MAX_GAIN /
+        // MAX_GAINHF = 1.0). It can only ATTENUATE, never amplify, so we clamp here. The part of
+        // the deafMuffleGain knob ABOVE 1.0 (amplification) is applied elsewhere, on the source
+        // volume in SoundSystemMixin#getAdjustedVolume (that value feeds AL_GAIN, which is NOT
+        // capped at 1.0). So gain ≤1 → attenuate via this filter; gain >1 → amplify via the source.
+        float gain = clamp01(lerp(rem, 1.0f, level.gain()));
+        float gainHf = clamp01(lerp(rem, 1.0f, level.gainHf()));
+        if (gain == appliedGain && gainHf == appliedGainHf) return;
         EXTEfx.alFilterf(f, EXTEfx.AL_LOWPASS_GAIN, gain);
         EXTEfx.alFilterf(f, EXTEfx.AL_LOWPASS_GAINHF, gainHf);
-        appliedLevel = level;
-        appliedRem = rem;
+        LOGGER.info("[deaf] tuned muffle filter id={} to preset {} (gain={}, gainHf={}, relief={})",
+                f, level.name(), gain, gainHf, rem);
+        appliedGain = gain;
+        appliedGainHf = gainHf;
+    }
+
+    private static float clamp01(float v) {
+        return v < 0f ? 0f : (v > 1f ? 1f : v);
     }
 
     /** {@code a} at t=0, {@code b} at t=1. */
@@ -101,6 +113,7 @@ public final class DeafAudioFilter {
             if (!deaf) {
                 if (unavailable) return; // never attached anything, nothing to clear
                 AL10.alSourcei(sourcePointer, EXTEfx.AL_DIRECT_FILTER, EXTEfx.AL_FILTER_NULL);
+                swallowError(); // don't let a stale/freed source id leak into Minecraft's next AL check
                 return;
             }
             if (unavailable) return;
@@ -108,9 +121,24 @@ public final class DeafAudioFilter {
             if (f == 0) return;
             tune(f, DeafState.getMuffle(), ReliefState.disabilityRemaining());
             AL10.alSourcei(sourcePointer, EXTEfx.AL_DIRECT_FILTER, f);
+            swallowError(); // ditto — our per-source EFX call must not pollute the global AL error state
         } catch (Throwable t) {
             unavailable = true;
             LOGGER.warn("[deaf] applying muffle failed — disabling.", t);
         }
+    }
+
+    /**
+     * Consume (and discard) any pending OpenAL error left by our own source calls.
+     *
+     * <p>OpenAL's error flag is a single global latch. Minecraft polls it after its own
+     * operations ({@code AlUtil.checkErrors("Stop"/"Allocate new source"/…)}) and logs
+     * whatever it finds. If one of our {@code alSourcei(AL_DIRECT_FILTER, …)} calls above
+     * touches a source id that Minecraft has already stopped/freed (a benign race on the
+     * audio thread), it sets {@code AL_INVALID_VALUE}; without clearing it here, that error
+     * would surface against the next unrelated Minecraft AL call. Reading the error clears it.
+     */
+    private static void swallowError() {
+        AL10.alGetError();
     }
 }

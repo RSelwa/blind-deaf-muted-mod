@@ -101,6 +101,7 @@ public class BlindDeafMutedClient implements ClientModInitializer {
         BlindHandler.register();  // blind-mode keybind + vanilla Blindness effect
         MyopiaController.register(); // installs the MYOPIA blur post-effect while blind
         DeafHandler.register();   // deaf muffle-intensity cycle keybind (H)
+        DeafListenerGain.register(); // deaf world-loudness boost on the listener gain (deafEnvVolume)
         MuteHandler.register();   // blocks outgoing chat
         TrackerHud.register();    // teammate tracker keybind (HUD draw is in InGameHudMixin)
         RosterHud.register();     // who-is-what leaderboard keybind (HUD draw is in InGameHudMixin)
