@@ -60,6 +60,12 @@ final class VoiceFx {
      *  cutoff itself is the live {@code deafLowpassHz} knob. */
     private static final int DEAF_LOWPASS_POLES = 3;
 
+    /** How many one-pole low-pass stages to cascade for the MUTED mic muffle (no megaphone).
+     *  Steeper than the deaf one on purpose: a muted speaker must be genuinely UNINTELLIGIBLE,
+     *  not just quiet/dull — 4 poles at the low {@code mutedLowpassHz} cutoff leaves only the bass
+     *  rumble of the voice, so you can tell they're talking but not make out words. */
+    private static final int MUTED_LOWPASS_POLES = 4;
+
     /** Target low-pass cutoff a Potion of Relief lerps DEAF/MUTED voice toward — high enough that
      *  voice passes essentially clear. The reduction fraction ({@code reliefReductionPercent})
      *  controls how far toward this + toward full volume the muffle is eased. */
@@ -140,7 +146,7 @@ final class VoiceFx {
         OpusEncoder encoder = micEncoders.computeIfAbsent(sender, k -> api.createEncoder());
         short[] pcm = decode(decoder, opus);
         if (pcm == null) return null;
-        float[] lp = muteLowpassState.computeIfAbsent(sender, k -> new float[1]);
+        float[] lp = muteLowpassState.computeIfAbsent(sender, k -> new float[MUTED_LOWPASS_POLES]);
         com.blinddeafmuted.common.ModConfig cfg = config.get();
         if (megaphone) {
             // Megaphone: a much more open 1-pole low-pass so the voice opens up, then amplified
@@ -148,9 +154,10 @@ final class VoiceFx {
             lowpassCore(pcm, lp, lowpassAlpha(cfg.mutedMegaphoneLowpassHz()));
             saturate(pcm, cfg.mutedMegaphoneVolume(), (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
         } else {
-            // No megaphone: 1-pole "in a box" muffle + very faint — a dull murmur you only catch
-            // point-blank (validated: 300 Hz / 0.05). A Potion of Relief on the speaker eases both
-            // the muffle (cutoff → clear) and the loudness (→ 1.0) by reliefReductionPercent.
+            // No megaphone: a STEEP multi-pole "in a box" muffle so only the bass rumble of the
+            // voice survives — you can tell they're speaking but can't make out words. A Potion of
+            // Relief on the speaker eases both the muffle (cutoff → clear) and the loudness (→ 1.0)
+            // by reliefReductionPercent.
             float lpHz = cfg.mutedLowpassHz();
             float vol = cfg.mutedVolume();
             if (relieved) {
@@ -158,7 +165,10 @@ final class VoiceFx {
                 lpHz = lerp(lpHz, RELIEF_CLEAR_HZ, r);
                 vol = lerp(vol, 1.0f, r);
             }
-            lowpassCore(pcm, lp, lowpassAlpha(lpHz));
+            float alpha = lowpassAlpha(lpHz);
+            for (int stage = 0; stage < MUTED_LOWPASS_POLES; stage++) {
+                lowpassStage(pcm, lp, stage, alpha);
+            }
             scale(pcm, vol);
         }
         return encoder.encode(pcm);
