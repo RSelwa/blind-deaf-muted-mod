@@ -111,7 +111,12 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     public void initialize(VoicechatApi api) {
         // On a server, the api handed to a plugin is the server flavour.
         this.serverApi = (VoicechatServerApi) api;
-        this.fx = new VoiceFx(api, config);
+        // Pass an INDIRECTION, not the current `config` value: SVC may call initialize() before
+        // BlindDeafMutedServer runs bindConfig(), and capturing `config` directly here would freeze
+        // VoiceFx onto the ModConfig.DEFAULT placeholder forever (so live slider edits to the voice
+        // knobs would never take effect). Reading `config.get()` each frame always sees the current
+        // binding, whatever order init happens in.
+        this.fx = new VoiceFx(api, () -> config.get());
     }
 
     @Override
