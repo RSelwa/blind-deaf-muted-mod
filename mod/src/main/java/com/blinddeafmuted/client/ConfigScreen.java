@@ -1,16 +1,17 @@
 package com.blinddeafmuted.client;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.blinddeafmuted.common.ConfigUpdatePayload;
 import com.blinddeafmuted.common.ModConfig;
+
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.text.Text;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Live tuning menu: one slider per {@link ModConfig} knob (blind fog distance, deaf/muted voice
@@ -31,42 +32,60 @@ import java.util.List;
 public final class ConfigScreen extends Screen {
 
     /** How a slider renders its value + the sensible drag range for each knob. */
-    private enum Style { HZ, GAIN, BLOCKS, MINUTES, PERCENT, SECONDS }
+    private enum Style { HZ, GAIN, BLOCKS, MINUTES, PERCENT, SECONDS, HFGAIN }
 
-    private record Spec(int index, float min, float max, Style style, String labelKey) {}
+    /** Tabs — each knob belongs to exactly one, and only the active tab's sliders are shown so the
+     *  grid stays short and readable instead of one giant scroll of everything. */
+    private enum Category {
+        DEAF("config.blind-deaf-muted.cat.deaf"),
+        MUTED("config.blind-deaf-muted.cat.muted"),
+        BLIND("config.blind-deaf-muted.cat.blind"),
+        OTHER("config.blind-deaf-muted.cat.other");
 
-    /** One spec per ModConfig field, in ModConfig.toArray() order. */
+        final String labelKey;
+        Category(String labelKey) { this.labelKey = labelKey; }
+    }
+
+    private record Spec(int index, float min, float max, Style style, String labelKey, Category cat) {}
+
+    /** One spec per (shown) ModConfig field, grouped by tab. Order within a tab = display order. */
     private static final Spec[] SPECS = {
-            new Spec(0, 40f, 1200f, Style.HZ, "config.blind-deaf-muted.deafLowpassHz"),
-            new Spec(1, 0f, 50f, Style.GAIN, "config.blind-deaf-muted.deafVolume"),
-            new Spec(2, 100f, 2000f, Style.HZ, "config.blind-deaf-muted.deafMegaphoneLowpassHz"),
-            new Spec(3, 0f, 50f, Style.GAIN, "config.blind-deaf-muted.deafMegaphoneVolume"),
-            new Spec(4, 20f, 1200f, Style.HZ, "config.blind-deaf-muted.mutedLowpassHz"),
-            new Spec(5, 0f, 50f, Style.GAIN, "config.blind-deaf-muted.mutedVolume"),
-            new Spec(6, 40f, 1200f, Style.HZ, "config.blind-deaf-muted.mutedMegaphoneLowpassHz"),
-            new Spec(7, 0f, 50f, Style.GAIN, "config.blind-deaf-muted.mutedMegaphoneVolume"),
-            new Spec(8, 0.5f, 20f, Style.BLOCKS, "config.blind-deaf-muted.blindFogHardEnd"),
-            new Spec(9, 1f, 40f, Style.BLOCKS, "config.blind-deaf-muted.blindFogMediumEnd"),
-            // (deafEnvVolume, config index 10, is intentionally NOT shown: the deaf WORLD loudness
-            //  now reuses the deafVolume knob above, so a separate env-volume slider was redundant.)
-            new Spec(11, 0.5f, 30f, Style.MINUTES, "config.blind-deaf-muted.eventMinMinutes"),
-            new Spec(12, 0.5f, 60f, Style.MINUTES, "config.blind-deaf-muted.eventMaxMinutes"),
-            new Spec(13, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.randomizerChestChance"),
-            new Spec(14, 1f, 30f, Style.SECONDS, "config.blind-deaf-muted.megaphoneBurstSeconds"),
-            new Spec(15, 5f, 600f, Style.SECONDS, "config.blind-deaf-muted.megaphoneCooldownSeconds"),
-            new Spec(16, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.reliefReductionPercent"),
-            new Spec(17, 1f, 32f, Style.BLOCKS, "config.blind-deaf-muted.reliefRangeBlocks"),
-            new Spec(18, 5f, 300f, Style.SECONDS, "config.blind-deaf-muted.reliefDurationSeconds"),
-            new Spec(19, 0f, 2f, Style.GAIN, "config.blind-deaf-muted.myopiaBlurStrength"),
-            new Spec(20, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.myopiaDarkness"),
-            new Spec(21, 4f, 64f, Style.BLOCKS, "config.blind-deaf-muted.deafHearingRange"),
-            new Spec(22, 20f, 1200f, Style.HZ, "config.blind-deaf-muted.deafWorldLowpassHz"),
-            new Spec(23, 0f, 2f, Style.GAIN, "config.blind-deaf-muted.deafWorldVolume"),
+            // ---- DEAF: how a deaf player hears voices (0-3) + the game world (10, 21-23) ----
+            new Spec(0, 40f, 1200f, Style.HZ, "config.blind-deaf-muted.deafLowpassHz", Category.DEAF),
+            new Spec(1, 0f, 50f, Style.GAIN, "config.blind-deaf-muted.deafVolume", Category.DEAF),
+            new Spec(2, 100f, 2000f, Style.HZ, "config.blind-deaf-muted.deafMegaphoneLowpassHz", Category.DEAF),
+            new Spec(3, 0f, 50f, Style.GAIN, "config.blind-deaf-muted.deafMegaphoneVolume", Category.DEAF),
+            new Spec(10, 0f, 8f, Style.GAIN, "config.blind-deaf-muted.deafEnvVolume", Category.DEAF),
+            new Spec(21, 0.000000000001f, 0.02f, Style.HFGAIN, "config.blind-deaf-muted.deafMuffleGainHf", Category.DEAF),
+            new Spec(22, 0f, 1f, Style.GAIN, "config.blind-deaf-muted.deafMuffleGain", Category.DEAF),
+            new Spec(23, 2f, 64f, Style.BLOCKS, "config.blind-deaf-muted.deafMuffleRange", Category.DEAF),
+            // ---- MUTED: how a muted speaker's mic sounds (4-7) ----
+            new Spec(4, 20f, 1200f, Style.HZ, "config.blind-deaf-muted.mutedLowpassHz", Category.MUTED),
+            new Spec(5, 0f, 50f, Style.GAIN, "config.blind-deaf-muted.mutedVolume", Category.MUTED),
+            new Spec(6, 40f, 1200f, Style.HZ, "config.blind-deaf-muted.mutedMegaphoneLowpassHz", Category.MUTED),
+            new Spec(7, 0f, 50f, Style.GAIN, "config.blind-deaf-muted.mutedMegaphoneVolume", Category.MUTED),
+            // ---- BLIND: myopia post-effect (19-20). Fog knobs 8-9 stay hidden (no live effect). ----
+            new Spec(19, 0f, 2f, Style.GAIN, "config.blind-deaf-muted.myopiaBlurStrength", Category.BLIND),
+            new Spec(20, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.myopiaDarkness", Category.BLIND),
+            // ---- OTHER: events, randomizer, megaphone timing, relief potion ----
+            new Spec(11, 0.5f, 30f, Style.MINUTES, "config.blind-deaf-muted.eventMinMinutes", Category.OTHER),
+            new Spec(12, 0.5f, 60f, Style.MINUTES, "config.blind-deaf-muted.eventMaxMinutes", Category.OTHER),
+            new Spec(13, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.randomizerChestChance", Category.OTHER),
+            new Spec(14, 1f, 30f, Style.SECONDS, "config.blind-deaf-muted.megaphoneBurstSeconds", Category.OTHER),
+            new Spec(15, 5f, 600f, Style.SECONDS, "config.blind-deaf-muted.megaphoneCooldownSeconds", Category.OTHER),
+            new Spec(16, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.reliefReductionPercent", Category.OTHER),
+            new Spec(17, 1f, 32f, Style.BLOCKS, "config.blind-deaf-muted.reliefRangeBlocks", Category.OTHER),
+            new Spec(18, 5f, 300f, Style.SECONDS, "config.blind-deaf-muted.reliefDurationSeconds", Category.OTHER),
     };
 
     /** Working copy edited by the sliders; rebuilt into a ModConfig on each send. */
     private final float[] working = ClientConfigState.get().toArray();
     private final List<ParamSlider> sliders = new ArrayList<>();
+
+    /** Which tab is showing. Kept across init() calls (resize / tab switch) so the view is stable. */
+    private Category activeCategory = Category.DEAF;
+    /** Tab buttons, rebuilt each init(); rendered + click-routed manually like the other widgets. */
+    private final List<ButtonWidget> tabButtons = new ArrayList<>();
 
     // Scroll state — the knob grid can be taller than the window (small screen / big GUI scale),
     // so it lives in a clipped, scrollable viewport while the Reset/Done buttons stay pinned.
@@ -86,15 +105,39 @@ public final class ConfigScreen extends Screen {
     @Override
     protected void init() {
         sliders.clear();
-        int visible = SPECS.length;
-        int rows = (visible + 1) / 2;     // 2 columns; left gets the extra on an odd count
-        int sliderW = 150, sliderH = 20, gapY = 22, topY = 30;
+        tabButtons.clear();
+
+        // ---- Tab row across the top: one button per category, active tab shown greyed (disabled) ----
+        int tabW = 96, tabH = 20, tabGap = 4;
+        Category[] cats = Category.values();
+        int totalW = cats.length * tabW + (cats.length - 1) * tabGap;
+        int tabX = this.width / 2 - totalW / 2;
+        int tabY = 30;
+        for (Category cat : cats) {
+            ButtonWidget tab = ButtonWidget.builder(Text.translatable(cat.labelKey), b -> {
+                if (activeCategory != cat) {
+                    activeCategory = cat;
+                    scrollY = 0;
+                    clearAndInit(); // rebuild the screen for the new tab
+                }
+            }).dimensions(tabX, tabY, tabW, tabH).build();
+            tab.active = (cat != activeCategory); // the active tab is disabled → reads as "selected"
+            addDrawableChild(tab);   // for click routing (via super.mouseClicked)
+            tabButtons.add(tab);     // for manual rendering (this screen doesn't call super.render)
+            tabX += tabW + tabGap;
+        }
+
+        // ---- Sliders for the active tab only ----
+        int sliderW = 150, sliderH = 20, gapY = 22, topY = 58;
         int leftX = this.width / 2 - sliderW - 5;
         int rightX = this.width / 2 + 5;
 
-        // Position by DISPLAY order (not config index), so a hidden config field leaves no gap.
+        List<Spec> shown = new ArrayList<>();
+        for (Spec s : SPECS) if (s.cat() == activeCategory) shown.add(s);
+        int rows = Math.max(1, (shown.size() + 1) / 2); // 2 columns; left gets the extra on an odd count
+
         int i = 0;
-        for (Spec spec : SPECS) {
+        for (Spec spec : shown) {
             int col = i / rows;
             int x = (col == 0) ? leftX : rightX;
             int baseY = topY + (i % rows) * gapY;
@@ -117,7 +160,7 @@ public final class ConfigScreen extends Screen {
         addDrawableChild(resetButton);
         addDrawableChild(doneButton);
 
-        // The scrollable viewport sits between the title and the buttons.
+        // The scrollable viewport sits between the tab row and the buttons.
         viewportTop = topY - 4;
         viewportBottom = buttonsY - 6;
         int contentBottom = topY + (rows - 1) * gapY + sliderH;
@@ -167,6 +210,9 @@ public final class ConfigScreen extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         this.renderBackground(context, mouseX, mouseY, delta);
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 14, 0xFFFFFF);
+
+        // Tab row (above the clipped viewport, always visible).
+        for (ButtonWidget tab : tabButtons) tab.render(context, mouseX, mouseY, delta);
 
         // Clip the sliders to the viewport so scrolled-out rows don't bleed over the title/buttons.
         context.enableScissor(0, viewportTop, this.width, viewportBottom);
@@ -316,6 +362,7 @@ public final class ConfigScreen extends Screen {
             case MINUTES -> String.format("%.1f", v) + " min";
             case PERCENT -> Math.round(v * 100f) + "%";
             case SECONDS -> Math.round(v) + " s";
+            case HFGAIN -> String.format("%.2f%%", v * 100f);
         };
     }
 }
