@@ -457,7 +457,7 @@ no-comments rule.
     holding their cane (the bug that prompted this). Still stepped (pipeline uniforms are baked
     per-JSON), not scaled by `reliefReductionPercent`.
 - **Config (3 new sliders, `O` menu):** `reliefReductionPercent` (PERCENT, 0.75), `reliefRangeBlocks`
-  (BLOCKS, 8), `reliefDurationSeconds` (SECONDS, 30). Grid now 19 knobs / 10 rows × 2 cols. Protocol
+  (BLOCKS, 8), `reliefDurationSeconds` (SECONDS, 120). Grid now 19 knobs / 10 rows × 2 cols. Protocol
   bumped **v10**. Fresh-config caveat applies (existing json keeps old values; new keys default in).
 - Texture `textures/item/relief_potion.png` (generated aqua bottle, repaintable) + item/model defs +
   lang en/fr (`item…relief_potion`, `msg…relief_active`, `config…relief*`).
