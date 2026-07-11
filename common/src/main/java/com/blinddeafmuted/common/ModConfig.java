@@ -57,7 +57,9 @@ public record ModConfig(
         //      LIGHT = the full base, harsher presets a fixed proportional fraction of it) ----
         float deafMuffleGainHf,
         float deafMuffleGain,
-        float deafMuffleRange) {
+        float deafMuffleRange,
+        // ---- deaf relief tinnitus (client-only; looped ear-ringing while a DEAF player is relieved) ----
+        float deafReliefTinnitusVolume) {
 
     /** Factory defaults. The DEAF/MUTED voice values are the ones validated with the client in
      *  the {@code feat-muffle-effect} PR (deaf = 3-pole "through a wall" muffle @210 Hz kept
@@ -67,14 +69,31 @@ public record ModConfig(
      *  {@code config/blind-deaf-muted.json} keeps its saved values (reset in the in-game menu
      *  or delete the file to pick these up). */
     public static final ModConfig DEFAULT = new ModConfig(
-            210f, 1.1f, 3000f, 1.1f,
-            200f, 2.0f, 1800f, 1.1f,
-            2.0f, 7.0f, 1.0f,
-            3.0f, 8.0f, 0.55f,
-            5.0f, 120.0f,
-            0.75f, 8.0f, 30.0f,
-            1.0f, 0.15f,
-            0.0015f, 1.0f, 10.0f);
+            /* deafLowpassHz            */ 64f,
+            /* deafVolume               */ 17f,
+            /* deafMegaphoneLowpassHz   */ 3000f,
+            /* deafMegaphoneVolume      */ 1.1f,
+            /* mutedLowpassHz           */ 100f,
+            /* mutedVolume              */ 30.0f,
+            /* mutedMegaphoneLowpassHz  */ 1800f,
+            /* mutedMegaphoneVolume     */ 1.1f,
+            /* blindFogHardEnd          */ 2.0f,
+            /* blindFogMediumEnd        */ 7.0f,
+            /* deafEnvVolume            */ 1.0f,
+            /* eventMinMinutes          */ 3.0f,
+            /* eventMaxMinutes          */ 8.0f,
+            /* randomizerChestChance    */ 0.55f,
+            /* megaphoneBurstSeconds    */ 5.0f,
+            /* megaphoneCooldownSeconds */ 120.0f,
+            /* reliefReductionPercent   */ 0.75f,
+            /* reliefRangeBlocks        */ 8.0f,
+            /* reliefDurationSeconds    */ 30.0f,
+            /* myopiaBlurStrength       */ 2.0f,
+            /* myopiaDarkness           */ 0.12f,
+            /* deafMuffleGainHf         */ 0.0015f,
+            /* deafMuffleGain           */ 1.0f,
+            /* deafMuffleRange          */ 10.0f,
+            /* deafReliefTinnitusVolume */ 0.06f);
 
     public static final PacketCodec<PacketByteBuf, ModConfig> CODEC = PacketCodec.of(
             ModConfig::write, ModConfig::read);
@@ -104,6 +123,7 @@ public record ModConfig(
         buf.writeFloat(c.deafMuffleGainHf);
         buf.writeFloat(c.deafMuffleGain);
         buf.writeFloat(c.deafMuffleRange);
+        buf.writeFloat(c.deafReliefTinnitusVolume);
     }
 
     private static ModConfig read(PacketByteBuf buf) {
@@ -115,11 +135,12 @@ public record ModConfig(
                 buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(),
-                buf.readFloat(), buf.readFloat(), buf.readFloat());
+                buf.readFloat(), buf.readFloat(), buf.readFloat(),
+                buf.readFloat());
     }
 
     /** Number of tunable fields — the length of {@link #toArray()}. */
-    public static final int FIELD_COUNT = 24;
+    public static final int FIELD_COUNT = 25;
 
     /** Flatten to a float[] in declaration order. The slider menu edits this array in place and
      *  rebuilds via {@link #fromArray}, so the field↔index mapping lives ONLY here. Keep this,
@@ -133,7 +154,8 @@ public record ModConfig(
                 megaphoneBurstSeconds, megaphoneCooldownSeconds,
                 reliefReductionPercent, reliefRangeBlocks, reliefDurationSeconds,
                 myopiaBlurStrength, myopiaDarkness,
-                deafMuffleGainHf, deafMuffleGain, deafMuffleRange};
+                deafMuffleGainHf, deafMuffleGain, deafMuffleRange,
+                deafReliefTinnitusVolume};
     }
 
     /** Inverse of {@link #toArray()}. */
@@ -146,6 +168,7 @@ public record ModConfig(
                 a[14], a[15],
                 a[16], a[17], a[18],
                 a[19], a[20],
-                a[21], a[22], a[23]);
+                a[21], a[22], a[23],
+                a[24]);
     }
 }

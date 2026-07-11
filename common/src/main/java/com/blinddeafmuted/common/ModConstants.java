@@ -37,7 +37,7 @@ public final class ModConstants {
      *  v13: the three dead deaf-WORLD {@link ModConfig} knobs (deafHearingRange /
      *       deafWorldLowpassHz / deafWorldVolume) became the live DeafMuffle base trio
      *       (deafMuffleGainHf / deafMuffleGain / deafMuffleRange) — same wire size, new meaning. */
-    public static final int PROTOCOL_VERSION = 13;
+    public static final int PROTOCOL_VERSION = 14;
 
     /** Helper to build identifiers under our namespace. */
     public static Identifier id(String path) {

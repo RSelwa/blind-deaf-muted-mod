@@ -103,6 +103,7 @@ public class BlindDeafMutedClient implements ClientModInitializer {
         ReliefNauseaController.register(); // relief's downside for BLIND: nausea wobble (visual only)
         DeafHandler.register();   // deaf muffle-intensity cycle keybind (H)
         DeafListenerGain.register(); // deaf world-loudness boost on the listener gain (deafEnvVolume)
+        DeafReliefTinnitus.register(); // relief's downside for DEAF: looping tinnitus (self only)
         MuteHandler.register();   // blocks outgoing chat
         TrackerHud.register();    // teammate tracker keybind (HUD draw is in InGameHudMixin)
         RosterHud.register();     // who-is-what leaderboard keybind (HUD draw is in InGameHudMixin)

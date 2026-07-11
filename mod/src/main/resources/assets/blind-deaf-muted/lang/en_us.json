@@ -38,6 +38,7 @@
   "config.blind-deaf-muted.deafMuffleGain": "Deaf filter: level",
   "config.blind-deaf-muted.deafEnvVolume": "Deaf world volume",
   "config.blind-deaf-muted.deafMuffleRange": "Deaf muffle: range",
+  "config.blind-deaf-muted.deafReliefTinnitusVolume": "Deaf relief: tinnitus volume",
 
   "item.blind-deaf-muted.randomizer": "Randomizer",
   "item.blind-deaf-muted.megaphone": "Megaphone",
@@ -82,5 +83,6 @@
   "state.blind-deaf-muted.on": "ON",
   "state.blind-deaf-muted.off": "OFF",
 
-  "subtitles.blind-deaf-muted.muted_relief_noise": "Relieved gut noises"
+  "subtitles.blind-deaf-muted.muted_relief_noise": "Relieved gut noises",
+  "subtitles.blind-deaf-muted.deaf_relief_tinnitus": "Ringing in the ears"
 }
