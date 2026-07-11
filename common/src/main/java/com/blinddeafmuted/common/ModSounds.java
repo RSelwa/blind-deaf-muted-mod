@@ -22,6 +22,12 @@ public final class ModSounds {
      *  pick per play (see sounds.json). Assigned in {@link #register()}. */
     public static SoundEvent MUTED_RELIEF_NOISE;
 
+    /** The relieved-DEAF tinnitus (ear-ringing) sound — looped in the local deaf
+     *  player's own ears while they're under a Potion of Relief (relief's downside for
+     *  DEAF, the mirror of the BLIND player's nausea wobble). Played client-side to
+     *  self only (see {@code DeafReliefTinnitus}). Assigned in {@link #register()}. */
+    public static SoundEvent DEAF_RELIEF_TINNITUS;
+
     public static void register() {
         // Idempotent, same as ModItems: reachable from more than one entrypoint on a
         // physical client; registering twice would throw.
@@ -29,5 +35,8 @@ public final class ModSounds {
         MUTED_RELIEF_NOISE = Registry.register(Registries.SOUND_EVENT,
                 ModConstants.id("muted_relief_noise"),
                 SoundEvent.of(ModConstants.id("muted_relief_noise")));
+        DEAF_RELIEF_TINNITUS = Registry.register(Registries.SOUND_EVENT,
+                ModConstants.id("deaf_relief_tinnitus"),
+                SoundEvent.of(ModConstants.id("deaf_relief_tinnitus")));
     }
 }

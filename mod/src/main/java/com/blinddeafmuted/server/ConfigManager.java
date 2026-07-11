@@ -85,7 +85,8 @@ public final class ConfigManager {
                     f(o, "myopiaDarkness", d.myopiaDarkness()),
                     f(o, "deafMuffleGainHf", d.deafMuffleGainHf()),
                     f(o, "deafMuffleGain", d.deafMuffleGain()),
-                    f(o, "deafMuffleRange", d.deafMuffleRange()));
+                    f(o, "deafMuffleRange", d.deafMuffleRange()),
+                    f(o, "deafReliefTinnitusVolume", d.deafReliefTinnitusVolume()));
         } catch (IOException | RuntimeException e) {
             BlindDeafMutedServer.LOGGER.warn("Failed to read {} — using defaults ({})",
                     FILE, e.toString());
@@ -119,6 +120,7 @@ public final class ConfigManager {
         o.addProperty("deafMuffleGainHf", c.deafMuffleGainHf());
         o.addProperty("deafMuffleGain", c.deafMuffleGain());
         o.addProperty("deafMuffleRange", c.deafMuffleRange());
+        o.addProperty("deafReliefTinnitusVolume", c.deafReliefTinnitusVolume());
         try {
             Files.createDirectories(FILE.getParent());
             Files.writeString(FILE, GSON.toJson(o));

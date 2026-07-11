@@ -38,6 +38,7 @@
   "config.blind-deaf-muted.deafMuffleGain": "Sourd : niveau filtre",
   "config.blind-deaf-muted.deafEnvVolume": "Sourd : volume monde",
   "config.blind-deaf-muted.deafMuffleRange": "Sourd : portée",
+  "config.blind-deaf-muted.deafReliefTinnitusVolume": "Soulagement sourd : volume acouphène",
 
   "item.blind-deaf-muted.randomizer": "Randomiseur",
   "item.blind-deaf-muted.megaphone": "Mégaphone",
@@ -82,5 +83,6 @@
   "state.blind-deaf-muted.on": "ACTIVÉ",
   "state.blind-deaf-muted.off": "DÉSACTIVÉ",
 
-  "subtitles.blind-deaf-muted.muted_relief_noise": "Bruits de soulagement"
+  "subtitles.blind-deaf-muted.muted_relief_noise": "Bruits de soulagement",
+  "subtitles.blind-deaf-muted.deaf_relief_tinnitus": "Acouphène"
 }

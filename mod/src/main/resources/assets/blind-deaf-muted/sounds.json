@@ -17,5 +17,11 @@
       { "name": "blind-deaf-muted:muted_relief/rot-aaah", "weight": 4 },
       { "name": "blind-deaf-muted:muted_relief/rot-hulk", "weight": 2 }
     ]
+  },
+  "deaf_relief_tinnitus": {
+    "subtitle": "subtitles.blind-deaf-muted.deaf_relief_tinnitus",
+    "sounds": [
+      { "name": "blind-deaf-muted:deaf_relief/acouphene", "stream": false }
+    ]
   }
 }
