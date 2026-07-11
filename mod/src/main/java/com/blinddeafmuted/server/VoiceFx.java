@@ -126,8 +126,12 @@ final class VoiceFx {
 
     /** One decoder per (receiver,sender) stream, for the deaf rebuild path. */
     private final Map<String, OpusDecoder> deafDecoders = new ConcurrentHashMap<>();
-    /** One encoder per receiver, for the deaf rebuild path. */
-    private final Map<UUID, OpusEncoder> deafEncoders = new ConcurrentHashMap<>();
+    /** One encoder per (receiver,sender) stream, for the deaf rebuild path. MUST be per
+     *  stream, not per receiver: Opus encoders are stateful, and with 3+ players two
+     *  simultaneous speakers heard by one deaf listener would interleave their frames
+     *  through a shared encoder — corrupting its prediction state every switch and
+     *  producing crackle/saturation (the playtest "grésille à 3+" bug). */
+    private final Map<String, OpusEncoder> deafEncoders = new ConcurrentHashMap<>();
     /** Per-(receiver,sender) low-pass memory for the DEAF muffle: {@link #DEAF_LOWPASS_POLES}
      *  slots for the cascaded "through a wall" muffle (slot 0 is also reused by the lighter
      *  deaf+megaphone low-pass). Continuous across frames. */
@@ -135,8 +139,9 @@ final class VoiceFx {
 
     /** One decoder per (receiver,sender) stream, for the non-deaf bystander bullhorn path. */
     private final Map<String, OpusDecoder> bystanderDecoders = new ConcurrentHashMap<>();
-    /** One encoder per receiver, for the non-deaf bystander bullhorn path. */
-    private final Map<UUID, OpusEncoder> bystanderEncoders = new ConcurrentHashMap<>();
+    /** One encoder per (receiver,sender) stream, for the non-deaf bystander bullhorn path
+     *  (per stream for the same reason as {@link #deafEncoders}). */
+    private final Map<String, OpusEncoder> bystanderEncoders = new ConcurrentHashMap<>();
     /** Per-(receiver,sender) band-pass memory (2 slots: HP + LP) for the bullhorn timbre. */
     private final Map<String, float[]> bystanderFilterState = new ConcurrentHashMap<>();
 
@@ -206,7 +211,7 @@ final class VoiceFx {
                    boolean receiverRelieved) {
         String key = receiver + "|" + sender;
         OpusDecoder decoder = deafDecoders.computeIfAbsent(key, k -> api.createDecoder());
-        OpusEncoder encoder = deafEncoders.computeIfAbsent(receiver, k -> api.createEncoder());
+        OpusEncoder encoder = deafEncoders.computeIfAbsent(key, k -> api.createEncoder());
         short[] pcm = decode(decoder, opus);
         if (pcm == null) return null;
         float[] lp = deafLowpassState.computeIfAbsent(key, k -> new float[DEAF_LOWPASS_POLES]);
@@ -250,7 +255,7 @@ final class VoiceFx {
     byte[] forMegaphoneBystander(UUID receiver, UUID sender, byte[] opus) {
         String key = receiver + "|" + sender;
         OpusDecoder decoder = bystanderDecoders.computeIfAbsent(key, k -> api.createDecoder());
-        OpusEncoder encoder = bystanderEncoders.computeIfAbsent(receiver, k -> api.createEncoder());
+        OpusEncoder encoder = bystanderEncoders.computeIfAbsent(key, k -> api.createEncoder());
         short[] pcm = decode(decoder, opus);
         if (pcm == null) return null;
         // Band-pass to the thin honky horn tone, THEN overdrive+clip = comedic bullhorn.
