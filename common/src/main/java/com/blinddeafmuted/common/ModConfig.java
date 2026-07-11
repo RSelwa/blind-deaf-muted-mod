@@ -93,7 +93,7 @@ public record ModConfig(
             /* deafMuffleGainHf         */ 0.0015f,
             /* deafMuffleGain           */ 1.0f,
             /* deafMuffleRange          */ 10.0f,
-            /* deafReliefTinnitusVolume */ 0.06f);
+            /* deafReliefTinnitusVolume */ 0.03f);
 
     public static final PacketCodec<PacketByteBuf, ModConfig> CODEC = PacketCodec.of(
             ModConfig::write, ModConfig::read);
