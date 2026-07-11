@@ -53,10 +53,11 @@ public record ModConfig(
         // ---- myopia blur (client-only) ----
         float myopiaBlurStrength,
         float myopiaDarkness,
-        // ---- deaf WORLD sound (client-only: blocks/mobs/weather/music, NOT voice) ----
-        float deafHearingRange,
-        float deafWorldLowpassHz,
-        float deafWorldVolume) {
+        // ---- deaf WORLD muffle base (client-only; the DeafMuffle H-key presets spread from these:
+        //      LIGHT = the full base, harsher presets a fixed proportional fraction of it) ----
+        float deafMuffleGainHf,
+        float deafMuffleGain,
+        float deafMuffleRange) {
 
     /** Factory defaults. The DEAF/MUTED voice values are the ones validated with the client in
      *  the {@code feat-muffle-effect} PR (deaf = 3-pole "through a wall" muffle @210 Hz kept
@@ -73,7 +74,7 @@ public record ModConfig(
             5.0f, 120.0f,
             0.75f, 8.0f, 30.0f,
             1.0f, 0.15f,
-            40.0f, 120.0f, 0.5f);
+            0.0015f, 1.0f, 10.0f);
 
     public static final PacketCodec<PacketByteBuf, ModConfig> CODEC = PacketCodec.of(
             ModConfig::write, ModConfig::read);
@@ -100,9 +101,9 @@ public record ModConfig(
         buf.writeFloat(c.reliefDurationSeconds);
         buf.writeFloat(c.myopiaBlurStrength);
         buf.writeFloat(c.myopiaDarkness);
-        buf.writeFloat(c.deafHearingRange);
-        buf.writeFloat(c.deafWorldLowpassHz);
-        buf.writeFloat(c.deafWorldVolume);
+        buf.writeFloat(c.deafMuffleGainHf);
+        buf.writeFloat(c.deafMuffleGain);
+        buf.writeFloat(c.deafMuffleRange);
     }
 
     private static ModConfig read(PacketByteBuf buf) {
@@ -120,12 +121,6 @@ public record ModConfig(
     /** Number of tunable fields — the length of {@link #toArray()}. */
     public static final int FIELD_COUNT = 24;
 
-    /** Index into {@link #toArray()} for the deaf hearing-range knob, so the H-key preset
-     *  cycler ({@code DeafHandler}) can set it without hard-coding a raw number. */
-    public static final int IDX_DEAF_HEARING_RANGE = 21;
-    /** Index of the deaf WORLD low-pass cutoff, so the H-key preset cycler can set it too. */
-    public static final int IDX_DEAF_WORLD_LOWPASS_HZ = 22;
-
     /** Flatten to a float[] in declaration order. The slider menu edits this array in place and
      *  rebuilds via {@link #fromArray}, so the field↔index mapping lives ONLY here. Keep this,
      *  {@link #fromArray} and the record in lockstep when adding a field. */
@@ -138,7 +133,7 @@ public record ModConfig(
                 megaphoneBurstSeconds, megaphoneCooldownSeconds,
                 reliefReductionPercent, reliefRangeBlocks, reliefDurationSeconds,
                 myopiaBlurStrength, myopiaDarkness,
-                deafHearingRange, deafWorldLowpassHz, deafWorldVolume};
+                deafMuffleGainHf, deafMuffleGain, deafMuffleRange};
     }
 
     /** Inverse of {@link #toArray()}. */

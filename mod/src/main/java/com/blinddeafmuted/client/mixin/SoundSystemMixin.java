@@ -1,19 +1,20 @@
 package com.blinddeafmuted.client.mixin;
 
-import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import com.blinddeafmuted.client.ClientConfigState;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+
 import com.blinddeafmuted.client.DeafMuffle;
 import com.blinddeafmuted.client.DeafState;
 import com.blinddeafmuted.client.ReliefState;
 import com.blinddeafmuted.client.RoleState;
 import com.blinddeafmuted.common.Role;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.client.sound.SoundSystem;
 import net.minecraft.util.math.MathHelper;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
 
 /**
  * DEAF effect on Minecraft's OWN audio (blocks, mobs, weather, music, footsteps — NOT
@@ -47,9 +48,12 @@ public class SoundSystemMixin {
         // A Potion of Relief eases the deafness: rem=1 → full effect, rem→0 → back to normal.
         float rem = ReliefState.disabilityRemaining();
 
-        // Ambient loudness trim (1.0 = none) is live-tunable from the slider menu; relief lerps it
-        // back toward 1.0 (no trim).
-        float v = original * MathHelper.lerp(rem, 1.0f, ClientConfigState.get().deafEnvVolume());
+        // NOTE: overall deaf-world LOUDNESS (the deafEnvVolume knob, incl. amplification >1) is NOT
+        // applied here — a per-source AL_GAIN can't exceed 1.0 (OpenAL clamps it to AL_MAX_GAIN,
+        // which itself maxes at 1.0), so a boost here would be silently capped. It's applied on the
+        // listener gain instead (see DeafListenerGain + SoundListenerMixin), which IS uncapped.
+        // Here we only do the distance (hearing-range) cap.
+        float v = original;
 
         // Distance cap: only for positional (attenuated) sounds — global UI/music have no
         // position, leave them. Fade from full at half-range to silent at full range.
