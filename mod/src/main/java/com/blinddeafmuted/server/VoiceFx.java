@@ -71,6 +71,13 @@ final class VoiceFx {
      *  controls how far toward this + toward full volume the muffle is eased. */
     private static final float RELIEF_CLEAR_HZ = 4000f;
 
+    /** MUTED gets a weaker relief than DEAF (playtest: a relieved muted speaker was too
+     *  intelligible/loud). Their lerp targets are capped lower: semi-open cutoff instead of
+     *  clear, and at most 0.4× volume — relieved muted is "hard to understand but possible",
+     *  never clear speech. */
+    private static final float MUTED_RELIEF_CLEAR_HZ = 1500f;
+    private static final float MUTED_RELIEF_MAX_VOLUME = 0.4f;
+
     /** Volume multiplier on a relieved MUTED speaker's voice while one of their gut
      *  noises ({@code MutedReliefNoise}) is playing — the voice drops under the noise
      *  so the fart/burp interrupts the speech instead of layering under it. */
@@ -172,8 +179,8 @@ final class VoiceFx {
             float vol = cfg.mutedVolume();
             if (relieved) {
                 float r = cfg.reliefReductionPercent();
-                lpHz = lerp(lpHz, RELIEF_CLEAR_HZ, r);
-                vol = lerp(vol, 1.0f, r);
+                lpHz = lerp(lpHz, MUTED_RELIEF_CLEAR_HZ, r);
+                vol = lerp(vol, MUTED_RELIEF_MAX_VOLUME, r);
             }
             if (ducked) vol *= RELIEF_NOISE_DUCK;
             float alpha = lowpassAlpha(lpHz);
