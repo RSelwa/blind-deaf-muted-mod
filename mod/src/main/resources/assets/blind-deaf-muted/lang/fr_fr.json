@@ -80,5 +80,7 @@
   "hud.blind-deaf-muted.dim.overworld": "Surface",
 
   "state.blind-deaf-muted.on": "ACTIVÉ",
-  "state.blind-deaf-muted.off": "DÉSACTIVÉ"
+  "state.blind-deaf-muted.off": "DÉSACTIVÉ",
+
+  "subtitles.blind-deaf-muted.muted_relief_noise": "Bruits de soulagement"
 }

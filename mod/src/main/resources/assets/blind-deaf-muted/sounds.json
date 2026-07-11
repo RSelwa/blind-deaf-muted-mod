@@ -1,0 +1,21 @@
+{
+  "muted_relief_noise": {
+    "subtitle": "subtitles.blind-deaf-muted.muted_relief_noise",
+    "sounds": [
+      { "name": "blind-deaf-muted:muted_relief/pet1", "weight": 10 },
+      { "name": "blind-deaf-muted:muted_relief/pet2", "weight": 10 },
+      { "name": "blind-deaf-muted:muted_relief/pet-court", "weight": 10 },
+      { "name": "blind-deaf-muted:muted_relief/long-rot", "weight": 10 },
+      { "name": "blind-deaf-muted:muted_relief/rot-long", "weight": 10 },
+      { "name": "blind-deaf-muted:muted_relief/wankil-compilation", "weight": 10 },
+      { "name": "blind-deaf-muted:muted_relief/rot-laink", "weight": 8 },
+      { "name": "blind-deaf-muted:muted_relief/rot-douleur", "weight": 8 },
+      { "name": "blind-deaf-muted:muted_relief/pet-echo", "weight": 4 },
+      { "name": "blind-deaf-muted:muted_relief/pet-triple", "weight": 4 },
+      { "name": "blind-deaf-muted:muted_relief/rot-pardon", "weight": 4 },
+      { "name": "blind-deaf-muted:muted_relief/rot-bah-putain", "weight": 4 },
+      { "name": "blind-deaf-muted:muted_relief/rot-aaah", "weight": 4 },
+      { "name": "blind-deaf-muted:muted_relief/rot-hulk", "weight": 2 }
+    ]
+  }
+}

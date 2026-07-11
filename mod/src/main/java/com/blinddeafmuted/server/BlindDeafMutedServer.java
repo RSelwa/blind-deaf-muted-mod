@@ -11,6 +11,7 @@ import com.blinddeafmuted.common.ModConstants;
 import com.blinddeafmuted.common.ModEffects;
 import com.blinddeafmuted.common.ModEntities;
 import com.blinddeafmuted.common.ModItems;
+import com.blinddeafmuted.common.ModSounds;
 import com.blinddeafmuted.common.RandomizerBottleEntity;
 import com.blinddeafmuted.common.ReliefPotionEntity;
 import com.blinddeafmuted.common.RolePayload;
@@ -87,6 +88,9 @@ public class BlindDeafMutedServer implements ModInitializer {
     /** Who is currently under a Potion of Relief (disability temporarily reduced). */
     private final ReliefManager reliefManager = new ReliefManager();
 
+    /** Relieved-MUTED gut noises: scheduled off mic packets, fired on the server tick. */
+    private final MutedReliefNoise mutedReliefNoise = new MutedReliefNoise(roleManager, reliefManager);
+
     /** Push teammate positions every N server ticks (20 ticks = 1s). 4/sec is smooth
      *  for a direction arrow without being chatty. */
     private static final int TRACKER_INTERVAL_TICKS = 5;
@@ -157,6 +161,7 @@ public class BlindDeafMutedServer implements ModInitializer {
         ModEntities.register();
         ModComponents.register();
         ModEffects.register();
+        ModSounds.register();
 
         // Tell the networking layer our payloads exist (must also be done client-side).
         PayloadTypeRegistry.playS2C().register(RolePayload.ID, RolePayload.CODEC);
@@ -331,6 +336,7 @@ public class BlindDeafMutedServer implements ModInitializer {
             BlindDeafMutedVoicechatPlugin.bindRelief(reliefManager);
             // VoiceFx reads the live audio tunables off this supplier each frame.
             BlindDeafMutedVoicechatPlugin.bindConfig(configManager::get);
+            BlindDeafMutedVoicechatPlugin.bindReliefNoise(mutedReliefNoise);
         }
 
         // Drop a leaver's megaphone + card-brandish flags so a disconnect can't leave them stuck.
@@ -339,6 +345,7 @@ public class BlindDeafMutedServer implements ModInitializer {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             megaphoneState.clear(handler.getPlayer().getUuid());
             cardBrandishState.clear(handler.getPlayer().getUuid());
+            mutedReliefNoise.clear(handler.getPlayer().getUuid());
         });
 
         // A few times per second, send every player the positions of all the others,
@@ -350,6 +357,9 @@ public class BlindDeafMutedServer implements ModInitializer {
         // so the SVC audio threads can read it lock-free (see ReliefManager).
         ServerTickEvents.END_SERVER_TICK.register(server ->
                 reliefManager.refresh(server.getPlayerManager().getPlayerList()));
+
+        // Fire any gut noises whose ~1s post-talk delay has elapsed (relieved MUTED players).
+        ServerTickEvents.END_SERVER_TICK.register(mutedReliefNoise::tick);
 
         // Once per second, send everyone the full who-is-what roster for the
         // leaderboard HUD. The list is identical for every recipient, so it's built

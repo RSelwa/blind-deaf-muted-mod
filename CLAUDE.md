@@ -476,6 +476,33 @@ no-comments rule.
 - Texture `textures/item/relief_potion.png` (generated aqua bottle, repaintable) + item/model defs +
   lang en/fr (`item…relief_potion`, `msg…relief_active`, `config…relief*`).
 
+### Recent additions (relieved-muted gut noises)
+
+- **Fart/burp on relieved MUTED talk (interval mode):** while a MUTED player under a
+  Potion of Relief talks, a random gut noise fires every ~3.5 s (was 1–1.2 s — spammed) at
+  their position for as long as they keep talking (a long phrase = steady comedy track),
+  stopping within one interval of going quiet. Mechanic: any mic packet arms the next deadline via
+  `putIfAbsent`; firing empties the slot; the next 20 ms mic packet re-arms it.
+- **Voice duck under each noise:** for `DUCK_MS` (1 s) after each fire the speaker's voice
+  drops to `RELIEF_NOISE_DUCK` (0.15×, constant in `VoiceFx`) so the noise interrupts the
+  speech instead of layering under it (`MutedReliefNoise.isDucked` read per mic frame →
+  `VoiceFx.distort(..., ducked)`, applied on both megaphone/no-megaphone paths). Window is
+  fixed: the actual clip length is unknowable server-side — the weighted random file pick
+  happens on EACH CLIENT (so two listeners may even hear different files; accepted quirk).
+- **Files:** `common/ModSounds.java` (`muted_relief_noise` SoundEvent, registered from
+  `main` like items/effects) + `server/MutedReliefNoise.java` (scheduler) + hooks in
+  `BlindDeafMutedVoicechatPlugin.onMicrophone` (schedule, SVC audio thread) and a
+  `END_SERVER_TICK` in `BlindDeafMutedServer` (fire — same thread split as `ReliefManager`).
+  Role+relief re-checked at fire time (relief may expire / role re-roll during the delay).
+  Cleared on disconnect. No protocol change (pure server-side + resource pack).
+- **Sound pool:** 14 mono oggs in `assets/blind-deaf-muted/sounds/muted_relief/` +
+  weighted random pick in `sounds.json` (weights 10 = short/common, 8 / 4, 2 = the long
+  `rot-hulk`; user tunes weights by editing `sounds.json` only, no code). Files were
+  converted stereo→mono (`ffmpeg -ac 1`) — REQUIRED for 3D positional playback; keep new
+  oggs mono + lowercase-ASCII filenames. Random pitch 0.9–1.1 per play. Subtitle key
+  `subtitles.blind-deaf-muted.muted_relief_noise` (en+fr). Constants in
+  `MutedReliefNoise`: `SILENCE_GAP_MS`, `MIN/MAX_DELAY_MS`.
+
 ### Must-verify before first build
 
 - Fabric version strings in `gradle.properties` (minecraft/yarn/loader/fabric-api)
