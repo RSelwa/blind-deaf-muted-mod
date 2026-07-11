@@ -26,31 +26,31 @@ out vec4 fragColor;
 // Distance (in blocks) staying sharp, and where the blur maxes out. Soft (cane) reaches
 // further before blurring — the cane "extends" your usable sight a bit.
 const float SHARP_BLOCKS_R     = 10.0;
-const float SHARP_BLOCKS_S     = 0.55;
+const float SHARP_BLOCKS_S     = 1.55;
 const float SHARP_BLOCKS_H     = 0.20;
 const float FULL_BLUR_BLOCKS_R = 40.0;
-const float FULL_BLUR_BLOCKS_S = 2.4;
+const float FULL_BLUR_BLOCKS_S = 3.4;
 const float FULL_BLUR_BLOCKS_H = 1.0;
 // Max per-axis blur spread, in texels, at full strength. Higher = mushier far field.
 const float MAX_TEXEL_RADIUS_R = 12.0;
-const float MAX_TEXEL_RADIUS_S = 70.0;
+const float MAX_TEXEL_RADIUS_S = 50.0;
 const float MAX_TEXEL_RADIUS_H = 86.0;
 // Vignette radii, aspect-corrected screen units (0 = centre, ~0.5 = screen edge). Soft
 // (cane) clear circle is wider — again, the cane extends how much you can see. Hard (no
 // cane) is now much closer to soft than before, just a step harder. Relief pushes both
 // radii past the screen corner (~0.9 at 16:9) — effectively no vignette.
 const float VIGNETTE_CLEAR_R = 0.95; // inside this radius: fully visible
-const float VIGNETTE_CLEAR_S = 0.55;
+const float VIGNETTE_CLEAR_S = 0.75;
 const float VIGNETTE_CLEAR_H = 0.28;
 const float VIGNETTE_BLACK_R = 1.60; // past this radius: darkest
-const float VIGNETTE_BLACK_S = 0.85;
+const float VIGNETTE_BLACK_S = 0.95;
 const float VIGNETTE_BLACK_H = 0.75;
 // Dark-GRAY haze the far field + surround fade into (was a pure-black vignette). Distant
 // stuff washes into soft dark-gray shapes instead of sharp black silhouettes. Hard mode
 // hazes a little more strongly. Lower HAZE_COLOR = darker gray; higher = lighter.
 const vec3  HAZE_COLOR      = vec3(0.17);
 const float HAZE_STRENGTH_R = 0.12;
-const float HAZE_STRENGTH_S = 0.55;
+const float HAZE_STRENGTH_S = 0.35;
 const float HAZE_STRENGTH_H = 0.80;
 
 // How many taps per side. More = smoother blur, slightly more cost. (Must be const.)
