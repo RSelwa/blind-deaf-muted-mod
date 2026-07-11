@@ -71,6 +71,11 @@ final class VoiceFx {
      *  controls how far toward this + toward full volume the muffle is eased. */
     private static final float RELIEF_CLEAR_HZ = 4000f;
 
+    /** Volume multiplier on a relieved MUTED speaker's voice while one of their gut
+     *  noises ({@code MutedReliefNoise}) is playing — the voice drops under the noise
+     *  so the fart/burp interrupts the speech instead of layering under it. */
+    private static final float RELIEF_NOISE_DUCK = 0.15f;
+
     /** Clip ceiling (fraction of full scale) for the role-enforcement megaphone paths
      *  (deaf-listener + muted-speaker megaphone). Loud peaks saturate a touch for bullhorn bite
      *  without blasting — the validated value. The drive/gain is the per-path megaphone volume
@@ -140,8 +145,11 @@ final class VoiceFx {
      * player can actually be heard at range — no bit-crush garble, no noise. Returns new
      * Opus bytes to put back on the mic packet, or {@code null} if decoding failed (caller
      * falls back to cancel).
+     *
+     * <p>{@code ducked} = one of the speaker's relief gut noises is playing right now;
+     * their voice drops to {@link #RELIEF_NOISE_DUCK} of normal under it (both paths).
      */
-    byte[] distort(UUID sender, byte[] opus, boolean megaphone, boolean relieved) {
+    byte[] distort(UUID sender, byte[] opus, boolean megaphone, boolean relieved, boolean ducked) {
         OpusDecoder decoder = micDecoders.computeIfAbsent(sender, k -> api.createDecoder());
         OpusEncoder encoder = micEncoders.computeIfAbsent(sender, k -> api.createEncoder());
         short[] pcm = decode(decoder, opus);
@@ -152,7 +160,9 @@ final class VoiceFx {
             // Megaphone: a much more open 1-pole low-pass so the voice opens up, then amplified
             // and lightly saturated (bullhorn bite) so a muted player can be heard at range.
             lowpassCore(pcm, lp, lowpassAlpha(cfg.mutedMegaphoneLowpassHz()));
-            saturate(pcm, cfg.mutedMegaphoneVolume(), (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
+            float gain = cfg.mutedMegaphoneVolume();
+            if (ducked) gain *= RELIEF_NOISE_DUCK;
+            saturate(pcm, gain, (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
         } else {
             // No megaphone: a STEEP multi-pole "in a box" muffle so only the bass rumble of the
             // voice survives — you can tell they're speaking but can't make out words. A Potion of
@@ -165,6 +175,7 @@ final class VoiceFx {
                 lpHz = lerp(lpHz, RELIEF_CLEAR_HZ, r);
                 vol = lerp(vol, 1.0f, r);
             }
+            if (ducked) vol *= RELIEF_NOISE_DUCK;
             float alpha = lowpassAlpha(lpHz);
             for (int stage = 0; stage < MUTED_LOWPASS_POLES; stage++) {
                 lowpassStage(pcm, lp, stage, alpha);

@@ -80,5 +80,7 @@
   "hud.blind-deaf-muted.dim.overworld": "Overworld",
 
   "state.blind-deaf-muted.on": "ON",
-  "state.blind-deaf-muted.off": "OFF"
+  "state.blind-deaf-muted.off": "OFF",
+
+  "subtitles.blind-deaf-muted.muted_relief_noise": "Relieved gut noises"
 }

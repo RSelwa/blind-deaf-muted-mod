@@ -68,6 +68,9 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     /** Set once at server-mod init: who is currently under a Potion of Relief. */
     private static volatile ReliefManager relief;
 
+    /** Set once at server-mod init: schedules the relieved-muted gut noises. */
+    private static volatile MutedReliefNoise reliefNoise;
+
     /** Live audio tunables, supplied from {@link ConfigManager}. Never null once bound. */
     private static volatile Supplier<ModConfig> config = () -> ModConfig.DEFAULT;
 
@@ -100,6 +103,11 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     /** Wire in the live-config supplier. Called from {@link BlindDeafMutedServer#onInitialize()}. */
     public static void bindConfig(Supplier<ModConfig> supplier) {
         config = supplier;
+    }
+
+    /** Wire in the gut-noise scheduler. Called from {@link BlindDeafMutedServer#onInitialize()}. */
+    public static void bindReliefNoise(MutedReliefNoise noise) {
+        reliefNoise = noise;
     }
 
     @Override
@@ -141,7 +149,16 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         UUID senderId = uuidOf(sender);
         boolean megaphone = megaphoneActive(senderId);
         boolean relieved = reliefActive(senderId); // relief eases the muted speaker's own garble
-        byte[] garbled = fx.distort(senderId, packet.getOpusEncodedData(), megaphone, relieved);
+        // The comedic price of that clarity: while relieved, talking keeps scheduling a
+        // random gut noise every ~1s (server tick plays it — this is an SVC audio thread),
+        // and the voice is ducked low while each noise plays so it interrupts the speech.
+        boolean ducked = false;
+        MutedReliefNoise noise = reliefNoise;
+        if (relieved && noise != null && senderId != null) {
+            noise.onTalk(senderId);
+            ducked = noise.isDucked(senderId);
+        }
+        byte[] garbled = fx.distort(senderId, packet.getOpusEncodedData(), megaphone, relieved, ducked);
         if (garbled != null) {
             packet.setOpusEncodedData(garbled);
         } else {
