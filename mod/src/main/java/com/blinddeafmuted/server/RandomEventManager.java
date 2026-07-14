@@ -27,8 +27,9 @@ public final class RandomEventManager {
     private final ConfigManager config;
     private final Random rng = new Random();
 
-    /** Off by default so it never surprises a normal session until an op opts in. */
-    private volatile boolean enabled = false;
+    private boolean wasEnabled = false;
+
+
 
     /** Ticks remaining until the next re-roll (only counts down while enabled). */
     private int ticksUntilNext;
@@ -39,20 +40,12 @@ public final class RandomEventManager {
         scheduleNext();
     }
 
-    /** Hook the server tick. Inert until {@link #setEnabled} turns it on. */
+    /** Hook the server tick. Inert until enabled in the config. */
     public void register() {
         ServerTickEvents.END_SERVER_TICK.register(this::tick);
     }
 
-    public boolean isEnabled() {
-        return enabled;
-    }
 
-    /** Toggle the engine. Turning it on (re)arms the next-fire timer from now. */
-    public void setEnabled(boolean on) {
-        this.enabled = on;
-        if (on) scheduleNext();
-    }
 
     /** Pick a fresh random delay until the next re-roll, reading the min/max interval live from
      *  the config (minutes → ticks; 20 ticks = 1 s). A slider change applies from the next
@@ -64,7 +57,22 @@ public final class RandomEventManager {
     }
 
     private void tick(MinecraftServer server) {
-        if (!enabled) return;
+        boolean isEnabled = config.get().eventAutoRerollEnabled() > 0.5f;
+        
+        if (isEnabled && !wasEnabled) {
+            scheduleNext();
+        }
+        wasEnabled = isEnabled;
+
+        if (!isEnabled) return;
+
+        // If the user just lowered the max timer in the config, don't leave the current 
+        // delay stranded way above the new max.
+        int currentMaxTicks = (int) (config.get().eventMaxMinutes() * 60f * 20f);
+        if (ticksUntilNext > currentMaxTicks) {
+            scheduleNext();
+        }
+
         List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
         if (players.isEmpty()) return; // don't burn the timer with nobody online
         if (--ticksUntilNext > 0) return;

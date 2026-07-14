@@ -21,6 +21,7 @@
   "config.blind-deaf-muted.blindFogHardEnd": "Brouillard aveugle (fort)",
   "config.blind-deaf-muted.blindFogMediumEnd": "Brouillard aveugle (canne)",
   "config.blind-deaf-muted.deafEnvVolume": "Volume ambiance sourd",
+  "config.blind-deaf-muted.eventAutoRerollEnabled": "Tirage automatique",
   "config.blind-deaf-muted.eventMinMinutes": "Re-tirage auto min",
   "config.blind-deaf-muted.eventMaxMinutes": "Re-tirage auto max",
   "config.blind-deaf-muted.randomizerChestChance": "Chance randomiseur (coffres)",

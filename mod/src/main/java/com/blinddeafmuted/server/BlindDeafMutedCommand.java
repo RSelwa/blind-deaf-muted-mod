@@ -63,10 +63,7 @@ public final class BlindDeafMutedCommand {
                                 .then(literal("off").executes(ctx -> setSkins(ctx, skinVisibility, false)))
                                 .executes(ctx -> skinsStatus(ctx, skinVisibility)))
                         .then(literal("events")
-                                .then(literal("on").executes(ctx -> setEvents(ctx, randomEvents, true)))
-                                .then(literal("off").executes(ctx -> setEvents(ctx, randomEvents, false)))
-                                .then(literal("now").executes(ctx -> fireEventNow(ctx, randomEvents)))
-                                .executes(ctx -> eventsStatus(ctx, randomEvents)))
+                                .then(literal("now").executes(ctx -> fireEventNow(ctx, randomEvents))))
         );
     }
 
@@ -197,26 +194,7 @@ public final class BlindDeafMutedCommand {
         return 1;
     }
 
-    /** Turn the periodic random-events timer on or off. */
-    private static int setEvents(CommandContext<ServerCommandSource> ctx,
-                                 RandomEventManager randomEvents, boolean on) {
-        randomEvents.setEnabled(on);
-        ctx.getSource().sendFeedback(
-                () -> Text.literal("Random events are now " + (on ? "ON" : "OFF") + ".")
-                        .formatted(on ? Formatting.LIGHT_PURPLE : Formatting.GRAY),
-                true);
-        return 1;
-    }
 
-    /** Report whether the random-events timer is currently on. */
-    private static int eventsStatus(CommandContext<ServerCommandSource> ctx,
-                                    RandomEventManager randomEvents) {
-        boolean on = randomEvents.isEnabled();
-        ctx.getSource().sendFeedback(
-                () -> Text.literal("Random events are " + (on ? "ON" : "OFF") + "."),
-                false);
-        return 1;
-    }
 
     /** Force-fire one random event right now (ignores the toggle) — for testing / recording. */
     private static int fireEventNow(CommandContext<ServerCommandSource> ctx,

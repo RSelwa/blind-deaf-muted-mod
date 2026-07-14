@@ -36,6 +36,7 @@ public record ModConfig(
         float blindFogMediumEnd,
         float deafEnvVolume,
         // ---- timers / chances (server) ----
+        float eventAutoRerollEnabled,
         float eventMinMinutes,
         float eventMaxMinutes,
         float randomizerChestChance,
@@ -83,6 +84,7 @@ public record ModConfig(
             /* blindFogHardEnd          */ 2.0f,
             /* blindFogMediumEnd        */ 7.0f,
             /* deafEnvVolume            */ 1.0f,
+            /* eventAutoRerollEnabled   */ 0.0f,
             /* eventMinMinutes          */ 3.0f,
             /* eventMaxMinutes          */ 8.0f,
             /* randomizerChestChance    */ 0.55f,
@@ -117,6 +119,7 @@ public record ModConfig(
         buf.writeFloat(c.blindFogHardEnd);
         buf.writeFloat(c.blindFogMediumEnd);
         buf.writeFloat(c.deafEnvVolume);
+        buf.writeFloat(c.eventAutoRerollEnabled);
         buf.writeFloat(c.eventMinMinutes);
         buf.writeFloat(c.eventMaxMinutes);
         buf.writeFloat(c.randomizerChestChance);
@@ -145,7 +148,7 @@ public record ModConfig(
         return new ModConfig(
                 buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
-                buf.readFloat(), buf.readFloat(), buf.readFloat(),
+                buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(), buf.readFloat(),
@@ -156,7 +159,7 @@ public record ModConfig(
     }
 
     /** Number of tunable fields — the length of {@link #toArray()}. */
-    public static final int FIELD_COUNT = 29;
+    public static final int FIELD_COUNT = 30;
 
     /** Flatten to a float[] in declaration order. The slider menu edits this array in place and
      *  rebuilds via {@link #fromArray}, so the field↔index mapping lives ONLY here. Keep this,
@@ -166,7 +169,7 @@ public record ModConfig(
                 deafLowpassHz, deafVolume,
                 mutedLowpassHz, mutedVolume,
                 blindFogHardEnd, blindFogMediumEnd, deafEnvVolume,
-                eventMinMinutes, eventMaxMinutes, randomizerChestChance,
+                eventAutoRerollEnabled, eventMinMinutes, eventMaxMinutes, randomizerChestChance,
                 megaphoneBurstSeconds, megaphoneCooldownSeconds,
                 reliefRangeBlocks, reliefDurationSeconds,
                 myopiaBlurStrength, myopiaDarkness,
@@ -182,14 +185,14 @@ public record ModConfig(
         return new ModConfig(
                 a[0], a[1], a[2], a[3],
                 a[4], a[5], a[6],
-                a[7], a[8], a[9],
-                a[10], a[11],
-                a[12], a[13],
-                a[14], a[15],
-                a[16], a[17], a[18],
-                a[19], a[20], a[21],
-                a[22], a[23], a[24],
-                a[25], a[26], a[27],
-                a[28]);
+                a[7], a[8], a[9], a[10],
+                a[11], a[12],
+                a[13], a[14],
+                a[15], a[16],
+                a[17], a[18], a[19],
+                a[20], a[21], a[22],
+                a[23], a[24], a[25],
+                a[26], a[27], a[28],
+                a[29]);
     }
 }

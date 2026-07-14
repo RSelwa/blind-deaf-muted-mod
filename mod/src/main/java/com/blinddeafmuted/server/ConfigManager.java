@@ -69,6 +69,7 @@ public final class ConfigManager {
                     f(o, "blindFogHardEnd", d.blindFogHardEnd()),
                     f(o, "blindFogMediumEnd", d.blindFogMediumEnd()),
                     f(o, "deafEnvVolume", d.deafEnvVolume()),
+                    f(o, "eventAutoRerollEnabled", d.eventAutoRerollEnabled()),
                     f(o, "eventMinMinutes", d.eventMinMinutes()),
                     f(o, "eventMaxMinutes", d.eventMaxMinutes()),
                     f(o, "randomizerChestChance", d.randomizerChestChance()),
@@ -107,6 +108,7 @@ public final class ConfigManager {
         o.addProperty("blindFogHardEnd", c.blindFogHardEnd());
         o.addProperty("blindFogMediumEnd", c.blindFogMediumEnd());
         o.addProperty("deafEnvVolume", c.deafEnvVolume());
+        o.addProperty("eventAutoRerollEnabled", c.eventAutoRerollEnabled());
         o.addProperty("eventMinMinutes", c.eventMinMinutes());
         o.addProperty("eventMaxMinutes", c.eventMaxMinutes());
         o.addProperty("randomizerChestChance", c.randomizerChestChance());

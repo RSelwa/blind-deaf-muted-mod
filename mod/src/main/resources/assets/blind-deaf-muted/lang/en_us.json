@@ -21,6 +21,7 @@
   "config.blind-deaf-muted.blindFogHardEnd": "Blind fog (hard)",
   "config.blind-deaf-muted.blindFogMediumEnd": "Blind fog (cane)",
   "config.blind-deaf-muted.deafEnvVolume": "Deaf ambient volume",
+  "config.blind-deaf-muted.eventAutoRerollEnabled": "Auto re-roll",
   "config.blind-deaf-muted.eventMinMinutes": "Auto re-roll min",
   "config.blind-deaf-muted.eventMaxMinutes": "Auto re-roll max",
   "config.blind-deaf-muted.randomizerChestChance": "Randomizer chest chance",
