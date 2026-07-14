@@ -503,6 +503,27 @@ no-comments rule.
   `subtitles.blind-deaf-muted.muted_relief_noise` (en+fr). Constants in
   `MutedReliefNoise`: `SILENCE_GAP_MS`, `MIN/MAX_DELAY_MS`.
 
+### Recent additions (card editor QoL + vanilla roster/recipes)
+
+- **Note card auto line-wrap:** typing past a line's end in `CardEditScreen` word-wraps
+  onto the next line (cascading, cursor follows; overflow past line 6 dropped).
+- **Note card Ctrl+A:** selects the whole card (translucent blue highlight);
+  backspace/delete wipes it, typing replaces it, any other key drops the selection.
+- **Roster = vanilla scoreboard sidebar (replaces RosterHud):** server-owned
+  `server/RosterScoreboard` maintains a `bdm_roster` objective in the SIDEBAR slot
+  (right-middle, standard MC look), refreshed on the once/sec roster tick. Blank
+  score numbers (`BlankNumberFormat`), per-score display text `Name  Role` (role
+  colored + `Text.translatable` → per-client language; title key
+  `scoreboard.blind-deaf-muted.roster_title`, en+fr). Anti-spoiler: updates skipped
+  while `RoleManager.isRouletteRunning()` (~3.5 s after any `setAnimated`).
+  `RosterHud` + `L` keybind DELETED; `RosterState` kept (accessory `roleOf()` +
+  roulette freeze). Note: sidebar is drawn under the blind BLACKOUT fill, so a
+  blacked-out blind player no longer sees the roster (old HUD drew over it).
+- **Recipes in the recipe book:** recipe-unlock advancements under
+  `data/blind-deaf-muted/advancement/recipes/` for the 5 craftables (cane, megaphone,
+  note_card, randomizer, relief_potion) — obtaining any ingredient reveals the recipe
+  in the vanilla recipe-book UI (was: craftable but never listed).
+
 ### Must-verify before first build
 
 - Fabric version strings in `gradle.properties` (minecraft/yarn/loader/fabric-api)
