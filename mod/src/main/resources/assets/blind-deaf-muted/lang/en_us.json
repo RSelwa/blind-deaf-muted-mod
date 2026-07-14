@@ -4,7 +4,6 @@
   "key.blind-deaf-muted.toggle_blind_effect": "DEBUG: toggle blind effect (see own accessories)",
   "key.blind-deaf-muted.cycle_deaf_muffle": "Cycle deaf muffle intensity",
   "key.blind-deaf-muted.toggle_tracker": "Toggle teammate tracker HUD",
-  "key.blind-deaf-muted.toggle_roster": "Toggle who-is-what leaderboard HUD",
   "key.blind-deaf-muted.open_config": "Open settings menu (live sliders)",
 
   "config.blind-deaf-muted.title": "Blind Deaf Muted — Settings",
@@ -71,9 +70,9 @@
   "msg.blind-deaf-muted.megaphone_active": "📢 Megaphone active — %ss",
   "msg.blind-deaf-muted.megaphone_cooldown": "Megaphone recharging — %ss left",
 
+  "scoreboard.blind-deaf-muted.roster_title": "— Blind Deaf Muted —",
   "hud.blind-deaf-muted.assigning": "Assigning your role…",
   "hud.blind-deaf-muted.now": "You're now",
-  "hud.blind-deaf-muted.roster": "Roster: %s",
   "hud.blind-deaf-muted.tracker": "Teammate tracker: %s",
   "hud.blind-deaf-muted.deaf_muffle": "Deaf muffle: %s",
   "hud.blind-deaf-muted.dim.nether": "Nether",

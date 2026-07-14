@@ -25,6 +25,11 @@ import java.util.UUID;
 public class RoleManager {
     private final Map<UUID, Role> roles = new HashMap<>();
 
+    /** How long the client roulette animation runs (65 ticks) plus a little slack — while
+     *  this window is open the vanilla roster sidebar must NOT refresh (anti-spoiler). */
+    private static final long ROULETTE_FREEZE_MS = 3_500L;
+    private volatile long lastAnimatedAtMs = 0L;
+
     public Role get(ServerPlayerEntity player) {
         return get(player.getUuid());
     }
@@ -56,7 +61,14 @@ public class RoleManager {
      */
     public void setAnimated(ServerPlayerEntity player, Role role) {
         roles.put(player.getUuid(), role);
+        lastAnimatedAtMs = System.currentTimeMillis();
         ServerPlayNetworking.send(player, new RollPayload(role));
+    }
+
+    /** True while the client-side roulette reveal is (probably) still playing — the roster
+     *  sidebar holds its old lines during this window so the roll isn't spoiled early. */
+    public boolean isRouletteRunning() {
+        return System.currentTimeMillis() - lastAnimatedAtMs < ROULETTE_FREEZE_MS;
     }
 
     /**

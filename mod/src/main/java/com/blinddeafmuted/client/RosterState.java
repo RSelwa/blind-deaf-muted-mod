@@ -6,36 +6,25 @@ import com.blinddeafmuted.common.RosterPayload;
 import java.util.List;
 
 /**
- * Holds the latest team roster pushed by the server, plus the player's on/off
- * toggle for the leaderboard HUD.
+ * Holds the latest team roster pushed by the server. The visible leaderboard is now
+ * the vanilla scoreboard sidebar (server-owned, {@code server/RosterScoreboard});
+ * this client mirror remains for render code that needs a player's role by name
+ * ({@link #roleOf}) and for the roulette anti-spoiler freeze.
  *
  * <p>Same threading model as {@link TrackerState}: written from the network thread
- * via {@code client.execute(...)} and read by the HUD renderer each frame, so a
+ * via {@code client.execute(...)} and read by render code each frame, so a
  * volatile reference to an immutable list suffices.
  */
 public final class RosterState {
     private RosterState() {}
 
-    /** Default ON: knowing who is what is the whole point of the co-op puzzle. */
-    private static volatile boolean enabled = true;
-
     /** Latest roster entries from the server; empty until the first packet. */
     private static volatile List<RosterPayload.Entry> entries = List.of();
 
     /** While frozen (during the roulette reveal), incoming updates are buffered here
-     *  instead of being shown, so the leaderboard can't spoil the result early. */
+     *  instead of being shown, so the accessories can't spoil the result early. */
     private static volatile boolean frozen = false;
     private static volatile List<RosterPayload.Entry> pending = null;
-
-    public static boolean isEnabled() {
-        return enabled;
-    }
-
-    /** Flip the HUD on/off (wired to a keybind). Returns the new state. */
-    public static boolean toggle() {
-        enabled = !enabled;
-        return enabled;
-    }
 
     public static List<RosterPayload.Entry> getEntries() {
         return entries;

@@ -4,7 +4,6 @@
   "key.blind-deaf-muted.toggle_blind_effect": "DEBUG : activer/désactiver l'effet aveugle (voir ses accessoires)",
   "key.blind-deaf-muted.cycle_deaf_muffle": "Changer l'intensité d'atténuation (sourd)",
   "key.blind-deaf-muted.toggle_tracker": "Afficher/masquer le traceur d'équipiers",
-  "key.blind-deaf-muted.toggle_roster": "Afficher/masquer le tableau des rôles",
   "key.blind-deaf-muted.open_config": "Ouvrir le menu des réglages (curseurs en direct)",
 
   "config.blind-deaf-muted.title": "Aveugle Sourd Muet — Réglages",
@@ -71,9 +70,9 @@
   "msg.blind-deaf-muted.megaphone_active": "📢 Mégaphone actif — %ss",
   "msg.blind-deaf-muted.megaphone_cooldown": "Mégaphone en recharge — %ss restantes",
 
+  "scoreboard.blind-deaf-muted.roster_title": "— Aveugle Sourd Muet —",
   "hud.blind-deaf-muted.assigning": "Attribution de ton rôle…",
   "hud.blind-deaf-muted.now": "Tu es maintenant",
-  "hud.blind-deaf-muted.roster": "Tableau des rôles : %s",
   "hud.blind-deaf-muted.tracker": "Traceur d'équipiers : %s",
   "hud.blind-deaf-muted.deaf_muffle": "Atténuation sourd : %s",
   "hud.blind-deaf-muted.dim.nether": "Nether",

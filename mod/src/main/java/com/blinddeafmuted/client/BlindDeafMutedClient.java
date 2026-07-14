@@ -106,7 +106,7 @@ public class BlindDeafMutedClient implements ClientModInitializer {
         DeafReliefTinnitus.register(); // relief's downside for DEAF: looping tinnitus (self only)
         MuteHandler.register();   // blocks outgoing chat
         TrackerHud.register();    // teammate tracker keybind (HUD draw is in InGameHudMixin)
-        RosterHud.register();     // who-is-what leaderboard keybind (HUD draw is in InGameHudMixin)
+        // (Roster: now the vanilla scoreboard sidebar, server-owned — no client HUD/keybind.)
         RouletteAnimation.register(); // roulette reveal countdown (HUD draw is in InGameHudMixin)
         // (Megaphone: no client controller — activation is a plain right-click, server-side.)
         ConfigMenu.register();    // live-tuning slider menu keybind (O)

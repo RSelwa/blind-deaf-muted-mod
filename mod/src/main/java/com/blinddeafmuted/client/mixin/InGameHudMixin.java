@@ -3,7 +3,6 @@ package com.blinddeafmuted.client.mixin;
 import com.blinddeafmuted.client.BlindMode;
 import com.blinddeafmuted.client.ReliefState;
 import com.blinddeafmuted.client.RoleState;
-import com.blinddeafmuted.client.RosterHud;
 import com.blinddeafmuted.client.RouletteAnimation;
 import com.blinddeafmuted.client.TrackerHud;
 import com.blinddeafmuted.common.Role;
@@ -55,7 +54,7 @@ public class InGameHudMixin {
             at = @At("TAIL"))
     private void blinddeafmuted$drawTracker(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
         TrackerHud.render(context);
-        RosterHud.render(context);
+        // Roster HUD replaced by the vanilla scoreboard sidebar (server/RosterScoreboard).
         // NoteCardHud disabled: the owner's "your note" rectangle was unwanted. The writer
         // reads their note by opening the editor (G); the world card is for showing others.
         RouletteAnimation.render(context); // last = on top of everything

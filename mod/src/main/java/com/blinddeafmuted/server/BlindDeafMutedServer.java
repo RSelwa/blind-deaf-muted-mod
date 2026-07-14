@@ -88,6 +88,9 @@ public class BlindDeafMutedServer implements ModInitializer {
     /** Who is currently under a Potion of Relief (disability temporarily reduced). */
     private final ReliefManager reliefManager = new ReliefManager();
 
+    /** The who-is-what roster shown via the vanilla scoreboard sidebar (right-middle). */
+    private final RosterScoreboard rosterScoreboard = new RosterScoreboard();
+
     /** Relieved-MUTED gut noises: scheduled off mic packets, fired on the server tick. */
     private final MutedReliefNoise mutedReliefNoise = new MutedReliefNoise(roleManager, reliefManager);
 
@@ -413,6 +416,9 @@ public class BlindDeafMutedServer implements ModInitializer {
             entries.add(new RosterPayload.Entry(
                     player.getName().getString(), roleManager.get(player)));
         }
+
+        // Mirror the roster onto the vanilla scoreboard sidebar (right-middle, localized).
+        rosterScoreboard.update(server, roleManager);
 
         RosterPayload payload = new RosterPayload(entries);
         // The skin-visibility flag is the same for everyone, so it rides along on the
