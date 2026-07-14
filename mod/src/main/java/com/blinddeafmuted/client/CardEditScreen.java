@@ -175,9 +175,22 @@ public final class CardEditScreen extends Screen {
         allSelected = false;
     }
 
+    /**
+     * Ctrl+A, layout-aware. Vanilla {@code isSelectAll} only checks {@code GLFW_KEY_A}, which
+     * is the PHYSICAL US-QWERTY position — on an AZERTY keyboard the key labelled A reports
+     * {@code GLFW_KEY_Q} and vanilla misses it. {@code glfwGetKeyName} returns the label under
+     * the user's real layout, so we accept any key whose label is "a" while Ctrl is held.
+     */
+    private static boolean isSelectAllCombo(int keyCode, int scanCode) {
+        if (!hasControlDown() || hasShiftDown() || hasAltDown()) return false;
+        if (keyCode == GLFW.GLFW_KEY_A) return true;
+        String label = GLFW.glfwGetKeyName(keyCode, scanCode);
+        return label != null && label.equalsIgnoreCase("a");
+    }
+
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (isSelectAll(keyCode)) {
+        if (isSelectAllCombo(keyCode, scanCode)) {
             allSelected = true;
             return true;
         }
