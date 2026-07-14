@@ -38,6 +38,11 @@
   "config.blind-deaf-muted.deafEnvVolume": "Deaf world volume",
   "config.blind-deaf-muted.deafMuffleRange": "Deaf muffle: range",
   "config.blind-deaf-muted.deafReliefTinnitusVolume": "Deaf relief: tinnitus volume",
+  "config.blind-deaf-muted.deafReliefTinnitusFadeSeconds": "Deaf relief: tinnitus fade duration",
+  "config.blind-deaf-muted.deafReliefTinnitusDurationSeconds": "Deaf relief: tinnitus max duration",
+  "config.blind-deaf-muted.deafReliefVoicesIntervalMinSeconds": "Deaf relief: ghost voice interval (min)",
+  "config.blind-deaf-muted.deafReliefVoicesIntervalMaxSeconds": "Deaf relief: ghost voice interval (max)",
+  "config.blind-deaf-muted.deafReliefVoicesNearbyRangeBlocks": "Deaf relief: ghost voice source range",
 
   "item.blind-deaf-muted.randomizer": "Randomizer",
   "item.blind-deaf-muted.megaphone": "Megaphone",

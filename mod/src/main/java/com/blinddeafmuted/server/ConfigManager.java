@@ -86,7 +86,12 @@ public final class ConfigManager {
                     f(o, "deafMuffleGainHf", d.deafMuffleGainHf()),
                     f(o, "deafMuffleGain", d.deafMuffleGain()),
                     f(o, "deafMuffleRange", d.deafMuffleRange()),
-                    f(o, "deafReliefTinnitusVolume", d.deafReliefTinnitusVolume()));
+                    f(o, "deafReliefTinnitusVolume", d.deafReliefTinnitusVolume()),
+                    f(o, "deafReliefTinnitusFadeSeconds", d.deafReliefTinnitusFadeSeconds()),
+                    f(o, "deafReliefTinnitusDurationSeconds", d.deafReliefTinnitusDurationSeconds()),
+                    f(o, "deafReliefVoicesIntervalMinSeconds", d.deafReliefVoicesIntervalMinSeconds()),
+                    f(o, "deafReliefVoicesIntervalMaxSeconds", d.deafReliefVoicesIntervalMaxSeconds()),
+                    f(o, "deafReliefVoicesNearbyRangeBlocks", d.deafReliefVoicesNearbyRangeBlocks()));
         } catch (IOException | RuntimeException e) {
             BlindDeafMutedServer.LOGGER.warn("Failed to read {} — using defaults ({})",
                     FILE, e.toString());
@@ -121,6 +126,11 @@ public final class ConfigManager {
         o.addProperty("deafMuffleGain", c.deafMuffleGain());
         o.addProperty("deafMuffleRange", c.deafMuffleRange());
         o.addProperty("deafReliefTinnitusVolume", c.deafReliefTinnitusVolume());
+        o.addProperty("deafReliefTinnitusFadeSeconds", c.deafReliefTinnitusFadeSeconds());
+        o.addProperty("deafReliefTinnitusDurationSeconds", c.deafReliefTinnitusDurationSeconds());
+        o.addProperty("deafReliefVoicesIntervalMinSeconds", c.deafReliefVoicesIntervalMinSeconds());
+        o.addProperty("deafReliefVoicesIntervalMaxSeconds", c.deafReliefVoicesIntervalMaxSeconds());
+        o.addProperty("deafReliefVoicesNearbyRangeBlocks", c.deafReliefVoicesNearbyRangeBlocks());
         try {
             Files.createDirectories(FILE.getParent());
             Files.writeString(FILE, GSON.toJson(o));

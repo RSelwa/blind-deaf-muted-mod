@@ -22,21 +22,27 @@ public final class DeafReliefTinnitus {
     private DeafReliefTinnitus() {}
 
     private static TinnitusSoundInstance current;
+    private static boolean wasActive = false;
 
     public static void register() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             boolean active = client.player != null
                     && RoleState.is(Role.DEAF)
                     && ReliefState.localActive();
-            boolean playing = current != null && client.getSoundManager().isPlaying(current);
 
-            if (active && !playing) {
+            // Transitioned from inactive to active
+            if (active && !wasActive) {
+                if (current != null) {
+                    client.getSoundManager().stop(current);
+                }
                 current = new TinnitusSoundInstance(client.player);
                 client.getSoundManager().play(current);
             } else if (!active && current != null) {
-                client.getSoundManager().stop(current);
+                // Allow the instance to finish fading out naturally
                 current = null;
             }
+
+            wasActive = active;
         });
     }
 }

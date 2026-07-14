@@ -24,7 +24,7 @@ public final class TinnitusSoundInstance extends MovingSoundInstance {
     TinnitusSoundInstance(ClientPlayerEntity player) {
         super(ModSounds.DEAF_RELIEF_TINNITUS, SoundCategory.MASTER, Random.create());
         this.player = player;
-        this.repeat = true;
+        this.repeat = false; // Do not loop indefinitely, we stop after 3 seconds
         this.repeatDelay = 0;
         this.relative = true;                       // coords relative to the listener…
         this.attenuationType = AttenuationType.NONE; // …and no distance falloff → in-head
@@ -32,21 +32,55 @@ public final class TinnitusSoundInstance extends MovingSoundInstance {
         this.pitch = 1.0F;
     }
 
-    /**
-     * Live volume: read the {@code deafReliefTinnitusVolume} config knob each time the sound
-     * engine samples it, so dragging the slider in the config menu changes the ringing
-     * loudness immediately without recreating the looping instance.
-     */
-    @Override
-    public float getVolume() {
-        return ClientConfigState.get().deafReliefTinnitusVolume();
+    private int getFadeTicks() {
+        return Math.max(1, (int) (ClientConfigState.get().deafReliefTinnitusFadeSeconds() * 20.0f));
     }
+
+    private int getMaxTicks() {
+        return (int) (ClientConfigState.get().deafReliefTinnitusDurationSeconds() * 20.0f);
+    }
+
+    private int ticksActive = 0;
+    private boolean stopping = false;
+    private float currentFade = 0.0f;
 
     @Override
     public void tick() {
+        if (stopping) {
+            currentFade -= 1.0f / getFadeTicks();
+            if (currentFade <= 0.0f) {
+                currentFade = 0.0f;
+                setDone();
+            }
+            return;
+        }
+
         if (player.isRemoved()
                 || !(RoleState.is(Role.DEAF) && ReliefState.localActive())) {
-            setDone();
+            stopping = true;
+            return;
         }
+
+        ticksActive++;
+        if (ticksActive >= getMaxTicks() - getFadeTicks()) {
+            stopping = true;
+            return;
+        }
+
+        if (currentFade < 1.0f) {
+            currentFade += 1.0f / getFadeTicks();
+            if (currentFade > 1.0f) {
+                currentFade = 1.0f;
+            }
+        }
+    }
+
+    /**
+     * Live volume: read the {@code deafReliefTinnitusVolume} config knob each time the sound
+     * engine samples it, and apply our fade-in/fade-out envelope.
+     */
+    @Override
+    public float getVolume() {
+        return ClientConfigState.get().deafReliefTinnitusVolume() * currentFade;
     }
 }

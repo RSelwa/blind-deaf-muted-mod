@@ -38,6 +38,11 @@
   "config.blind-deaf-muted.deafEnvVolume": "Sourd : volume monde",
   "config.blind-deaf-muted.deafMuffleRange": "Sourd : portée",
   "config.blind-deaf-muted.deafReliefTinnitusVolume": "Soulagement sourd : volume acouphène",
+  "config.blind-deaf-muted.deafReliefTinnitusFadeSeconds": "Soulagement sourd : durée fondu acouphène",
+  "config.blind-deaf-muted.deafReliefTinnitusDurationSeconds": "Soulagement sourd : durée max acouphène",
+  "config.blind-deaf-muted.deafReliefVoicesIntervalMinSeconds": "Soulagement sourd : délai voix fantômes (min)",
+  "config.blind-deaf-muted.deafReliefVoicesIntervalMaxSeconds": "Soulagement sourd : délai voix fantômes (max)",
+  "config.blind-deaf-muted.deafReliefVoicesNearbyRangeBlocks": "Soulagement sourd : portée source voix",
 
   "item.blind-deaf-muted.randomizer": "Randomiseur",
   "item.blind-deaf-muted.megaphone": "Mégaphone",

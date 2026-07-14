@@ -71,6 +71,12 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
     /** Set once at server-mod init: schedules the relieved-muted gut noises. */
     private static volatile MutedReliefNoise reliefNoise;
 
+    /** Set once at server-mod init: captures all voice for the deaf ghost-voice cache. */
+    private static volatile VoiceSnippetCache voiceCache;
+
+    /** Set once at server-mod init: plays ghost-voice snippets to deaf+relieved players. */
+    private static volatile DeafReliefVoices deafReliefVoices;
+
     /** Live audio tunables, supplied from {@link ConfigManager}. Never null once bound. */
     private static volatile Supplier<ModConfig> config = () -> ModConfig.DEFAULT;
 
@@ -110,6 +116,16 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         reliefNoise = noise;
     }
 
+    /** Wire in the ghost-voice cache. Called from {@link BlindDeafMutedServer#onInitialize()}. */
+    public static void bindVoiceCache(VoiceSnippetCache cache) {
+        voiceCache = cache;
+    }
+
+    /** Wire in the ghost-voice scheduler. Called from {@link BlindDeafMutedServer#onInitialize()}. */
+    public static void bindDeafReliefVoices(DeafReliefVoices voices) {
+        deafReliefVoices = voices;
+    }
+
     @Override
     public String getPluginId() {
         return ModConstants.MOD_ID;
@@ -125,6 +141,13 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
         // knobs would never take effect). Reading `config.get()` each frame always sees the current
         // binding, whatever order init happens in.
         this.fx = new VoiceFx(api, () -> config.get());
+
+        // Pass the SVC API to the voice cache (for Opus decoding) and the ghost-voice
+        // scheduler (for AudioChannel/AudioPlayer creation).
+        VoiceSnippetCache vc = voiceCache;
+        if (vc != null) vc.bindApi(api);
+        DeafReliefVoices drv = deafReliefVoices;
+        if (drv != null) drv.bindServerApi(this.serverApi);
     }
 
     @Override
@@ -142,6 +165,18 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
 
     private void onMicrophone(MicrophonePacketEvent event) {
         VoicechatConnection sender = event.getSenderConnection();
+
+        // Capture every player's mic frame into the ghost-voice cache (BEFORE the
+        // MUTED processing below, which modifies the packet data). The cache stores
+        // the clean Opus bytes for later replay to deaf+relieved players.
+        VoiceSnippetCache vc = voiceCache;
+        if (vc != null) {
+            UUID speakerId = uuidOf(sender);
+            if (speakerId != null) {
+                vc.onFrame(speakerId, event.getPacket().getOpusEncodedData());
+            }
+        }
+
         if (roleOf(sender) != Role.MUTED) {
             return;
         }
@@ -236,6 +271,14 @@ public final class BlindDeafMutedVoicechatPlugin implements VoicechatPlugin {
      * </ul>
      */
     private byte[] renderPacket(VoicechatConnection receiver, VoicechatConnection sender, SoundPacket packet) {
+        if (sender == null) {
+            // Server-generated audio (e.g., DeafReliefVoices).
+            // Pass it through untouched to avoid double-processing it and to
+            // prevent corrupting the stateful Opus encoder if the real anchor player
+            // speaks at the exact same time.
+            return UNTOUCHED;
+        }
+
         UUID receiverId = uuidOf(receiver);
         UUID senderId = packet.getSender();
         if (receiverId == null || senderId == null) {

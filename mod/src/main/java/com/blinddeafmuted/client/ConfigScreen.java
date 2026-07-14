@@ -60,6 +60,11 @@ public final class ConfigScreen extends Screen {
             new Spec(22, 0f, 1f, Style.GAIN, "config.blind-deaf-muted.deafMuffleGain", Category.DEAF),
             new Spec(23, 2f, 64f, Style.BLOCKS, "config.blind-deaf-muted.deafMuffleRange", Category.DEAF),
             new Spec(24, 0f, 2f, Style.GAIN, "config.blind-deaf-muted.deafReliefTinnitusVolume", Category.DEAF),
+            new Spec(25, 0.1f, 5f, Style.SECONDS, "config.blind-deaf-muted.deafReliefTinnitusFadeSeconds", Category.DEAF),
+            new Spec(26, 1f, 30f, Style.SECONDS, "config.blind-deaf-muted.deafReliefTinnitusDurationSeconds", Category.DEAF),
+            new Spec(27, 1f, 60f, Style.SECONDS, "config.blind-deaf-muted.deafReliefVoicesIntervalMinSeconds", Category.DEAF),
+            new Spec(28, 1f, 60f, Style.SECONDS, "config.blind-deaf-muted.deafReliefVoicesIntervalMaxSeconds", Category.DEAF),
+            new Spec(29, 2f, 64f, Style.BLOCKS, "config.blind-deaf-muted.deafReliefVoicesNearbyRangeBlocks", Category.DEAF),
             // ---- MUTED: how a muted speaker's mic sounds (4-7) ----
             new Spec(4, 20f, 1200f, Style.HZ, "config.blind-deaf-muted.mutedLowpassHz", Category.MUTED),
             new Spec(5, 0f, 50f, Style.GAIN, "config.blind-deaf-muted.mutedVolume", Category.MUTED),

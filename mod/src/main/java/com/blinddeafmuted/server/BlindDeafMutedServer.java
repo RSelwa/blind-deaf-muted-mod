@@ -94,6 +94,14 @@ public class BlindDeafMutedServer implements ModInitializer {
     /** Relieved-MUTED gut noises: scheduled off mic packets, fired on the server tick. */
     private final MutedReliefNoise mutedReliefNoise = new MutedReliefNoise(roleManager, reliefManager);
 
+    /** Ghost-voice cache: captures and curates "interesting" voice snippets from all players
+     *  for replay to deaf+relieved players (the deaf relief downside). */
+    private final VoiceSnippetCache voiceSnippetCache = new VoiceSnippetCache();
+
+    /** Ghost-voice scheduler: replays curated snippets to deaf+relieved players via SVC. */
+    private final DeafReliefVoices deafReliefVoices =
+            new DeafReliefVoices(roleManager, reliefManager, voiceSnippetCache, configManager::get);
+
     /** Push teammate positions every N server ticks (20 ticks = 1s). 4/sec is smooth
      *  for a direction arrow without being chatty. */
     private static final int TRACKER_INTERVAL_TICKS = 5;
@@ -346,6 +354,8 @@ public class BlindDeafMutedServer implements ModInitializer {
             // VoiceFx reads the live audio tunables off this supplier each frame.
             BlindDeafMutedVoicechatPlugin.bindConfig(configManager::get);
             BlindDeafMutedVoicechatPlugin.bindReliefNoise(mutedReliefNoise);
+            BlindDeafMutedVoicechatPlugin.bindVoiceCache(voiceSnippetCache);
+            BlindDeafMutedVoicechatPlugin.bindDeafReliefVoices(deafReliefVoices);
         }
 
         // Drop a leaver's megaphone + card-brandish flags so a disconnect can't leave them stuck.
@@ -355,6 +365,9 @@ public class BlindDeafMutedServer implements ModInitializer {
             megaphoneState.clear(handler.getPlayer().getUuid());
             cardBrandishState.clear(handler.getPlayer().getUuid());
             mutedReliefNoise.clear(handler.getPlayer().getUuid());
+            deafReliefVoices.clear(handler.getPlayer().getUuid());
+            // Voice cache: don't clear immediately — the player might relog. The
+            // cache's own MAX_AGE_MS (15 min) handles stale eviction naturally.
         });
 
         // A few times per second, send every player the positions of all the others,
@@ -369,6 +382,12 @@ public class BlindDeafMutedServer implements ModInitializer {
 
         // Fire any gut noises whose ~1s post-talk delay has elapsed (relieved MUTED players).
         ServerTickEvents.END_SERVER_TICK.register(mutedReliefNoise::tick);
+
+        // Ghost-voice cache: finalise completed segments (score + store).
+        ServerTickEvents.END_SERVER_TICK.register(server -> voiceSnippetCache.tick());
+
+        // Ghost-voice scheduler: play snippets to deaf+relieved players.
+        ServerTickEvents.END_SERVER_TICK.register(deafReliefVoices::tick);
 
         // Once per second, send everyone the full who-is-what roster for the
         // leaderboard HUD. The list is identical for every recipient, so it's built
