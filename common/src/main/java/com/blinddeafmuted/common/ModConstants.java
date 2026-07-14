@@ -40,8 +40,9 @@ public final class ModConstants {
      *  v14: removed roster payload and logic
      *  v15: added deafReliefVoicesIntervalMinSeconds, deafReliefVoicesIntervalMaxSeconds, deafReliefVoicesNearbyRangeBlocks
      *  v16: added deafReliefTinnitusFadeSeconds, deafReliefTinnitusDurationSeconds
-     *  v17: added mutedReliefNoise interval+volume, blindReliefNauseaStrength, added sub-headers in ConfigScreen */
-    public static final int PROTOCOL_VERSION = 17;
+     *  v17: added mutedReliefNoise interval+volume, blindReliefNauseaStrength, added sub-headers in ConfigScreen
+     *  v18: removed megaphone/relief lowpass config fields */
+    public static final int PROTOCOL_VERSION = 18;
 
     /** Helper to build identifiers under our namespace. */
     public static Identifier id(String path) {

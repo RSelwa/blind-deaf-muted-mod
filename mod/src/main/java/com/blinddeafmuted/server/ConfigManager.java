@@ -64,12 +64,8 @@ public final class ConfigManager {
             return new ModConfig(
                     f(o, "deafLowpassHz", d.deafLowpassHz()),
                     f(o, "deafVolume", d.deafVolume()),
-                    f(o, "deafMegaphoneLowpassHz", d.deafMegaphoneLowpassHz()),
-                    f(o, "deafMegaphoneVolume", d.deafMegaphoneVolume()),
                     f(o, "mutedLowpassHz", d.mutedLowpassHz()),
                     f(o, "mutedVolume", d.mutedVolume()),
-                    f(o, "mutedMegaphoneLowpassHz", d.mutedMegaphoneLowpassHz()),
-                    f(o, "mutedMegaphoneVolume", d.mutedMegaphoneVolume()),
                     f(o, "blindFogHardEnd", d.blindFogHardEnd()),
                     f(o, "blindFogMediumEnd", d.blindFogMediumEnd()),
                     f(o, "deafEnvVolume", d.deafEnvVolume()),
@@ -78,7 +74,6 @@ public final class ConfigManager {
                     f(o, "randomizerChestChance", d.randomizerChestChance()),
                     f(o, "megaphoneBurstSeconds", d.megaphoneBurstSeconds()),
                     f(o, "megaphoneCooldownSeconds", d.megaphoneCooldownSeconds()),
-                    f(o, "reliefReductionPercent", d.reliefReductionPercent()),
                     f(o, "reliefRangeBlocks", d.reliefRangeBlocks()),
                     f(o, "reliefDurationSeconds", d.reliefDurationSeconds()),
                     f(o, "myopiaBlurStrength", d.myopiaBlurStrength()),
@@ -107,12 +102,8 @@ public final class ConfigManager {
         JsonObject o = new JsonObject();
         o.addProperty("deafLowpassHz", c.deafLowpassHz());
         o.addProperty("deafVolume", c.deafVolume());
-        o.addProperty("deafMegaphoneLowpassHz", c.deafMegaphoneLowpassHz());
-        o.addProperty("deafMegaphoneVolume", c.deafMegaphoneVolume());
         o.addProperty("mutedLowpassHz", c.mutedLowpassHz());
         o.addProperty("mutedVolume", c.mutedVolume());
-        o.addProperty("mutedMegaphoneLowpassHz", c.mutedMegaphoneLowpassHz());
-        o.addProperty("mutedMegaphoneVolume", c.mutedMegaphoneVolume());
         o.addProperty("blindFogHardEnd", c.blindFogHardEnd());
         o.addProperty("blindFogMediumEnd", c.blindFogMediumEnd());
         o.addProperty("deafEnvVolume", c.deafEnvVolume());
@@ -121,7 +112,6 @@ public final class ConfigManager {
         o.addProperty("randomizerChestChance", c.randomizerChestChance());
         o.addProperty("megaphoneBurstSeconds", c.megaphoneBurstSeconds());
         o.addProperty("megaphoneCooldownSeconds", c.megaphoneCooldownSeconds());
-        o.addProperty("reliefReductionPercent", c.reliefReductionPercent());
         o.addProperty("reliefRangeBlocks", c.reliefRangeBlocks());
         o.addProperty("reliefDurationSeconds", c.reliefDurationSeconds());
         o.addProperty("myopiaBlurStrength", c.myopiaBlurStrength());

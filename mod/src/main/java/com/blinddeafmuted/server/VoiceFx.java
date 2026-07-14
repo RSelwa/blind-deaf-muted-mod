@@ -66,17 +66,7 @@ final class VoiceFx {
      *  rumble of the voice, so you can tell they're talking but not make out words. */
     private static final int MUTED_LOWPASS_POLES = 4;
 
-    /** Target low-pass cutoff a Potion of Relief lerps DEAF/MUTED voice toward — high enough that
-     *  voice passes essentially clear. The reduction fraction ({@code reliefReductionPercent})
-     *  controls how far toward this + toward full volume the muffle is eased. */
-    private static final float RELIEF_CLEAR_HZ = 4000f;
-
-    /** MUTED gets a weaker relief than DEAF (playtest: a relieved muted speaker was too
-     *  intelligible/loud). Their lerp targets are capped lower: semi-open cutoff instead of
-     *  clear, and at most 0.4× volume — relieved muted is "hard to understand but possible",
-     *  never clear speech. */
-    private static final float MUTED_RELIEF_CLEAR_HZ = 1500f;
-    private static final float MUTED_RELIEF_MAX_VOLUME = 0.4f;
+    // (Relief constants removed; relieved players now have perfectly clear voice)
 
     /** Volume multiplier on a relieved MUTED speaker's voice while one of their gut
      *  noises ({@code MutedReliefNoise}) is playing — the voice drops under the noise
@@ -169,24 +159,19 @@ final class VoiceFx {
         float[] lp = muteLowpassState.computeIfAbsent(sender, k -> new float[MUTED_LOWPASS_POLES]);
         com.blinddeafmuted.common.ModConfig cfg = config.get();
         if (megaphone) {
-            // Megaphone: a much more open 1-pole low-pass so the voice opens up, then amplified
-            // and lightly saturated (bullhorn bite) so a muted player can be heard at range.
-            lowpassCore(pcm, lp, lowpassAlpha(cfg.mutedMegaphoneLowpassHz()));
-            float gain = cfg.mutedMegaphoneVolume();
+            // Megaphone: no muffle, just amplified and lightly saturated (bullhorn bite)
+            // so a muted player can be heard at range.
+            float gain = 1.1f;
             if (ducked) gain *= RELIEF_NOISE_DUCK;
             saturate(pcm, gain, (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
+        } else if (relieved) {
+            // Relieved: the muffle is completely removed, voice is clear.
+            if (ducked) scale(pcm, RELIEF_NOISE_DUCK);
         } else {
             // No megaphone: a STEEP multi-pole "in a box" muffle so only the bass rumble of the
-            // voice survives — you can tell they're speaking but can't make out words. A Potion of
-            // Relief on the speaker eases both the muffle (cutoff → clear) and the loudness (→ 1.0)
-            // by reliefReductionPercent.
+            // voice survives — you can tell they're speaking but can't make out words.
             float lpHz = cfg.mutedLowpassHz();
             float vol = cfg.mutedVolume();
-            if (relieved) {
-                float r = cfg.reliefReductionPercent();
-                lpHz = lerp(lpHz, MUTED_RELIEF_CLEAR_HZ, r);
-                vol = lerp(vol, MUTED_RELIEF_MAX_VOLUME, r);
-            }
             if (ducked) vol *= RELIEF_NOISE_DUCK;
             float alpha = lowpassAlpha(lpHz);
             for (int stage = 0; stage < MUTED_LOWPASS_POLES; stage++) {
@@ -217,26 +202,19 @@ final class VoiceFx {
         float[] lp = deafLowpassState.computeIfAbsent(key, k -> new float[DEAF_LOWPASS_POLES]);
         com.blinddeafmuted.common.ModConfig cfg = config.get();
         if (megaphone && !speakerMuted) {
-            // Megaphone cuts through the deafness: a light near-transparent low-pass (so the
-            // deafMegaphoneLowpassHz slider still bites if lowered) then amplify + lightly
-            // saturate — loud and clear, NOT the heavy wall muffle. (The PR saturated with no
-            // low-pass; the high default cutoff keeps it audibly identical while keeping the knob.)
-            lowpassStage(pcm, lp, 0, lowpassAlpha(cfg.deafMegaphoneLowpassHz()));
-            saturate(pcm, cfg.deafMegaphoneVolume(), (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
+            // Megaphone cuts through the deafness: no muffle, amplify + lightly
+            // saturate — loud and clear, NOT the heavy wall muffle.
+            saturate(pcm, 1.1f, (int) (Short.MAX_VALUE * MEGAPHONE_CEILING));
+        } else if (receiverRelieved) {
+            // Relieved: the muffle is completely removed, voice is clear.
         } else {
             // Default deaf (and any muted speaker, megaphone or not): a heavy MULTI-pole
             // "through a wall" muffle (validated 3 stages @ deafLowpassHz), kept audible via a
             // slight makeup gain — smothered and dull, not silent. A muted speaker's mic is
             // already garbled at source, so this leaves them near-inaudible. One float of filter
-            // memory per cascade stage, kept across frames. A Potion of Relief on the LISTENER
-            // eases the muffle (cutoff → clear) + loudness (→ 1.0) by reliefReductionPercent.
+            // memory per cascade stage, kept across frames.
             float lpHz = cfg.deafLowpassHz();
             float vol = cfg.deafVolume();
-            if (receiverRelieved) {
-                float r = cfg.reliefReductionPercent();
-                lpHz = lerp(lpHz, RELIEF_CLEAR_HZ, r);
-                vol = lerp(vol, 1.0f, r);
-            }
             for (int stage = 0; stage < DEAF_LOWPASS_POLES; stage++) {
                 lowpassStage(pcm, lp, stage, lowpassAlpha(lpHz));
             }

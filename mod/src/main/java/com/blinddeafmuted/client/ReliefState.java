@@ -25,13 +25,9 @@ public final class ReliefState {
 
     /**
      * Fraction of the disability that REMAINS for the local player right now: {@code 1.0}
-     * normally, or {@code 1 - reliefReductionPercent} while relieved (e.g. 0.25 at the default
-     * 75% reduction). Effects lerp toward "no disability" as this drops — {@code effective =
-     * lerp(remaining, normalValue, fullDisabilityValue)}.
+     * normally, or {@code 0.0} while relieved (complete reduction).
      */
     public static float disabilityRemaining() {
-        if (!localActive()) return 1.0f;
-        float reduction = ClientConfigState.get().reliefReductionPercent();
-        return Math.max(0.0f, Math.min(1.0f, 1.0f - reduction));
+        return localActive() ? 0.0f : 1.0f;
     }
 }

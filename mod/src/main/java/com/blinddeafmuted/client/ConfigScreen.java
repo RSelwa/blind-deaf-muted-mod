@@ -51,47 +51,42 @@ public final class ConfigScreen extends Screen {
 
     /** One spec per (shown) ModConfig field, grouped by tab. Order within a tab = display order. */
     private static final Spec[] SPECS = {
-            // ---- DEAF: how a deaf player hears voices (0-3) + the game world (10, 21-23) ----
+            // ---- DEAF: how a deaf player hears voices (0-1) + the game world (6, 16-18) ----
             new Spec(0, 40f, 1200f, Style.HZ, "config.blind-deaf-muted.deafLowpassHz", Category.DEAF),
             new Spec(1, 0f, 50f, Style.GAIN, "config.blind-deaf-muted.deafVolume", Category.DEAF),
-            new Spec(2, 100f, 2000f, Style.HZ, "config.blind-deaf-muted.deafMegaphoneLowpassHz", Category.DEAF),
-            new Spec(3, 0f, 50f, Style.GAIN, "config.blind-deaf-muted.deafMegaphoneVolume", Category.DEAF),
-            new Spec(10, 0f, 8f, Style.GAIN, "config.blind-deaf-muted.deafEnvVolume", Category.DEAF),
-            new Spec(21, 0.000000000001f, 0.02f, Style.HFGAIN, "config.blind-deaf-muted.deafMuffleGainHf", Category.DEAF),
-            new Spec(22, 0f, 1f, Style.GAIN, "config.blind-deaf-muted.deafMuffleGain", Category.DEAF),
-            new Spec(23, 2f, 64f, Style.BLOCKS, "config.blind-deaf-muted.deafMuffleRange", Category.DEAF),
-            // ---- MUTED: how a muted speaker's mic sounds (4-7) ----
-            new Spec(4, 20f, 1200f, Style.HZ, "config.blind-deaf-muted.mutedLowpassHz", Category.MUTED),
-            new Spec(5, 0f, 50f, Style.GAIN, "config.blind-deaf-muted.mutedVolume", Category.MUTED),
-            new Spec(6, 40f, 1200f, Style.HZ, "config.blind-deaf-muted.mutedMegaphoneLowpassHz", Category.MUTED),
-            new Spec(7, 0f, 50f, Style.GAIN, "config.blind-deaf-muted.mutedMegaphoneVolume", Category.MUTED),
-            // ---- BLIND: myopia post-effect (19-20). Fog knobs 8-9 stay hidden (no live effect). ----
-            new Spec(19, 0f, 2f, Style.GAIN, "config.blind-deaf-muted.myopiaBlurStrength", Category.BLIND),
-            new Spec(20, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.myopiaDarkness", Category.BLIND),
+            new Spec(6, 0f, 8f, Style.GAIN, "config.blind-deaf-muted.deafEnvVolume", Category.DEAF),
+            new Spec(16, 0.000000000001f, 0.02f, Style.HFGAIN, "config.blind-deaf-muted.deafMuffleGainHf", Category.DEAF),
+            new Spec(17, 0f, 1f, Style.GAIN, "config.blind-deaf-muted.deafMuffleGain", Category.DEAF),
+            new Spec(18, 2f, 64f, Style.BLOCKS, "config.blind-deaf-muted.deafMuffleRange", Category.DEAF),
+            // ---- MUTED: how a muted speaker's mic sounds (2-3) ----
+            new Spec(2, 20f, 1200f, Style.HZ, "config.blind-deaf-muted.mutedLowpassHz", Category.MUTED),
+            new Spec(3, 0f, 50f, Style.GAIN, "config.blind-deaf-muted.mutedVolume", Category.MUTED),
+            // ---- BLIND: myopia post-effect (14-15). Fog knobs 4-5 stay hidden (no live effect). ----
+            new Spec(14, 0f, 2f, Style.GAIN, "config.blind-deaf-muted.myopiaBlurStrength", Category.BLIND),
+            new Spec(15, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.myopiaDarkness", Category.BLIND),
             // ---- RELIEF: relief potion stats and deaf-relief downsides (tinnitus + ghosts) ----
             new Spec(-1, 0, 0, Style.HEADER, "config.blind-deaf-muted.cat.relief.general", Category.RELIEF),
-            new Spec(16, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.reliefReductionPercent", Category.RELIEF),
-            new Spec(17, 1f, 32f, Style.BLOCKS, "config.blind-deaf-muted.reliefRangeBlocks", Category.RELIEF),
-            new Spec(18, 5f, 300f, Style.SECONDS, "config.blind-deaf-muted.reliefDurationSeconds", Category.RELIEF),
+            new Spec(12, 1f, 32f, Style.BLOCKS, "config.blind-deaf-muted.reliefRangeBlocks", Category.RELIEF),
+            new Spec(13, 5f, 300f, Style.SECONDS, "config.blind-deaf-muted.reliefDurationSeconds", Category.RELIEF),
             new Spec(-1, 0, 0, Style.HEADER, "config.blind-deaf-muted.cat.deaf", Category.RELIEF),
-            new Spec(24, 0f, 2f, Style.GAIN, "config.blind-deaf-muted.deafReliefTinnitusVolume", Category.RELIEF),
-            new Spec(25, 0.1f, 5f, Style.SECONDS, "config.blind-deaf-muted.deafReliefTinnitusFadeSeconds", Category.RELIEF),
-            new Spec(26, 1f, 30f, Style.SECONDS, "config.blind-deaf-muted.deafReliefTinnitusDurationSeconds", Category.RELIEF),
-            new Spec(27, 1f, 60f, Style.SECONDS, "config.blind-deaf-muted.deafReliefVoicesIntervalMinSeconds", Category.RELIEF),
-            new Spec(28, 1f, 60f, Style.SECONDS, "config.blind-deaf-muted.deafReliefVoicesIntervalMaxSeconds", Category.RELIEF),
-            new Spec(29, 2f, 64f, Style.BLOCKS, "config.blind-deaf-muted.deafReliefVoicesNearbyRangeBlocks", Category.RELIEF),
+            new Spec(19, 0f, 2f, Style.GAIN, "config.blind-deaf-muted.deafReliefTinnitusVolume", Category.RELIEF),
+            new Spec(20, 0.1f, 5f, Style.SECONDS, "config.blind-deaf-muted.deafReliefTinnitusFadeSeconds", Category.RELIEF),
+            new Spec(21, 1f, 30f, Style.SECONDS, "config.blind-deaf-muted.deafReliefTinnitusDurationSeconds", Category.RELIEF),
+            new Spec(22, 1f, 60f, Style.SECONDS, "config.blind-deaf-muted.deafReliefVoicesIntervalMinSeconds", Category.RELIEF),
+            new Spec(23, 1f, 60f, Style.SECONDS, "config.blind-deaf-muted.deafReliefVoicesIntervalMaxSeconds", Category.RELIEF),
+            new Spec(24, 2f, 64f, Style.BLOCKS, "config.blind-deaf-muted.deafReliefVoicesNearbyRangeBlocks", Category.RELIEF),
             new Spec(-1, 0, 0, Style.HEADER, "config.blind-deaf-muted.cat.muted", Category.RELIEF),
-            new Spec(30, 0.5f, 60f, Style.SECONDS, "config.blind-deaf-muted.mutedReliefNoiseIntervalMinSeconds", Category.RELIEF),
-            new Spec(31, 0.5f, 60f, Style.SECONDS, "config.blind-deaf-muted.mutedReliefNoiseIntervalMaxSeconds", Category.RELIEF),
-            new Spec(32, 0f, 2f, Style.GAIN, "config.blind-deaf-muted.mutedReliefNoiseVolume", Category.RELIEF),
+            new Spec(25, 0.5f, 60f, Style.SECONDS, "config.blind-deaf-muted.mutedReliefNoiseIntervalMinSeconds", Category.RELIEF),
+            new Spec(26, 0.5f, 60f, Style.SECONDS, "config.blind-deaf-muted.mutedReliefNoiseIntervalMaxSeconds", Category.RELIEF),
+            new Spec(27, 0f, 2f, Style.GAIN, "config.blind-deaf-muted.mutedReliefNoiseVolume", Category.RELIEF),
             new Spec(-1, 0, 0, Style.HEADER, "config.blind-deaf-muted.cat.blind", Category.RELIEF),
-            new Spec(33, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.blindReliefNauseaStrength", Category.RELIEF),
+            new Spec(28, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.blindReliefNauseaStrength", Category.RELIEF),
             // ---- OTHER: events, randomizer, megaphone timing ----
-            new Spec(11, 0.5f, 30f, Style.MINUTES, "config.blind-deaf-muted.eventMinMinutes", Category.OTHER),
-            new Spec(12, 0.5f, 60f, Style.MINUTES, "config.blind-deaf-muted.eventMaxMinutes", Category.OTHER),
-            new Spec(13, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.randomizerChestChance", Category.OTHER),
-            new Spec(14, 1f, 30f, Style.SECONDS, "config.blind-deaf-muted.megaphoneBurstSeconds", Category.OTHER),
-            new Spec(15, 5f, 600f, Style.SECONDS, "config.blind-deaf-muted.megaphoneCooldownSeconds", Category.OTHER),
+            new Spec(7, 0.5f, 30f, Style.MINUTES, "config.blind-deaf-muted.eventMinMinutes", Category.OTHER),
+            new Spec(8, 0.5f, 60f, Style.MINUTES, "config.blind-deaf-muted.eventMaxMinutes", Category.OTHER),
+            new Spec(9, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.randomizerChestChance", Category.OTHER),
+            new Spec(10, 1f, 30f, Style.SECONDS, "config.blind-deaf-muted.megaphoneBurstSeconds", Category.OTHER),
+            new Spec(11, 5f, 600f, Style.SECONDS, "config.blind-deaf-muted.megaphoneCooldownSeconds", Category.OTHER),
     };
 
     /** Working copy edited by the sliders; rebuilt into a ModConfig on each send. */

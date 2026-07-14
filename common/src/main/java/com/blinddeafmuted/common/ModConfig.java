@@ -29,13 +29,9 @@ public record ModConfig(
         // ---- DEAF / MUTED voice (server-enforced, VoiceFx) ----
         float deafLowpassHz,
         float deafVolume,
-        float deafMegaphoneLowpassHz,
-        float deafMegaphoneVolume,
         float mutedLowpassHz,
         float mutedVolume,
-        float mutedMegaphoneLowpassHz,
-        float mutedMegaphoneVolume,
-        // ---- BLIND / DEAF vision + ambient (client-applied) ----
+        // ---- fog/ambient (client) ----+ ambient (client-applied) ----
         float blindFogHardEnd,
         float blindFogMediumEnd,
         float deafEnvVolume,
@@ -47,7 +43,6 @@ public record ModConfig(
         float megaphoneBurstSeconds,
         float megaphoneCooldownSeconds,
         // ---- relief potion (server sets, both sides scale) ----
-        float reliefReductionPercent,
         float reliefRangeBlocks,
         float reliefDurationSeconds,
         // ---- myopia blur (client-only) ----
@@ -83,12 +78,8 @@ public record ModConfig(
     public static final ModConfig DEFAULT = new ModConfig(
             /* deafLowpassHz            */ 64f,
             /* deafVolume               */ 17f,
-            /* deafMegaphoneLowpassHz   */ 3000f,
-            /* deafMegaphoneVolume      */ 1.1f,
             /* mutedLowpassHz           */ 100f,
             /* mutedVolume              */ 30.0f,
-            /* mutedMegaphoneLowpassHz  */ 1800f,
-            /* mutedMegaphoneVolume     */ 1.1f,
             /* blindFogHardEnd          */ 2.0f,
             /* blindFogMediumEnd        */ 7.0f,
             /* deafEnvVolume            */ 1.0f,
@@ -97,7 +88,6 @@ public record ModConfig(
             /* randomizerChestChance    */ 0.55f,
             /* megaphoneBurstSeconds    */ 5.0f,
             /* megaphoneCooldownSeconds */ 120.0f,
-            /* reliefReductionPercent   */ 0.75f,
             /* reliefRangeBlocks        */ 8.0f,
             /* reliefDurationSeconds    */ 30.0f,
             /* myopiaBlurStrength       */ 2.0f,
@@ -122,12 +112,8 @@ public record ModConfig(
     private static void write(ModConfig c, PacketByteBuf buf) {
         buf.writeFloat(c.deafLowpassHz);
         buf.writeFloat(c.deafVolume);
-        buf.writeFloat(c.deafMegaphoneLowpassHz);
-        buf.writeFloat(c.deafMegaphoneVolume);
         buf.writeFloat(c.mutedLowpassHz);
         buf.writeFloat(c.mutedVolume);
-        buf.writeFloat(c.mutedMegaphoneLowpassHz);
-        buf.writeFloat(c.mutedMegaphoneVolume);
         buf.writeFloat(c.blindFogHardEnd);
         buf.writeFloat(c.blindFogMediumEnd);
         buf.writeFloat(c.deafEnvVolume);
@@ -136,7 +122,6 @@ public record ModConfig(
         buf.writeFloat(c.randomizerChestChance);
         buf.writeFloat(c.megaphoneBurstSeconds);
         buf.writeFloat(c.megaphoneCooldownSeconds);
-        buf.writeFloat(c.reliefReductionPercent);
         buf.writeFloat(c.reliefRangeBlocks);
         buf.writeFloat(c.reliefDurationSeconds);
         buf.writeFloat(c.myopiaBlurStrength);
@@ -167,24 +152,23 @@ public record ModConfig(
                 buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(), buf.readFloat(),
-                buf.readFloat(), buf.readFloat(), buf.readFloat(),
-                buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat());
+                buf.readFloat(), buf.readFloat());
     }
 
     /** Number of tunable fields — the length of {@link #toArray()}. */
-    public static final int FIELD_COUNT = 34;
+    public static final int FIELD_COUNT = 29;
 
     /** Flatten to a float[] in declaration order. The slider menu edits this array in place and
      *  rebuilds via {@link #fromArray}, so the field↔index mapping lives ONLY here. Keep this,
      *  {@link #fromArray} and the record in lockstep when adding a field. */
     public float[] toArray() {
         return new float[]{
-                deafLowpassHz, deafVolume, deafMegaphoneLowpassHz, deafMegaphoneVolume,
-                mutedLowpassHz, mutedVolume, mutedMegaphoneLowpassHz, mutedMegaphoneVolume,
+                deafLowpassHz, deafVolume,
+                mutedLowpassHz, mutedVolume,
                 blindFogHardEnd, blindFogMediumEnd, deafEnvVolume,
                 eventMinMinutes, eventMaxMinutes, randomizerChestChance,
                 megaphoneBurstSeconds, megaphoneCooldownSeconds,
-                reliefReductionPercent, reliefRangeBlocks, reliefDurationSeconds,
+                reliefRangeBlocks, reliefDurationSeconds,
                 myopiaBlurStrength, myopiaDarkness,
                 deafMuffleGainHf, deafMuffleGain, deafMuffleRange,
                 deafReliefTinnitusVolume, deafReliefTinnitusFadeSeconds, deafReliefTinnitusDurationSeconds,
@@ -197,16 +181,15 @@ public record ModConfig(
     public static ModConfig fromArray(float[] a) {
         return new ModConfig(
                 a[0], a[1], a[2], a[3],
-                a[4], a[5], a[6], a[7],
-                a[8], a[9], a[10],
-                a[11], a[12], a[13],
+                a[4], a[5], a[6],
+                a[7], a[8], a[9],
+                a[10], a[11],
+                a[12], a[13],
                 a[14], a[15],
                 a[16], a[17], a[18],
-                a[19], a[20],
-                a[21], a[22], a[23],
-                a[24], a[25], a[26],
-                a[27], a[28], a[29],
-                a[30], a[31], a[32],
-                a[33]);
+                a[19], a[20], a[21],
+                a[22], a[23], a[24],
+                a[25], a[26], a[27],
+                a[28]);
     }
 }
