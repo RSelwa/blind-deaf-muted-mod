@@ -40,6 +40,8 @@ public final class CardEditScreen extends Screen {
     private static final int LINE_H = 12;
     private static final int INK = 0xFF3A2E12;   // dark ink, no shadow
     private static final int CURSOR = 0xFF3A2E12;
+    /** Translucent blue behind each line while everything is selected (Ctrl+A). */
+    private static final int SELECTION = 0x8033B3FF;
 
     /** Quick pre-made messages, one button each in a column left of the book. Clicking
      *  REPLACES the whole note with the (localized) label. Lang keys
@@ -57,6 +59,8 @@ public final class CardEditScreen extends Screen {
     private int cursorCol = 0;
     /** Frame counter for the blinking cursor (advanced in {@link #tick()}). */
     private int blink = 0;
+    /** Ctrl+A "everything is selected" state — the next backspace/delete/char clears the card. */
+    private boolean allSelected = false;
 
     public CardEditScreen(Hand hand) {
         super(Text.translatable("screen.blind-deaf-muted.card"));
@@ -97,6 +101,7 @@ public final class CardEditScreen extends Screen {
         lines.get(0).append(clipped);
         cursorLine = 0;
         cursorCol = clipped.length();
+        allSelected = false;
     }
 
     private int bookLeft() {
@@ -119,6 +124,7 @@ public final class CardEditScreen extends Screen {
     @Override
     public boolean charTyped(char chr, int modifiers) {
         if (chr < ' ') return super.charTyped(chr, modifiers);
+        if (allSelected) clearAll(); // typing over a full selection replaces it
         StringBuilder line = lines.get(cursorLine);
         if (line.length() >= ModComponents.MAX_LINE_LENGTH
                 && cursorLine == ModComponents.MAX_LINES - 1) {
@@ -161,8 +167,27 @@ public final class CardEditScreen extends Screen {
         }
     }
 
+    /** Wipe the whole card and drop the selection (Ctrl+A → backspace/type). */
+    private void clearAll() {
+        for (StringBuilder sb : lines) sb.setLength(0);
+        cursorLine = 0;
+        cursorCol = 0;
+        allSelected = false;
+    }
+
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (isSelectAll(keyCode)) {
+            allSelected = true;
+            return true;
+        }
+        if (allSelected) {
+            allSelected = false;
+            if (keyCode == GLFW.GLFW_KEY_BACKSPACE || keyCode == GLFW.GLFW_KEY_DELETE) {
+                clearAll();
+                return true;
+            }
+        }
         StringBuilder line = lines.get(cursorLine);
         switch (keyCode) {
             case GLFW.GLFW_KEY_BACKSPACE -> {
@@ -251,9 +276,13 @@ public final class CardEditScreen extends Screen {
         for (int i = 0; i < lines.size(); i++) {
             int ly = ty + i * LINE_H;
             String text = lines.get(i).toString();
+            if (allSelected && !text.isEmpty()) {
+                int w = this.textRenderer.getWidth(text);
+                context.fill(tx - 1, ly - 1, tx + w + 1, ly + this.textRenderer.fontHeight, SELECTION);
+            }
             // Dark ink, NO shadow (last arg false).
             context.drawText(this.textRenderer, text, tx, ly, INK, false);
-            if (i == cursorLine && showCursor) {
+            if (i == cursorLine && showCursor && !allSelected) {
                 int cx = tx + this.textRenderer.getWidth(text.substring(0, cursorCol));
                 context.fill(cx, ly - 1, cx + 1, ly + this.textRenderer.fontHeight, CURSOR);
             }
