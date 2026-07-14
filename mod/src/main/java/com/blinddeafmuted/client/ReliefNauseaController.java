@@ -26,7 +26,9 @@ public final class ReliefNauseaController {
 
     /** Peak wobble while relieved (1 = a real full-strength NAUSEA effect — the mixin
      *  feeds this through the same distortion-scale math vanilla uses). Lower to soften. */
-    private static final float TARGET = 0.3f;
+    private static float getTarget() {
+        return ClientConfigState.get().blindReliefNauseaStrength();
+    }
 
     /** Per-tick ramp in/out (0.05 ≈ 1 s from none to full and back). */
     private static final float RAMP_PER_TICK = 0.05f;
@@ -46,7 +48,7 @@ public final class ReliefNauseaController {
             // that clears the blind visuals for screenshots clears the wobble too.
             boolean active = RoleState.blindEffectActive() && ReliefState.localActive();
             strength = active
-                    ? Math.min(TARGET, strength + RAMP_PER_TICK)
+                    ? Math.min(getTarget(), strength + RAMP_PER_TICK)
                     : Math.max(0.0f, strength - RAMP_PER_TICK);
         });
     }

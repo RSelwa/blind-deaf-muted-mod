@@ -65,7 +65,13 @@ public record ModConfig(
         // ---- ghost voices (server-only; the voices heard when relieved) ----
         float deafReliefVoicesIntervalMinSeconds,
         float deafReliefVoicesIntervalMaxSeconds,
-        float deafReliefVoicesNearbyRangeBlocks) {
+        float deafReliefVoicesNearbyRangeBlocks,
+        // ---- muted relief noise (server-only; the gut noises when a MUTED player speaks) ----
+        float mutedReliefNoiseIntervalMinSeconds,
+        float mutedReliefNoiseIntervalMaxSeconds,
+        float mutedReliefNoiseVolume,
+        // ---- blind relief nausea (client-only; the screen wobble) ----
+        float blindReliefNauseaStrength) {
 
     /** Factory defaults. The DEAF/MUTED voice values are the ones validated with the client in
      *  the {@code feat-muffle-effect} PR (deaf = 3-pole "through a wall" muffle @210 Hz kept
@@ -104,7 +110,11 @@ public record ModConfig(
             /* deafReliefTinnitusDurationSeconds */ 3.0f,
             /* deafReliefVoicesIntervalMinSeconds */ 4.0f,
             /* deafReliefVoicesIntervalMaxSeconds */ 10.0f,
-            /* deafReliefVoicesNearbyRangeBlocks  */ 30.0f);
+            /* deafReliefVoicesNearbyRangeBlocks  */ 30.0f,
+            /* mutedReliefNoiseIntervalMinSeconds */ 3.5f,
+            /* mutedReliefNoiseIntervalMaxSeconds */ 3.7f,
+            /* mutedReliefNoiseVolume             */ 1.0f,
+            /* blindReliefNauseaStrength          */ 0.3f);
 
     public static final PacketCodec<PacketByteBuf, ModConfig> CODEC = PacketCodec.of(
             ModConfig::write, ModConfig::read);
@@ -140,6 +150,10 @@ public record ModConfig(
         buf.writeFloat(c.deafReliefVoicesIntervalMinSeconds);
         buf.writeFloat(c.deafReliefVoicesIntervalMaxSeconds);
         buf.writeFloat(c.deafReliefVoicesNearbyRangeBlocks);
+        buf.writeFloat(c.mutedReliefNoiseIntervalMinSeconds);
+        buf.writeFloat(c.mutedReliefNoiseIntervalMaxSeconds);
+        buf.writeFloat(c.mutedReliefNoiseVolume);
+        buf.writeFloat(c.blindReliefNauseaStrength);
     }
 
     private static ModConfig read(PacketByteBuf buf) {
@@ -153,11 +167,12 @@ public record ModConfig(
                 buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(), buf.readFloat(),
-                buf.readFloat(), buf.readFloat(), buf.readFloat());
+                buf.readFloat(), buf.readFloat(), buf.readFloat(),
+                buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat());
     }
 
     /** Number of tunable fields — the length of {@link #toArray()}. */
-    public static final int FIELD_COUNT = 30;
+    public static final int FIELD_COUNT = 34;
 
     /** Flatten to a float[] in declaration order. The slider menu edits this array in place and
      *  rebuilds via {@link #fromArray}, so the field↔index mapping lives ONLY here. Keep this,
@@ -173,7 +188,9 @@ public record ModConfig(
                 myopiaBlurStrength, myopiaDarkness,
                 deafMuffleGainHf, deafMuffleGain, deafMuffleRange,
                 deafReliefTinnitusVolume, deafReliefTinnitusFadeSeconds, deafReliefTinnitusDurationSeconds,
-                deafReliefVoicesIntervalMinSeconds, deafReliefVoicesIntervalMaxSeconds, deafReliefVoicesNearbyRangeBlocks};
+                deafReliefVoicesIntervalMinSeconds, deafReliefVoicesIntervalMaxSeconds, deafReliefVoicesNearbyRangeBlocks,
+                mutedReliefNoiseIntervalMinSeconds, mutedReliefNoiseIntervalMaxSeconds, mutedReliefNoiseVolume,
+                blindReliefNauseaStrength};
     }
 
     /** Inverse of {@link #toArray()}. */
@@ -188,6 +205,8 @@ public record ModConfig(
                 a[19], a[20],
                 a[21], a[22], a[23],
                 a[24], a[25], a[26],
-                a[27], a[28], a[29]);
+                a[27], a[28], a[29],
+                a[30], a[31], a[32],
+                a[33]);
     }
 }

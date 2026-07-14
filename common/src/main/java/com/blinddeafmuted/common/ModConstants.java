@@ -39,8 +39,9 @@ public final class ModConstants {
      *       (deafMuffleGainHf / deafMuffleGain / deafMuffleRange) — same wire size, new meaning.
      *  v14: removed roster payload and logic
      *  v15: added deafReliefVoicesIntervalMinSeconds, deafReliefVoicesIntervalMaxSeconds, deafReliefVoicesNearbyRangeBlocks
-     *  v16: added deafReliefTinnitusFadeSeconds, deafReliefTinnitusDurationSeconds */
-    public static final int PROTOCOL_VERSION = 16;
+     *  v16: added deafReliefTinnitusFadeSeconds, deafReliefTinnitusDurationSeconds
+     *  v17: added mutedReliefNoise interval+volume, blindReliefNauseaStrength, added sub-headers in ConfigScreen */
+    public static final int PROTOCOL_VERSION = 17;
 
     /** Helper to build identifiers under our namespace. */
     public static Identifier id(String path) {

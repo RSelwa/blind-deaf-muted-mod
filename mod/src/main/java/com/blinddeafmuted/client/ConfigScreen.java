@@ -32,7 +32,7 @@ import net.minecraft.text.Text;
 public final class ConfigScreen extends Screen {
 
     /** How a slider renders its value + the sensible drag range for each knob. */
-    private enum Style { HZ, GAIN, BLOCKS, MINUTES, PERCENT, SECONDS, HFGAIN }
+    private enum Style { HZ, GAIN, BLOCKS, MINUTES, PERCENT, SECONDS, HFGAIN, HEADER }
 
     /** Tabs — each knob belongs to exactly one, and only the active tab's sliders are shown so the
      *  grid stays short and readable instead of one giant scroll of everything. */
@@ -40,6 +40,7 @@ public final class ConfigScreen extends Screen {
         DEAF("config.blind-deaf-muted.cat.deaf"),
         MUTED("config.blind-deaf-muted.cat.muted"),
         BLIND("config.blind-deaf-muted.cat.blind"),
+        RELIEF("config.blind-deaf-muted.cat.relief"),
         OTHER("config.blind-deaf-muted.cat.other");
 
         final String labelKey;
@@ -59,12 +60,6 @@ public final class ConfigScreen extends Screen {
             new Spec(21, 0.000000000001f, 0.02f, Style.HFGAIN, "config.blind-deaf-muted.deafMuffleGainHf", Category.DEAF),
             new Spec(22, 0f, 1f, Style.GAIN, "config.blind-deaf-muted.deafMuffleGain", Category.DEAF),
             new Spec(23, 2f, 64f, Style.BLOCKS, "config.blind-deaf-muted.deafMuffleRange", Category.DEAF),
-            new Spec(24, 0f, 2f, Style.GAIN, "config.blind-deaf-muted.deafReliefTinnitusVolume", Category.DEAF),
-            new Spec(25, 0.1f, 5f, Style.SECONDS, "config.blind-deaf-muted.deafReliefTinnitusFadeSeconds", Category.DEAF),
-            new Spec(26, 1f, 30f, Style.SECONDS, "config.blind-deaf-muted.deafReliefTinnitusDurationSeconds", Category.DEAF),
-            new Spec(27, 1f, 60f, Style.SECONDS, "config.blind-deaf-muted.deafReliefVoicesIntervalMinSeconds", Category.DEAF),
-            new Spec(28, 1f, 60f, Style.SECONDS, "config.blind-deaf-muted.deafReliefVoicesIntervalMaxSeconds", Category.DEAF),
-            new Spec(29, 2f, 64f, Style.BLOCKS, "config.blind-deaf-muted.deafReliefVoicesNearbyRangeBlocks", Category.DEAF),
             // ---- MUTED: how a muted speaker's mic sounds (4-7) ----
             new Spec(4, 20f, 1200f, Style.HZ, "config.blind-deaf-muted.mutedLowpassHz", Category.MUTED),
             new Spec(5, 0f, 50f, Style.GAIN, "config.blind-deaf-muted.mutedVolume", Category.MUTED),
@@ -73,20 +68,36 @@ public final class ConfigScreen extends Screen {
             // ---- BLIND: myopia post-effect (19-20). Fog knobs 8-9 stay hidden (no live effect). ----
             new Spec(19, 0f, 2f, Style.GAIN, "config.blind-deaf-muted.myopiaBlurStrength", Category.BLIND),
             new Spec(20, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.myopiaDarkness", Category.BLIND),
-            // ---- OTHER: events, randomizer, megaphone timing, relief potion ----
+            // ---- RELIEF: relief potion stats and deaf-relief downsides (tinnitus + ghosts) ----
+            new Spec(-1, 0, 0, Style.HEADER, "config.blind-deaf-muted.cat.relief.general", Category.RELIEF),
+            new Spec(16, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.reliefReductionPercent", Category.RELIEF),
+            new Spec(17, 1f, 32f, Style.BLOCKS, "config.blind-deaf-muted.reliefRangeBlocks", Category.RELIEF),
+            new Spec(18, 5f, 300f, Style.SECONDS, "config.blind-deaf-muted.reliefDurationSeconds", Category.RELIEF),
+            new Spec(-1, 0, 0, Style.HEADER, "config.blind-deaf-muted.cat.deaf", Category.RELIEF),
+            new Spec(24, 0f, 2f, Style.GAIN, "config.blind-deaf-muted.deafReliefTinnitusVolume", Category.RELIEF),
+            new Spec(25, 0.1f, 5f, Style.SECONDS, "config.blind-deaf-muted.deafReliefTinnitusFadeSeconds", Category.RELIEF),
+            new Spec(26, 1f, 30f, Style.SECONDS, "config.blind-deaf-muted.deafReliefTinnitusDurationSeconds", Category.RELIEF),
+            new Spec(27, 1f, 60f, Style.SECONDS, "config.blind-deaf-muted.deafReliefVoicesIntervalMinSeconds", Category.RELIEF),
+            new Spec(28, 1f, 60f, Style.SECONDS, "config.blind-deaf-muted.deafReliefVoicesIntervalMaxSeconds", Category.RELIEF),
+            new Spec(29, 2f, 64f, Style.BLOCKS, "config.blind-deaf-muted.deafReliefVoicesNearbyRangeBlocks", Category.RELIEF),
+            new Spec(-1, 0, 0, Style.HEADER, "config.blind-deaf-muted.cat.muted", Category.RELIEF),
+            new Spec(30, 0.5f, 60f, Style.SECONDS, "config.blind-deaf-muted.mutedReliefNoiseIntervalMinSeconds", Category.RELIEF),
+            new Spec(31, 0.5f, 60f, Style.SECONDS, "config.blind-deaf-muted.mutedReliefNoiseIntervalMaxSeconds", Category.RELIEF),
+            new Spec(32, 0f, 2f, Style.GAIN, "config.blind-deaf-muted.mutedReliefNoiseVolume", Category.RELIEF),
+            new Spec(-1, 0, 0, Style.HEADER, "config.blind-deaf-muted.cat.blind", Category.RELIEF),
+            new Spec(33, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.blindReliefNauseaStrength", Category.RELIEF),
+            // ---- OTHER: events, randomizer, megaphone timing ----
             new Spec(11, 0.5f, 30f, Style.MINUTES, "config.blind-deaf-muted.eventMinMinutes", Category.OTHER),
             new Spec(12, 0.5f, 60f, Style.MINUTES, "config.blind-deaf-muted.eventMaxMinutes", Category.OTHER),
             new Spec(13, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.randomizerChestChance", Category.OTHER),
             new Spec(14, 1f, 30f, Style.SECONDS, "config.blind-deaf-muted.megaphoneBurstSeconds", Category.OTHER),
             new Spec(15, 5f, 600f, Style.SECONDS, "config.blind-deaf-muted.megaphoneCooldownSeconds", Category.OTHER),
-            new Spec(16, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.reliefReductionPercent", Category.OTHER),
-            new Spec(17, 1f, 32f, Style.BLOCKS, "config.blind-deaf-muted.reliefRangeBlocks", Category.OTHER),
-            new Spec(18, 5f, 300f, Style.SECONDS, "config.blind-deaf-muted.reliefDurationSeconds", Category.OTHER),
     };
 
     /** Working copy edited by the sliders; rebuilt into a ModConfig on each send. */
     private final float[] working = ClientConfigState.get().toArray();
     private final List<ParamSlider> sliders = new ArrayList<>();
+    private final List<ParamHeader> headers = new ArrayList<>();
 
     /** Which tab is showing. Kept across init() calls (resize / tab switch) so the view is stable. */
     private Category activeCategory = Category.DEAF;
@@ -111,6 +122,7 @@ public final class ConfigScreen extends Screen {
     @Override
     protected void init() {
         sliders.clear();
+        headers.clear();
         tabButtons.clear();
 
         // ---- Tab row across the top: one button per category, active tab shown greyed (disabled) ----
@@ -140,20 +152,32 @@ public final class ConfigScreen extends Screen {
 
         List<Spec> shown = new ArrayList<>();
         for (Spec s : SPECS) if (s.cat() == activeCategory) shown.add(s);
-        int rows = Math.max(1, (shown.size() + 1) / 2); // 2 columns; left gets the extra on an odd count
 
-        int i = 0;
+        int col = 0;
+        int currentY = topY;
         for (Spec spec : shown) {
-            int col = i / rows;
-            int x = (col == 0) ? leftX : rightX;
-            int baseY = topY + (i % rows) * gapY;
-            ParamSlider slider = new ParamSlider(spec, x, baseY, sliderW, sliderH);
-            slider.baseY = baseY;
-            sliders.add(slider);
-            i++;
-            // NOT added as a drawable child: we render + route input ourselves so the grid can be
-            // clipped and scrolled while the buttons below stay fixed and always visible.
+            if (spec.style == Style.HEADER) {
+                if (col == 1) {
+                    currentY += gapY; // finish current row
+                }
+                currentY += 10; // header top margin
+                ParamHeader header = new ParamHeader(spec, this.width / 2, currentY);
+                headers.add(header);
+                currentY += 20; // header height
+                col = 0; // reset column for next items
+            } else {
+                int x = (col == 0) ? leftX : rightX;
+                ParamSlider slider = new ParamSlider(spec, x, currentY, sliderW, sliderH);
+                slider.baseY = currentY;
+                sliders.add(slider);
+                if (col == 1) {
+                    currentY += gapY;
+                }
+                col = (col + 1) % 2;
+            }
         }
+        if (col == 1) currentY += gapY;
+        int contentBottom = currentY;
 
         // Buttons pinned to the bottom of the window, always on screen regardless of scroll.
         int buttonsY = this.height - 28;
@@ -169,7 +193,6 @@ public final class ConfigScreen extends Screen {
         // The scrollable viewport sits between the tab row and the buttons.
         viewportTop = topY - 4;
         viewportBottom = buttonsY - 6;
-        int contentBottom = topY + (rows - 1) * gapY + sliderH;
         maxScroll = Math.max(0, contentBottom - viewportBottom);
         scrollY = net.minecraft.util.math.MathHelper.clamp(scrollY, 0, maxScroll);
         reflow();
@@ -177,9 +200,8 @@ public final class ConfigScreen extends Screen {
 
     /** Reposition every slider from its laid-out base Y minus the current scroll offset. */
     private void reflow() {
-        for (ParamSlider s : sliders) {
-            s.setY(s.baseY - scrollY);
-        }
+        for (ParamSlider s : sliders) s.setY(s.baseY - scrollY);
+        for (ParamHeader h : headers) h.setY(h.baseY - scrollY);
     }
 
     private void resetDefaults() {
@@ -223,6 +245,7 @@ public final class ConfigScreen extends Screen {
         // Clip the sliders to the viewport so scrolled-out rows don't bleed over the title/buttons.
         context.enableScissor(0, viewportTop, this.width, viewportBottom);
         for (ParamSlider s : sliders) s.render(context, mouseX, mouseY, delta);
+        for (ParamHeader h : headers) h.render(context);
         context.disableScissor();
 
         renderScrollbar(context);
@@ -314,6 +337,28 @@ public final class ConfigScreen extends Screen {
         reflow();
     }
 
+    private final class ParamHeader {
+        private final Text text;
+        private final int x;
+        int baseY;
+        private int y;
+
+        ParamHeader(Spec spec, int x, int y) {
+            this.text = Text.translatable(spec.labelKey()).formatted(net.minecraft.util.Formatting.YELLOW, net.minecraft.util.Formatting.BOLD);
+            this.x = x;
+            this.baseY = y;
+            this.y = y;
+        }
+
+        void setY(int y) {
+            this.y = y;
+        }
+
+        void render(DrawContext context) {
+            context.drawCenteredTextWithShadow(textRenderer, text, x, y, 0xFFFFFF);
+        }
+    }
+
     /** A slider bound to one {@code working[index]} knob, mapping the normalized 0..1 handle
      *  position onto the knob's [min,max] range and formatting the label for its style. */
     private final class ParamSlider extends SliderWidget {
@@ -369,6 +414,7 @@ public final class ConfigScreen extends Screen {
             case PERCENT -> Math.round(v * 100f) + "%";
             case SECONDS -> Math.round(v) + " s";
             case HFGAIN -> String.format("%.2f%%", v * 100f);
+            case HEADER -> "";
         };
     }
 }

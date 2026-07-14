@@ -43,11 +43,6 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class MutedReliefNoise {
 
-    /** Gap between noises while the player keeps talking; also the delay from talk
-     *  start to the first noise. (Was 1–1.2 s — spammed; raised to ~3.5 s in test.) */
-    private static final long MIN_DELAY_MS = 3500;
-    private static final long MAX_DELAY_MS = 3700;
-
     /** How long the speaker's voice stays ducked after each noise fires. Approximates
      *  the typical clip length (pool runs 0.15–2.4 s, most ≤1 s) — the true length is
      *  unknowable server-side (each client rolls the weighted pick itself). */
@@ -61,10 +56,12 @@ public final class MutedReliefNoise {
 
     private final RoleManager roles;
     private final ReliefManager relief;
+    private final java.util.function.Supplier<com.blinddeafmuted.common.ModConfig> config;
 
-    public MutedReliefNoise(RoleManager roles, ReliefManager relief) {
+    public MutedReliefNoise(RoleManager roles, ReliefManager relief, java.util.function.Supplier<com.blinddeafmuted.common.ModConfig> config) {
         this.roles = roles;
         this.relief = relief;
+        this.config = config;
     }
 
     /** A MUTED speaker's mic packet arrived. Called from the SVC audio threads —
@@ -73,8 +70,12 @@ public final class MutedReliefNoise {
         if (!relief.isActive(speaker)) return;
         // putIfAbsent: while a noise is pending its deadline stays put; once it fires
         // the slot empties and the next mic packet re-arms it → interval repeat.
+        long minMs = (long) (config.get().mutedReliefNoiseIntervalMinSeconds() * 1000.0f);
+        long maxMs = (long) (config.get().mutedReliefNoiseIntervalMaxSeconds() * 1000.0f);
+        if (maxMs < minMs) maxMs = minMs;
+
         dueAtMs.putIfAbsent(speaker, System.currentTimeMillis()
-                + ThreadLocalRandom.current().nextLong(MIN_DELAY_MS, MAX_DELAY_MS + 1));
+                + ThreadLocalRandom.current().nextLong(minMs, maxMs + 1));
     }
 
     /** Whether this speaker's voice should currently be ducked under a playing noise.
@@ -104,8 +105,9 @@ public final class MutedReliefNoise {
             // Slight pitch wobble so back-to-back noises don't sound identical even
             // when the weighted pool repeats a file.
             float pitch = 0.9F + player.getWorld().getRandom().nextFloat() * 0.2F;
+            float volume = config.get().mutedReliefNoiseVolume();
             player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    ModSounds.MUTED_RELIEF_NOISE, SoundCategory.PLAYERS, 1.0F, pitch);
+                    ModSounds.MUTED_RELIEF_NOISE, SoundCategory.PLAYERS, volume, pitch);
         }
     }
 

@@ -91,7 +91,11 @@ public final class ConfigManager {
                     f(o, "deafReliefTinnitusDurationSeconds", d.deafReliefTinnitusDurationSeconds()),
                     f(o, "deafReliefVoicesIntervalMinSeconds", d.deafReliefVoicesIntervalMinSeconds()),
                     f(o, "deafReliefVoicesIntervalMaxSeconds", d.deafReliefVoicesIntervalMaxSeconds()),
-                    f(o, "deafReliefVoicesNearbyRangeBlocks", d.deafReliefVoicesNearbyRangeBlocks()));
+                    f(o, "deafReliefVoicesNearbyRangeBlocks", d.deafReliefVoicesNearbyRangeBlocks()),
+                    f(o, "mutedReliefNoiseIntervalMinSeconds", d.mutedReliefNoiseIntervalMinSeconds()),
+                    f(o, "mutedReliefNoiseIntervalMaxSeconds", d.mutedReliefNoiseIntervalMaxSeconds()),
+                    f(o, "mutedReliefNoiseVolume", d.mutedReliefNoiseVolume()),
+                    f(o, "blindReliefNauseaStrength", d.blindReliefNauseaStrength()));
         } catch (IOException | RuntimeException e) {
             BlindDeafMutedServer.LOGGER.warn("Failed to read {} — using defaults ({})",
                     FILE, e.toString());
@@ -131,6 +135,10 @@ public final class ConfigManager {
         o.addProperty("deafReliefVoicesIntervalMinSeconds", c.deafReliefVoicesIntervalMinSeconds());
         o.addProperty("deafReliefVoicesIntervalMaxSeconds", c.deafReliefVoicesIntervalMaxSeconds());
         o.addProperty("deafReliefVoicesNearbyRangeBlocks", c.deafReliefVoicesNearbyRangeBlocks());
+        o.addProperty("mutedReliefNoiseIntervalMinSeconds", c.mutedReliefNoiseIntervalMinSeconds());
+        o.addProperty("mutedReliefNoiseIntervalMaxSeconds", c.mutedReliefNoiseIntervalMaxSeconds());
+        o.addProperty("mutedReliefNoiseVolume", c.mutedReliefNoiseVolume());
+        o.addProperty("blindReliefNauseaStrength", c.blindReliefNauseaStrength());
         try {
             Files.createDirectories(FILE.getParent());
             Files.writeString(FILE, GSON.toJson(o));

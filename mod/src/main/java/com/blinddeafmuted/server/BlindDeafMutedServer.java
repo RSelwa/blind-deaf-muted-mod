@@ -92,7 +92,7 @@ public class BlindDeafMutedServer implements ModInitializer {
     private final RosterScoreboard rosterScoreboard = new RosterScoreboard();
 
     /** Relieved-MUTED gut noises: scheduled off mic packets, fired on the server tick. */
-    private final MutedReliefNoise mutedReliefNoise = new MutedReliefNoise(roleManager, reliefManager);
+    private final MutedReliefNoise mutedReliefNoise = new MutedReliefNoise(roleManager, reliefManager, configManager::get);
 
     /** Ghost-voice cache: captures and curates "interesting" voice snippets from all players
      *  for replay to deaf+relieved players (the deaf relief downside). */
