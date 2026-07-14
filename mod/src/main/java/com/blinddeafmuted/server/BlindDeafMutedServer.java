@@ -318,10 +318,16 @@ public class BlindDeafMutedServer implements ModInitializer {
                 BlindDeafMutedCommand.register(dispatcher, roleManager, skinVisibility, randomEvents));
 
         // When a player joins, immediately sync their role AND the live config (so their
-        // slider menu opens on the real current values right away).
+        // slider menu opens on the real current values right away). Also unlock every mod
+        // recipe in their recipe book — they're from the mod, so players should see what
+        // to craft (and which ingredients to hunt) from the first second, no discovery
+        // gate. Already-unlocked recipes are skipped by vanilla, so no repeat toasts.
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             roleManager.sync(handler.getPlayer());
             ServerPlayNetworking.send(handler.getPlayer(), new ConfigPayload(configManager.get()));
+            handler.getPlayer().unlockRecipes(server.getRecipeManager().values().stream()
+                    .filter(e -> e.id().getValue().getNamespace().equals(ModConstants.MOD_ID))
+                    .toList());
         });
 
         // Hand the role store to the Simple Voice Chat integration — but ONLY if
