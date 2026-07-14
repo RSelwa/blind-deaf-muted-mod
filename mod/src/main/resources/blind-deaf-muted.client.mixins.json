@@ -7,6 +7,7 @@
     "ArmedEntityRenderStateMixin",
     "BackgroundRendererMixin",
     "GameRendererAccessor",
+    "GameRendererCameraMixin",
     "GameRendererNauseaMixin",
     "HeldItemRendererMixin",
     "InGameHudMixin",

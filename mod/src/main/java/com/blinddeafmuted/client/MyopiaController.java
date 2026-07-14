@@ -23,6 +23,8 @@ import net.minecraft.util.Identifier;
  * clear it when done. The render loop applies it automatically each frame.
  */
 public final class MyopiaController {
+    public static boolean bypassClear = false;
+
     private MyopiaController() {}
 
     /** SOFT myopia (cane held) → assets/blind-deaf-muted/post_effect/myopia.json. */
@@ -35,6 +37,10 @@ public final class MyopiaController {
 
     /** Pipeline currently installed by us, or null if none. Reinstall on any change. */
     private static Identifier applied = null;
+
+    public static void forceReapply() {
+        applied = null;
+    }
 
     public static void register() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -59,7 +65,9 @@ public final class MyopiaController {
                 // The live BlurStrength config knob is applied per-frame in PostEffectPassMixin.
                 ((GameRendererAccessor) client.gameRenderer).blinddeafmuted$setPostProcessor(want);
             } else {
+                bypassClear = true;
                 client.gameRenderer.clearPostProcessor();
+                bypassClear = false;
             }
         });
     }
