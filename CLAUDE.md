@@ -519,10 +519,11 @@ no-comments rule.
   `RosterHud` + `L` keybind DELETED; `RosterState` kept (accessory `roleOf()` +
   roulette freeze). Note: sidebar is drawn under the blind BLACKOUT fill, so a
   blacked-out blind player no longer sees the roster (old HUD drew over it).
-- **Recipes in the recipe book:** recipe-unlock advancements under
-  `data/blind-deaf-muted/advancement/recipes/` for the 5 craftables (cane, megaphone,
-  note_card, randomizer, relief_potion) — obtaining any ingredient reveals the recipe
-  in the vanilla recipe-book UI (was: craftable but never listed).
+- **Recipes in the recipe book — always unlocked:** all `blind-deaf-muted:*` recipes
+  (cane, megaphone, note_card, randomizer, relief_potion) are unlocked server-side on
+  JOIN (`player.unlockRecipes` filtered by namespace), so they're visible in the vanilla
+  recipe-book UI from the first second — players see what to craft + which ingredients
+  to hunt. (First pass used per-ingredient unlock advancements; removed as redundant.)
 
 ### Must-verify before first build
 
