@@ -118,13 +118,47 @@ public final class CardEditScreen extends Screen {
 
     @Override
     public boolean charTyped(char chr, int modifiers) {
+        if (chr < ' ') return super.charTyped(chr, modifiers);
         StringBuilder line = lines.get(cursorLine);
-        if (chr >= ' ' && line.length() < ModComponents.MAX_LINE_LENGTH) {
-            line.insert(cursorCol, chr);
-            cursorCol++;
-            return true;
+        if (line.length() >= ModComponents.MAX_LINE_LENGTH
+                && cursorLine == ModComponents.MAX_LINES - 1) {
+            return true; // last line full — nowhere to wrap, drop the char
         }
-        return super.charTyped(chr, modifiers);
+        line.insert(cursorCol, chr);
+        cursorCol++;
+        wrapOverflow();
+        return true;
+    }
+
+    /**
+     * Word-wraps any line longer than {@link ModComponents#MAX_LINE_LENGTH} onto the following
+     * line (cascading down), moving the cursor with the text it sits in — so typing past the
+     * end of a line flows onto the next one instead of blocking. Overflow past the last line
+     * is dropped.
+     */
+    private void wrapOverflow() {
+        for (int i = 0; i < lines.size(); i++) {
+            StringBuilder line = lines.get(i);
+            if (line.length() <= ModComponents.MAX_LINE_LENGTH) continue;
+            // Break at the last space that keeps the head within the limit; hard-cut if none.
+            int cut = line.lastIndexOf(" ", ModComponents.MAX_LINE_LENGTH);
+            int keep = cut > 0 ? cut : ModComponents.MAX_LINE_LENGTH;
+            int tailStart = cut > 0 ? cut + 1 : ModComponents.MAX_LINE_LENGTH; // the space itself is dropped
+            String tail = line.substring(tailStart);
+            line.setLength(keep);
+            if (i == lines.size() - 1) {
+                if (cursorLine == i) cursorCol = Math.min(cursorCol, keep);
+                break;
+            }
+            StringBuilder next = lines.get(i + 1);
+            if (!tail.isEmpty()) {
+                next.insert(0, next.length() > 0 ? tail + " " : tail);
+            }
+            if (cursorLine == i && cursorCol > keep) {
+                cursorLine = i + 1;
+                cursorCol = cursorCol - tailStart;
+            }
+        }
     }
 
     @Override
