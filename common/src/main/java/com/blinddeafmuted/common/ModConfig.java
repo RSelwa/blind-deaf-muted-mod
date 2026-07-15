@@ -80,21 +80,21 @@ public record ModConfig(
      *  {@code config/blind-deaf-muted.json} keeps its saved values (reset in the in-game menu
      *  or delete the file to pick these up). */
     public static final ModConfig DEFAULT = new ModConfig(
-            /* deafLowpassHz            */ 64f,
-            /* deafVolume               */ 17f,
-            /* mutedLowpassHz           */ 100f,
-            /* mutedVolume              */ 30.0f,
+            /* deafLowpassHz            */ 300f,
+            /* deafVolume               */ 16.0f,
+            /* mutedLowpassHz           */ 300f,
+            /* mutedVolume              */ 16.0f,
             /* blindFogHardEnd          */ 2.0f,
             /* blindFogMediumEnd        */ 7.0f,
-            /* deafEnvVolume            */ 1.0f,
+            /* deafEnvVolume            */ 2.0f,
             /* eventAutoRerollEnabled   */ 0.0f,
-            /* eventMinMinutes          */ 3.0f,
-            /* eventMaxMinutes          */ 8.0f,
+            /* eventMinMinutes          */ 1.0f,
+            /* eventMaxMinutes          */ 10.0f,
             /* randomizerChestChance    */ 0.55f,
-            /* megaphoneBurstSeconds    */ 5.0f,
-            /* megaphoneCooldownSeconds */ 120.0f,
+            /* megaphoneBurstSeconds    */ 8.0f,
+            /* megaphoneCooldownSeconds */ 40.0f,
             /* reliefRangeBlocks        */ 8.0f,
-            /* reliefDurationSeconds    */ 30.0f,
+            /* reliefDurationSeconds    */ 50.0f,
             /* myopiaBlurStrength       */ 2.0f,
             /* myopiaDarkness           */ 0.12f,
             /* deafMuffleGainHf         */ 0.0015f,
@@ -105,13 +105,13 @@ public record ModConfig(
             /* deafReliefTinnitusDurationSeconds */ 3.0f,
             /* deafReliefVoicesIntervalMinSeconds */ 4.0f,
             /* deafReliefVoicesIntervalMaxSeconds */ 10.0f,
-            /* deafReliefVoicesNearbyRangeBlocks  */ 30.0f,
-            /* mutedReliefNoiseIntervalMinSeconds */ 3.5f,
-            /* mutedReliefNoiseIntervalMaxSeconds */ 3.7f,
+            /* deafReliefVoicesNearbyRangeBlocks  */ 50.0f,
+            /* mutedReliefNoiseIntervalMinSeconds */ 4.0f,
+            /* mutedReliefNoiseIntervalMaxSeconds */ 10.0f,
             /* mutedReliefNoiseVolume             */ 1.0f,
             /* blindReliefNauseaStrength          */ 0.3f,
-            /* blindHotbarObscureOpacity          */ 0.6f,
-            /* blindInventoryObscureOpacity       */ 0.8f);
+            /* blindHotbarObscureOpacity          */ 0.4f,
+            /* blindInventoryObscureOpacity       */ 0.5f);
 
     public static final PacketCodec<PacketByteBuf, ModConfig> CODEC = PacketCodec.of(
             ModConfig::write, ModConfig::read);
