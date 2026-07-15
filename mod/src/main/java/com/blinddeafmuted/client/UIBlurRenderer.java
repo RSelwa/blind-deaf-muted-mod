@@ -13,6 +13,10 @@ import org.lwjgl.opengl.GL30;
 public final class UIBlurRenderer {
     private UIBlurRenderer() {}
 
+    // Used to track tooltip position for blurring
+    public static int tooltipX, tooltipY, tooltipWidth, tooltipHeight;
+    public static boolean hasTooltipThisFrame;
+
     private static Framebuffer fboDown1;
     private static Framebuffer fboDown2;
     private static int cachedMainW, cachedMainH;

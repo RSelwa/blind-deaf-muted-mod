@@ -20,6 +20,14 @@ public abstract class HandledScreenMixin {
     @Shadow protected int backgroundHeight;
 
     /**
+     * Clear the tooltip flag at the start of rendering
+     */
+    @Inject(method = "render", at = @At("HEAD"))
+    private void blinddeafmuted$clearTooltipFlag(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        UIBlurRenderer.hasTooltipThisFrame = false;
+    }
+
+    /**
      * Blur the inventory content area AFTER everything has been drawn (items, slots,
      * tooltips). The blur is purely visual — clicks still reach the underlying slots
      * because hit-testing uses logical coordinates, not pixels.
@@ -39,6 +47,25 @@ public abstract class HandledScreenMixin {
                     this.y - margin,
                     this.x + this.backgroundWidth + margin,
                     this.y + this.backgroundHeight + margin,
+                    strength);
+        }
+    }
+
+    /**
+     * Blur the tooltip AFTER it has been fully drawn.
+     */
+    @Inject(method = "drawMouseoverTooltip", at = @At("TAIL"))
+    private void blinddeafmuted$obscureTooltip(DrawContext context, int x, int y, CallbackInfo ci) {
+        if (!RoleState.blindEffectActive()) return;
+
+        float strength = ClientConfigState.get().blindInventoryObscureOpacity();
+        if (strength > 0 && UIBlurRenderer.hasTooltipThisFrame) {
+            int tMargin = 4;
+            UIBlurRenderer.blurRegion(context,
+                    UIBlurRenderer.tooltipX - tMargin,
+                    UIBlurRenderer.tooltipY - tMargin,
+                    UIBlurRenderer.tooltipX + UIBlurRenderer.tooltipWidth + tMargin,
+                    UIBlurRenderer.tooltipY + UIBlurRenderer.tooltipHeight + tMargin,
                     strength);
         }
     }

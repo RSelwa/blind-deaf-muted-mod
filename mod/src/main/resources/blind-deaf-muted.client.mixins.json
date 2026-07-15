@@ -16,7 +16,8 @@
     "PostEffectPassMixin",
     "SoundListenerMixin",
     "SoundSystemMixin",
-    "SourceMixin"
+    "SourceMixin",
+    "TooltipBackgroundRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
