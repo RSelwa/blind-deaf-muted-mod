@@ -91,7 +91,9 @@ public final class ConfigManager {
                     f(o, "mutedReliefNoiseIntervalMinSeconds", d.mutedReliefNoiseIntervalMinSeconds()),
                     f(o, "mutedReliefNoiseIntervalMaxSeconds", d.mutedReliefNoiseIntervalMaxSeconds()),
                     f(o, "mutedReliefNoiseVolume", d.mutedReliefNoiseVolume()),
-                    f(o, "blindReliefNauseaStrength", d.blindReliefNauseaStrength()));
+                    f(o, "blindReliefNauseaStrength", d.blindReliefNauseaStrength()),
+                    f(o, "blindHotbarObscureOpacity", d.blindHotbarObscureOpacity()),
+                    f(o, "blindInventoryObscureOpacity", d.blindInventoryObscureOpacity()));
         } catch (IOException | RuntimeException e) {
             BlindDeafMutedServer.LOGGER.warn("Failed to read {} — using defaults ({})",
                     FILE, e.toString());
@@ -131,6 +133,8 @@ public final class ConfigManager {
         o.addProperty("mutedReliefNoiseIntervalMaxSeconds", c.mutedReliefNoiseIntervalMaxSeconds());
         o.addProperty("mutedReliefNoiseVolume", c.mutedReliefNoiseVolume());
         o.addProperty("blindReliefNauseaStrength", c.blindReliefNauseaStrength());
+        o.addProperty("blindHotbarObscureOpacity", c.blindHotbarObscureOpacity());
+        o.addProperty("blindInventoryObscureOpacity", c.blindInventoryObscureOpacity());
         try {
             Files.createDirectories(FILE.getParent());
             Files.writeString(FILE, GSON.toJson(o));

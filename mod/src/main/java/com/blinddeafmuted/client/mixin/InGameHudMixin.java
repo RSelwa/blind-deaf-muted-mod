@@ -53,10 +53,17 @@ public class InGameHudMixin {
             method = "render(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/client/render/RenderTickCounter;)V",
             at = @At("TAIL"))
     private void blinddeafmuted$drawTracker(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
+        if (RoleState.blindEffectActive()) {
+            float opacity = com.blinddeafmuted.client.ClientConfigState.get().blindHotbarObscureOpacity();
+            if (opacity > 0) {
+                int w = context.getScaledWindowWidth();
+                int h = context.getScaledWindowHeight();
+                // Blur the entire bottom strip
+                com.blinddeafmuted.client.UIBlurRenderer.blurRegion(
+                        context, 0, h - 60, w, h, opacity);
+            }
+        }
         TrackerHud.render(context);
-        // Roster HUD replaced by the vanilla scoreboard sidebar (server/RosterScoreboard).
-        // NoteCardHud disabled: the owner's "your note" rectangle was unwanted. The writer
-        // reads their note by opening the editor (G); the world card is for showing others.
-        RouletteAnimation.render(context); // last = on top of everything
+        RouletteAnimation.render(context);
     }
 }

@@ -9,6 +9,7 @@
     "GameRendererAccessor",
     "GameRendererCameraMixin",
     "GameRendererNauseaMixin",
+    "HandledScreenMixin",
     "HeldItemRendererMixin",
     "InGameHudMixin",
     "PlayerEntityModelMixin",

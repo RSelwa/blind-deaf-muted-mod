@@ -64,6 +64,8 @@ public final class ConfigScreen extends Screen {
             // ---- BLIND: myopia post-effect (15-16). Fog knobs 4-5 stay hidden (no live effect). ----
             new Spec(15, 0f, 2f, Style.GAIN, "config.blind-deaf-muted.myopiaBlurStrength", Category.BLIND),
             new Spec(16, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.myopiaDarkness", Category.BLIND),
+            new Spec(30, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.blindHotbarObscureOpacity", Category.BLIND),
+            new Spec(31, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.blindInventoryObscureOpacity", Category.BLIND),
             // ---- RELIEF: relief potion stats and deaf-relief downsides (tinnitus + ghosts) ----
             new Spec(-1, 0, 0, Style.HEADER, "config.blind-deaf-muted.cat.relief.general", Category.RELIEF),
             new Spec(13, 1f, 32f, Style.BLOCKS, "config.blind-deaf-muted.reliefRangeBlocks", Category.RELIEF),
