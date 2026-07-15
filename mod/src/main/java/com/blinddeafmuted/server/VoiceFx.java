@@ -173,11 +173,7 @@ final class VoiceFx {
             float lpHz = cfg.mutedLowpassHz();
             float vol = cfg.mutedVolume();
             if (ducked) vol *= RELIEF_NOISE_DUCK;
-            float alpha = lowpassAlpha(lpHz);
-            for (int stage = 0; stage < MUTED_LOWPASS_POLES; stage++) {
-                lowpassStage(pcm, lp, stage, alpha);
-            }
-            scale(pcm, vol);
+            applyMuffle(pcm, lp, MUTED_LOWPASS_POLES, lowpassAlpha(lpHz), vol);
         }
         return encoder.encode(pcm);
     }
@@ -215,10 +211,7 @@ final class VoiceFx {
             // memory per cascade stage, kept across frames.
             float lpHz = cfg.deafLowpassHz();
             float vol = cfg.deafVolume();
-            for (int stage = 0; stage < DEAF_LOWPASS_POLES; stage++) {
-                lowpassStage(pcm, lp, stage, lowpassAlpha(lpHz));
-            }
-            scale(pcm, vol);
+            applyMuffle(pcm, lp, DEAF_LOWPASS_POLES, lowpassAlpha(lpHz), vol);
         }
         return encoder.encode(pcm);
     }
@@ -275,6 +268,49 @@ final class VoiceFx {
             pcm[i] = clamp((int) y);
         }
         state[0] = y;
+    }
+
+    /**
+     * Applies a multi-pole lowpass filter and volume scaling in a single pass without
+     * intermediate integer truncation. This avoids extreme quantization noise (static/hiss)
+     * and non-linear "square wave" distortion that makes high-pitched voices bleed through.
+     * Also applies a gentle noise gate to silence raw mic hiss before massive volume makeup.
+     */
+    private static void applyMuffle(short[] pcm, float[] lpState, int poles, float alpha, float vol) {
+        // Noise gate threshold: values below this are mic hiss, we kill them so we don't
+        // multiply hiss by vol (which can be up to 30.0x for MUTED).
+        final float noiseGate = 25.0f;
+        
+        for (int i = 0; i < pcm.length; i++) {
+            float x = pcm[i];
+            
+            if (Math.abs(x) < noiseGate) {
+                x = 0f;
+            }
+
+            for (int stage = 0; stage < poles; stage++) {
+                lpState[stage] += alpha * (x - lpState[stage]);
+                x = lpState[stage];
+            }
+            
+            x *= vol;
+
+            // Soft-clip (tanh-like shape) instead of hard clamping to avoid harsh digital fuzz
+            // when the massive makeup gain pushes bass peaks past MAX_VALUE.
+            float max = 32767f;
+            if (x > max * 0.8f || x < -max * 0.8f) {
+                // simple soft curve above 80%
+                float sign = Math.signum(x);
+                float absX = Math.abs(x);
+                // normalized overshoot
+                float over = (absX - max * 0.8f) / (max * 0.2f); 
+                // compress the overshoot
+                float compressed = over / (1.0f + over);
+                x = sign * (max * 0.8f + max * 0.2f * compressed);
+            }
+
+            pcm[i] = clamp((int) x);
+        }
     }
 
     /** One low-pass stage of a cascade: the same one-pole filter as {@link #lowpassCore} but
