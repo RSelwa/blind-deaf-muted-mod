@@ -1,12 +1,12 @@
 package com.blinddeafmuted.server;
 
-import de.maxhenkel.voicechat.api.VoicechatApi;
-import de.maxhenkel.voicechat.api.opus.OpusDecoder;
-import de.maxhenkel.voicechat.api.opus.OpusEncoder;
-
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
+import de.maxhenkel.voicechat.api.VoicechatApi;
+import de.maxhenkel.voicechat.api.opus.OpusDecoder;
+import de.maxhenkel.voicechat.api.opus.OpusEncoder;
 
 /**
  * Audio effect pipeline for the voice-chat role enforcement.
@@ -58,13 +58,13 @@ final class VoiceFx {
     /** How many one-pole low-pass stages to cascade for the DEAF muffle (validated: 3 = a firm
      *  but still natural "through a wall" muffle; many more start sounding artificial). The
      *  cutoff itself is the live {@code deafLowpassHz} knob. */
-    private static final int DEAF_LOWPASS_POLES = 3;
+    private static final int DEAF_LOWPASS_POLES = 8;
 
     /** How many one-pole low-pass stages to cascade for the MUTED mic muffle (no megaphone).
      *  Steeper than the deaf one on purpose: a muted speaker must be genuinely UNINTELLIGIBLE,
      *  not just quiet/dull — 4 poles at the low {@code mutedLowpassHz} cutoff leaves only the bass
      *  rumble of the voice, so you can tell they're talking but not make out words. */
-    private static final int MUTED_LOWPASS_POLES = 4;
+    private static final int MUTED_LOWPASS_POLES = 8;
 
     // (Relief constants removed; relieved players now have perfectly clear voice)
 
@@ -211,6 +211,14 @@ final class VoiceFx {
             // memory per cascade stage, kept across frames.
             float lpHz = cfg.deafLowpassHz();
             float vol = cfg.deafVolume();
+            
+            // If the speaker is already muted, do not apply the deaf makeup gain.
+            // Their mic was already processed in distort() with a huge makeup gain, 
+            // and applying the deaf volume on top makes them way too loud.
+            if (speakerMuted) {
+                vol = 1.0f; 
+            }
+            
             applyMuffle(pcm, lp, DEAF_LOWPASS_POLES, lowpassAlpha(lpHz), vol);
         }
         return encoder.encode(pcm);
