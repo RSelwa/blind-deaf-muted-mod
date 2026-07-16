@@ -251,6 +251,10 @@ public class BlindDeafMutedServer implements ModInitializer {
             if (server == null) return;
             List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
             int count = RoleRoller.rollAll(players, roleManager);
+            // Reset the auto-reroll countdown so the surprise timer doesn't fire again
+            // right after a manual bottle throw (was frustrating: throw, then auto-switch
+            // back ~2 min later).
+            randomEvents.resetTimer();
             if (count > 0) {
                 server.getPlayerManager().broadcast(
                         Text.literal("🎲 A Randomizer shattered — everyone's role was re-rolled!")

@@ -81,6 +81,17 @@ public final class RandomEventManager {
     }
 
     /**
+     * Reset the auto-reroll countdown to a fresh full interval.
+     *
+     * <p>Called whenever an EXTERNAL re-roll happens (a shattered Randomizer bottle) so the
+     * auto-timer doesn't fire again right on its heels — e.g. throwing a bottle then getting
+     * auto-switched back two minutes later. The timer restarts as if it had just fired.
+     */
+    public void resetTimer() {
+        scheduleNext();
+    }
+
+    /**
      * Force a re-roll right now, ignoring the timer and the enabled flag.
      * Used by {@code /bdm events now} for on-demand testing / recording.
      *
