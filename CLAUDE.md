@@ -517,7 +517,9 @@ no-comments rule.
   `scoreboard.blind-deaf-muted.roster_title`, en+fr). Anti-spoiler: updates skipped
   while `RoleManager.isRouletteRunning()` (~3.5 s after any `setAnimated`).
   `RosterHud` + `L` keybind DELETED; `RosterState` kept (accessory `roleOf()` +
-  roulette freeze). Note: sidebar is drawn under the blind BLACKOUT fill, so a
+  roulette freeze). Stale-line fix: cleanup reads the OBJECTIVE's own entries (scores
+  persist in the world save; the old in-memory `shownNames` set missed pre-restart
+  lines → offline players stayed listed until rejoin). Note: sidebar is drawn under the blind BLACKOUT fill, so a
   blacked-out blind player no longer sees the roster (old HUD drew over it).
 - **Recipes in the recipe book — always unlocked:** all `blind-deaf-muted:*` recipes
   (cane, megaphone, note_card, randomizer, relief_potion) are unlocked server-side on

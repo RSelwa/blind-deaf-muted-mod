@@ -5,6 +5,7 @@ import net.minecraft.scoreboard.ScoreAccess;
 import net.minecraft.scoreboard.ScoreHolder;
 import net.minecraft.scoreboard.ScoreboardCriterion;
 import net.minecraft.scoreboard.ScoreboardDisplaySlot;
+import net.minecraft.scoreboard.ScoreboardEntry;
 import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.scoreboard.number.BlankNumberFormat;
@@ -33,9 +34,6 @@ import java.util.Set;
 public final class RosterScoreboard {
 
     private static final String OBJECTIVE_NAME = "bdm_roster";
-
-    /** Names currently shown on the sidebar, so a leaver's line can be removed. */
-    private final Set<String> shownNames = new HashSet<>();
 
     /** Rebuild the sidebar from the live player list. Call on the slow roster tick. */
     public void update(MinecraftServer server, RoleManager roleManager) {
@@ -66,14 +64,15 @@ public final class RosterScoreboard {
             score.setDisplayText(rowText(name, roleManager.get(player)));
         }
 
-        // Drop lines of players no longer online.
-        for (String stale : shownNames) {
-            if (!current.contains(stale)) {
-                scoreboard.removeScore(ScoreHolder.fromName(stale), objective);
+        // Drop every line that isn't a currently-online player. Reads the OBJECTIVE's
+        // entries (not an in-memory set): scoreboard scores persist in the world save,
+        // so after a restart old-session lines linger with no runtime record — an
+        // in-memory "shown names" set missed them and offline players stayed listed.
+        for (ScoreboardEntry entry : List.copyOf(scoreboard.getScoreboardEntries(objective))) {
+            if (!current.contains(entry.owner())) {
+                scoreboard.removeScore(ScoreHolder.fromName(entry.owner()), objective);
             }
         }
-        shownNames.clear();
-        shownNames.addAll(current);
     }
 
     /** One sidebar line: {@code Name  Role}, the role word translatable + in its role colour. */
