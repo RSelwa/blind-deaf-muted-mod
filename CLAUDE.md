@@ -525,6 +525,18 @@ no-comments rule.
   recipe-book UI from the first second — players see what to craft + which ingredients
   to hunt. (First pass used per-ingredient unlock advancements; removed as redundant.)
 
+### Recent additions (piglin pearl boost)
+
+- **Ender-pearl barter bonus:** vanilla piglin bartering's pearl entry is only ~2.2%
+  (≈185 gold avg for 12 pearls) — too grindy. A bonus pool on
+  `PIGLIN_BARTERING_GAMEPLAY` (next to the Relief pool in `BlindDeafMutedServer`)
+  gives 2-4 pearls at 15% per barter (vanilla entry untouched → ~17% combined).
+  Constants `PEARL_BARTER_BONUS_CHANCE` / `PEARL_BARTER_MIN/MAX`. Loot pools bake at
+  resource load → change needs `/reload` or restart, like `randomizerChestChance`.
+- **Relief ×3 from piglins:** piglin barter bonus + piglin death drop now give
+  `RELIEF_DROP_COUNT` (3) Relief potions per hit (one per trio member); iron-golem /
+  blaze death drops stay 1.
+
 ### Must-verify before first build
 
 - Fabric version strings in `gradle.properties` (minecraft/yarn/loader/fabric-api)

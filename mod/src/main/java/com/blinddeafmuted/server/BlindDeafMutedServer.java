@@ -31,12 +31,15 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.loot.LootPool;
 import net.minecraft.loot.LootTable;
 import net.minecraft.loot.LootTables;
 import net.minecraft.loot.condition.RandomChanceLootCondition;
 import net.minecraft.loot.entry.ItemEntry;
+import net.minecraft.loot.function.SetCountLootFunction;
 import net.minecraft.loot.provider.number.ConstantLootNumberProvider;
+import net.minecraft.loot.provider.number.UniformLootNumberProvider;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -154,6 +157,18 @@ public class BlindDeafMutedServer implements ModInitializer {
      *  A reliable, farmable source (trade gold to piglins). Kept low so it's a treat, not
      *  spam — piglins barter fast. */
     private static final float PIGLIN_BARTER_CHANCE = 0.05F;
+
+    /** How many Relief potions a piglin gives per hit (barter bonus + piglin death drop).
+     *  3 = one splash for each disability holder in a trio. Golem/blaze death drops stay 1. */
+    private static final int RELIEF_DROP_COUNT = 3;
+
+    /** Bonus chance a single Piglin barter ALSO yields ender pearls (on top of vanilla's
+     *  ~2.2% weighted entry, which stays untouched). Vanilla alone averages ~185 gold for
+     *  the 12 pearls a dragon run needs — too grindy for a challenge-mod session, so this
+     *  pool roughly ×8s the effective pearl rate (~17% combined per barter). */
+    private static final float PEARL_BARTER_BONUS_CHANCE = 0.15F;
+    private static final float PEARL_BARTER_MIN = 2.0F;
+    private static final float PEARL_BARTER_MAX = 4.0F;
 
     /** Mob death drops: chance a killed mob of each type drops a Potion of Relief (fight
      *  reward). Pure bonuses on the entity loot tables (added, not replacing vanilla drops). */
@@ -307,7 +322,18 @@ public class BlindDeafMutedServer implements ModInitializer {
                 tableBuilder.pool(LootPool.builder()
                         .rolls(ConstantLootNumberProvider.create(1))
                         .conditionally(RandomChanceLootCondition.builder(PIGLIN_BARTER_CHANCE))
-                        .with(ItemEntry.builder(ModItems.RELIEF_POTION)));
+                        .with(ItemEntry.builder(ModItems.RELIEF_POTION)
+                                .apply(SetCountLootFunction.builder(
+                                        ConstantLootNumberProvider.create(RELIEF_DROP_COUNT)))));
+                // Ender pearl boost: vanilla's ~2.2% pearl entry makes eye-of-ender gathering
+                // a ~185-gold grind. Bonus pool (vanilla barter untouched) at
+                // PEARL_BARTER_BONUS_CHANCE for 2-4 pearls, same shape as the Relief pool.
+                tableBuilder.pool(LootPool.builder()
+                        .rolls(ConstantLootNumberProvider.create(1))
+                        .conditionally(RandomChanceLootCondition.builder(PEARL_BARTER_BONUS_CHANCE))
+                        .with(ItemEntry.builder(Items.ENDER_PEARL)
+                                .apply(SetCountLootFunction.builder(
+                                        UniformLootNumberProvider.create(PEARL_BARTER_MIN, PEARL_BARTER_MAX)))));
             }
             // Mob death drops (piglin/iron golem/blaze): a Potion of Relief as a FIGHT reward.
             // Bonus pool on each entity's loot table, on top of its vanilla drops (piglin has
@@ -315,10 +341,13 @@ public class BlindDeafMutedServer implements ModInitializer {
             if (source.isBuiltin()) {
                 for (Map.Entry<EntityType<?>, Float> drop : MOB_DEATH_DROPS.entrySet()) {
                     if (drop.getKey().getLootTableKey().map(key::equals).orElse(false)) {
+                        int count = drop.getKey() == EntityType.PIGLIN ? RELIEF_DROP_COUNT : 1;
                         tableBuilder.pool(LootPool.builder()
                                 .rolls(ConstantLootNumberProvider.create(1))
                                 .conditionally(RandomChanceLootCondition.builder(drop.getValue()))
-                                .with(ItemEntry.builder(ModItems.RELIEF_POTION)));
+                                .with(ItemEntry.builder(ModItems.RELIEF_POTION)
+                                        .apply(SetCountLootFunction.builder(
+                                                ConstantLootNumberProvider.create(count)))));
                     }
                 }
             }
