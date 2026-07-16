@@ -31,6 +31,7 @@
   "config.blind-deaf-muted.reliefDurationSeconds": "Relief duration",
   "config.blind-deaf-muted.myopiaBlurStrength": "Myopia blur strength",
   "config.blind-deaf-muted.myopiaDarkness": "Myopia darkness",
+  "config.blind-deaf-muted.blindArrowCrystal": "Blind arrow crystal",
   "config.blind-deaf-muted.deafMuffleGainHf": "Deaf muffle: highs",
   "config.blind-deaf-muted.deafMuffleGain": "Deaf filter: level",
   "config.blind-deaf-muted.deafEnvVolume": "Deaf world volume",

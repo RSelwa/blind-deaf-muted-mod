@@ -66,6 +66,7 @@ public final class ConfigScreen extends Screen {
             new Spec(16, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.myopiaDarkness", Category.BLIND),
             new Spec(30, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.blindHotbarObscureOpacity", Category.BLIND),
             new Spec(31, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.blindInventoryObscureOpacity", Category.BLIND),
+            new Spec(32, 0f, 1f, Style.BOOLEAN, "config.blind-deaf-muted.blindArrowCrystal", Category.BLIND),
             // ---- RELIEF: relief potion stats and deaf-relief downsides (tinnitus + ghosts) ----
             new Spec(-1, 0, 0, Style.HEADER, "config.blind-deaf-muted.cat.relief.general", Category.RELIEF),
             new Spec(13, 1f, 32f, Style.BLOCKS, "config.blind-deaf-muted.reliefRangeBlocks", Category.RELIEF),

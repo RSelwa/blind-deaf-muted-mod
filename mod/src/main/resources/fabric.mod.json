@@ -17,6 +17,7 @@
     ]
   },
   "mixins": [
+    "blind-deaf-muted.mixins.json",
     {
       "config": "blind-deaf-muted.client.mixins.json",
       "environment": "client"

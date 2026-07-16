@@ -324,6 +324,10 @@ public class BlindDeafMutedServer implements ModInitializer {
             }
         });
 
+        // "Blind arrow crystal" rule: the EndCrystal damage mixin reads the live config + role
+        // table through this static bridge. Inert until blindArrowCrystal is toggled on (O menu).
+        CrystalGate.bind(configManager::get, roleManager);
+
         // Random-events timer: inert until an op runs /bdm events on.
         randomEvents.register();
 

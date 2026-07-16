@@ -33,6 +33,7 @@
   "config.blind-deaf-muted.myopiaDarkness": "Assombrissement myopique",
   "config.blind-deaf-muted.blindHotbarObscureOpacity": "Opacité barre d'outil (Aveugle)",
   "config.blind-deaf-muted.blindInventoryObscureOpacity": "Opacité inventaire (Aveugle)",
+  "config.blind-deaf-muted.blindArrowCrystal": "Cristal à la flèche (Aveugle)",
   "config.blind-deaf-muted.deafMuffleGainHf": "Sourd : aigus",
   "config.blind-deaf-muted.deafMuffleGain": "Sourd : niveau filtre",
   "config.blind-deaf-muted.deafMuffleRange": "Sourd : portée",

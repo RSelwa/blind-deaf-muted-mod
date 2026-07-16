@@ -70,7 +70,9 @@ public record ModConfig(
         float blindReliefNauseaStrength,
         // ---- blind UI obscure (client-only) ----
         float blindHotbarObscureOpacity,
-        float blindInventoryObscureOpacity) {
+        float blindInventoryObscureOpacity,
+        // ---- "blind arrow crystal" gate (server-only; boolean stored as >0.5) ----
+        float blindArrowCrystal) {
 
     /** Factory defaults. The DEAF/MUTED voice values are the ones validated with the client in
      *  the {@code feat-muffle-effect} PR (deaf = 3-pole "through a wall" muffle @210 Hz kept
@@ -111,7 +113,8 @@ public record ModConfig(
             /* mutedReliefNoiseVolume             */ 1.0f,
             /* blindReliefNauseaStrength          */ 0.3f,
             /* blindHotbarObscureOpacity          */ 0.4f,
-            /* blindInventoryObscureOpacity       */ 0.5f);
+            /* blindInventoryObscureOpacity       */ 0.5f,
+            /* blindArrowCrystal                  */ 0.0f);
 
     public static final PacketCodec<PacketByteBuf, ModConfig> CODEC = PacketCodec.of(
             ModConfig::write, ModConfig::read);
@@ -149,6 +152,7 @@ public record ModConfig(
         buf.writeFloat(c.blindReliefNauseaStrength);
         buf.writeFloat(c.blindHotbarObscureOpacity);
         buf.writeFloat(c.blindInventoryObscureOpacity);
+        buf.writeFloat(c.blindArrowCrystal);
     }
 
     private static ModConfig read(PacketByteBuf buf) {
@@ -162,11 +166,12 @@ public record ModConfig(
                 buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 buf.readFloat(), buf.readFloat(), buf.readFloat(),
-                buf.readFloat(), buf.readFloat(), buf.readFloat());
+                buf.readFloat(), buf.readFloat(), buf.readFloat(),
+                buf.readFloat());
     }
 
     /** Number of tunable fields — the length of {@link #toArray()}. */
-    public static final int FIELD_COUNT = 32;
+    public static final int FIELD_COUNT = 33;
 
     /** Flatten to a float[] in declaration order. The slider menu edits this array in place and
      *  rebuilds via {@link #fromArray}, so the field↔index mapping lives ONLY here. Keep this,
@@ -185,7 +190,8 @@ public record ModConfig(
                 deafReliefVoicesIntervalMinSeconds, deafReliefVoicesIntervalMaxSeconds, deafReliefVoicesNearbyRangeBlocks,
                 mutedReliefNoiseIntervalMinSeconds, mutedReliefNoiseIntervalMaxSeconds, mutedReliefNoiseVolume,
                 blindReliefNauseaStrength,
-                blindHotbarObscureOpacity, blindInventoryObscureOpacity};
+                blindHotbarObscureOpacity, blindInventoryObscureOpacity,
+                blindArrowCrystal};
     }
 
     /** Inverse of {@link #toArray()}. */
@@ -201,6 +207,7 @@ public record ModConfig(
                 a[20], a[21], a[22],
                 a[23], a[24], a[25],
                 a[26], a[27], a[28],
-                a[29], a[30], a[31]);
+                a[29], a[30], a[31],
+                a[32]);
     }
 }

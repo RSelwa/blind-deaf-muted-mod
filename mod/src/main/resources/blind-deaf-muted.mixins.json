@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.blinddeafmuted.server.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "EndCrystalDamageMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
