@@ -42,7 +42,7 @@ public final class ModConstants {
      *  v16: added deafReliefTinnitusFadeSeconds, deafReliefTinnitusDurationSeconds
      *  v17: added mutedReliefNoise interval+volume, blindReliefNauseaStrength, added sub-headers in ConfigScreen
      *  v18: removed megaphone/relief lowpass config fields */
-    public static final int PROTOCOL_VERSION = 20;
+    public static final int PROTOCOL_VERSION = 21;
 
     /** Helper to build identifiers under our namespace. */
     public static Identifier id(String path) {

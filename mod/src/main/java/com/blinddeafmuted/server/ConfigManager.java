@@ -94,7 +94,9 @@ public final class ConfigManager {
                     f(o, "blindReliefNauseaStrength", d.blindReliefNauseaStrength()),
                     f(o, "blindHotbarObscureOpacity", d.blindHotbarObscureOpacity()),
                     f(o, "blindInventoryObscureOpacity", d.blindInventoryObscureOpacity()),
-                    f(o, "blindArrowCrystal", d.blindArrowCrystal()));
+                    f(o, "blindArrowCrystal", d.blindArrowCrystal()),
+                    f(o, "endRerollEnabled", d.endRerollEnabled()),
+                    f(o, "endRerollSeconds", d.endRerollSeconds()));
         } catch (IOException | RuntimeException e) {
             BlindDeafMutedServer.LOGGER.warn("Failed to read {} — using defaults ({})",
                     FILE, e.toString());
@@ -137,6 +139,8 @@ public final class ConfigManager {
         o.addProperty("blindHotbarObscureOpacity", c.blindHotbarObscureOpacity());
         o.addProperty("blindInventoryObscureOpacity", c.blindInventoryObscureOpacity());
         o.addProperty("blindArrowCrystal", c.blindArrowCrystal());
+        o.addProperty("endRerollEnabled", c.endRerollEnabled());
+        o.addProperty("endRerollSeconds", c.endRerollSeconds());
         try {
             Files.createDirectories(FILE.getParent());
             Files.writeString(FILE, GSON.toJson(o));

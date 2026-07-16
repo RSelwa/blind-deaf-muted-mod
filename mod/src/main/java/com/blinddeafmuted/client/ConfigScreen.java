@@ -91,6 +91,8 @@ public final class ConfigScreen extends Screen {
             new Spec(10, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.randomizerChestChance", Category.OTHER),
             new Spec(11, 1f, 30f, Style.SECONDS, "config.blind-deaf-muted.megaphoneBurstSeconds", Category.OTHER),
             new Spec(12, 5f, 600f, Style.SECONDS, "config.blind-deaf-muted.megaphoneCooldownSeconds", Category.OTHER),
+            new Spec(33, 0f, 1f, Style.BOOLEAN, "config.blind-deaf-muted.endRerollEnabled", Category.OTHER),
+            new Spec(34, 30f, 120f, Style.SECONDS, "config.blind-deaf-muted.endRerollSeconds", Category.OTHER),
     };
 
     /** Working copy edited by the sliders; rebuilt into a ModConfig on each send. */

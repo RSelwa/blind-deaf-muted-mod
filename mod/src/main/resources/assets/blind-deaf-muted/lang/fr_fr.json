@@ -34,6 +34,8 @@
   "config.blind-deaf-muted.blindHotbarObscureOpacity": "Opacité barre d'outil (Aveugle)",
   "config.blind-deaf-muted.blindInventoryObscureOpacity": "Opacité inventaire (Aveugle)",
   "config.blind-deaf-muted.blindArrowCrystal": "Cristal à la flèche (Aveugle)",
+  "config.blind-deaf-muted.endRerollEnabled": "Rotation rapide (End)",
+  "config.blind-deaf-muted.endRerollSeconds": "Intervalle rotation (End)",
   "config.blind-deaf-muted.deafMuffleGainHf": "Sourd : aigus",
   "config.blind-deaf-muted.deafMuffleGain": "Sourd : niveau filtre",
   "config.blind-deaf-muted.deafMuffleRange": "Sourd : portée",
@@ -76,6 +78,8 @@
 
   "msg.blind-deaf-muted.cleared": "Ton handicap a été retiré — tu redeviens normal.",
   "msg.blind-deaf-muted.now": "Tu es maintenant %s",
+  "msg.blind-deaf-muted.reroll": "🎲 Rôles réattribués !",
+  "msg.blind-deaf-muted.end_reroll_countdown": "🎲 Changement de rôle dans %s…",
   "msg.blind-deaf-muted.megaphone_active": "📢 Mégaphone actif — %ss",
   "msg.blind-deaf-muted.megaphone_cooldown": "Mégaphone en recharge — %ss restantes",
 

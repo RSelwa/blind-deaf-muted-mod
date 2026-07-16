@@ -32,6 +32,8 @@
   "config.blind-deaf-muted.myopiaBlurStrength": "Myopia blur strength",
   "config.blind-deaf-muted.myopiaDarkness": "Myopia darkness",
   "config.blind-deaf-muted.blindArrowCrystal": "Blind arrow crystal",
+  "config.blind-deaf-muted.endRerollEnabled": "End fast-reroll",
+  "config.blind-deaf-muted.endRerollSeconds": "End reroll interval",
   "config.blind-deaf-muted.deafMuffleGainHf": "Deaf muffle: highs",
   "config.blind-deaf-muted.deafMuffleGain": "Deaf filter: level",
   "config.blind-deaf-muted.deafEnvVolume": "Deaf world volume",
@@ -75,6 +77,8 @@
 
   "msg.blind-deaf-muted.cleared": "Your disability has been cleared — you're back to normal.",
   "msg.blind-deaf-muted.now": "You're now %s",
+  "msg.blind-deaf-muted.reroll": "🎲 Roles re-rolled!",
+  "msg.blind-deaf-muted.end_reroll_countdown": "🎲 Roles change in %s…",
   "msg.blind-deaf-muted.megaphone_active": "📢 Megaphone active — %ss",
   "msg.blind-deaf-muted.megaphone_cooldown": "Megaphone recharging — %ss left",
 

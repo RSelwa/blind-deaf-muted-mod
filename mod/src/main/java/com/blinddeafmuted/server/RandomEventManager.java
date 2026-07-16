@@ -5,6 +5,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.world.World;
 
 import java.util.List;
 import java.util.Random;
@@ -34,10 +35,15 @@ public final class RandomEventManager {
     /** Ticks remaining until the next re-roll (only counts down while enabled). */
     private int ticksUntilNext;
 
+    /** Ticks remaining until the next END fast-reroll (only counts down while enabled AND a
+     *  player is in the End). */
+    private int endTicksUntilNext;
+
     public RandomEventManager(RoleManager roles, ConfigManager config) {
         this.roles = roles;
         this.config = config;
         scheduleNext();
+        scheduleEndNext();
     }
 
     /** Hook the server tick. Inert until enabled in the config. */
@@ -57,8 +63,15 @@ public final class RandomEventManager {
     }
 
     private void tick(MinecraftServer server) {
+        List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
+        tickAutoReroll(server, players);
+        tickEndReroll(server, players);
+    }
+
+    /** The always-on-anywhere timer (off by default; toggled via {@code /bdm events on}). */
+    private void tickAutoReroll(MinecraftServer server, List<ServerPlayerEntity> players) {
         boolean isEnabled = config.get().eventAutoRerollEnabled() > 0.5f;
-        
+
         if (isEnabled && !wasEnabled) {
             scheduleNext();
         }
@@ -66,18 +79,56 @@ public final class RandomEventManager {
 
         if (!isEnabled) return;
 
-        // If the user just lowered the max timer in the config, don't leave the current 
+        // If the user just lowered the max timer in the config, don't leave the current
         // delay stranded way above the new max.
         int currentMaxTicks = (int) (config.get().eventMaxMinutes() * 60f * 20f);
         if (ticksUntilNext > currentMaxTicks) {
             scheduleNext();
         }
 
-        List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
         if (players.isEmpty()) return; // don't burn the timer with nobody online
         if (--ticksUntilNext > 0) return;
         scheduleNext();
         reroll(server, players);
+    }
+
+    /** The End-only fast timer: while enabled AND at least one player is in the End, reroll
+     *  everyone every {@code endRerollSeconds} so roles rotate quickly through the dragon fight.
+     *  The countdown resets whenever nobody is in the End, so it fires shortly after the first
+     *  player arrives, not on some stale offset. */
+    private void tickEndReroll(MinecraftServer server, List<ServerPlayerEntity> players) {
+        if (config.get().endRerollEnabled() <= 0.5f) return;
+
+        boolean anyInEnd = players.stream()
+                .anyMatch(p -> p.getServerWorld().getRegistryKey() == World.END);
+        if (!anyInEnd) {
+            scheduleEndNext(); // hold the timer full while the End is empty
+            return;
+        }
+
+        // Keep the current delay from stranding above a freshly-lowered slider value.
+        int currentMaxTicks = Math.max(1, Math.round(config.get().endRerollSeconds() * 20f));
+        if (endTicksUntilNext > currentMaxTicks) {
+            scheduleEndNext();
+        }
+
+        endTicksUntilNext--;
+        // 3-2-1 chat warning in the final seconds so the roll change isn't a surprise.
+        if (endTicksUntilNext == 60 || endTicksUntilNext == 40 || endTicksUntilNext == 20) {
+            int secs = endTicksUntilNext / 20;
+            server.getPlayerManager().broadcast(
+                    Text.translatable("msg.blind-deaf-muted.end_reroll_countdown", secs)
+                            .formatted(Formatting.RED),
+                    false);
+        }
+        if (endTicksUntilNext > 0) return;
+        scheduleEndNext();
+        reroll(server, players);
+    }
+
+    /** Fixed delay until the next End fast-reroll, read live from the config (seconds → ticks). */
+    private void scheduleEndNext() {
+        endTicksUntilNext = Math.max(1, Math.round(config.get().endRerollSeconds() * 20f));
     }
 
     /**
@@ -109,8 +160,8 @@ public final class RandomEventManager {
         int count = RoleRoller.rollAll(players, roles);
         if (count > 0) {
             server.getPlayerManager().broadcast(
-                    Text.literal("🎲 Random event — everyone's role was re-rolled!")
-                            .formatted(Formatting.LIGHT_PURPLE),
+                    Text.translatable("msg.blind-deaf-muted.reroll")
+                            .formatted(Formatting.RED),
                     false);
         }
     }
