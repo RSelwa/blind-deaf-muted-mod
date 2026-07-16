@@ -536,6 +536,25 @@ no-comments rule.
 - **Relief ×3 from piglins:** piglin barter bonus + piglin death drop now give
   `RELIEF_DROP_COUNT` (3) Relief potions per hit (one per trio member); iron-golem /
   blaze death drops stay 1.
+- **History-aware randomizer (anti-streak):** new `server/RoleHistory.java` — per-UUID
+  counts of every role ever assigned, persisted to `config/blind-deaf-muted-roles.json`
+  (survives restarts). Recorded from BOTH `RoleManager.set` + `setAnimated` (so manual
+  `/bdm set` counts too; NONE ignored). `RoleRoller.rollAll` now runs a best-of-64
+  trial search: each trial is a valid coverage deal, scored by summed history counts
+  (+1000 penalty for landing on your current role); lowest score wins, then the old
+  repair pass still guarantees no-repeat. Effect: role distribution evens out over a
+  session ("often blind" fixed) while staying random (ties random, not a rotation).
+  Delete the json to reset the memory. Constants: `DEAL_TRIALS`, `REPEAT_PENALTY`.
+  **Never blocks** (user's hard requirement): no retry-until-success anywhere — fixed
+  64 trials, best available deal always applied; history/no-repeat are soft scores,
+  the roulette always completes.
+  **Coverage is HARD (2nd user hard requirement):** with 3+ players every disability
+  is ALWAYS distributed — structurally true (cyclic deal + swap-only repair for 3+),
+  plus an explicit enforcement pass after repair that force-replaces a duplicated
+  role with any missing one (so future edits can't silently break it). Priority
+  order: never-block > full coverage > no-repeat > history balance.
+- `blindArrowCrystal` stays OFF by default (0.0 in `ModConfig.DEFAULT` AND in
+  `docker/data/config/blind-deaf-muted.json`); enable per-session via `O` menu.
 
 ### Must-verify before first build
 

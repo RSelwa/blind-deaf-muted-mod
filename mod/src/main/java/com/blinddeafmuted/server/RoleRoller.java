@@ -15,22 +15,42 @@ import java.util.Random;
  * via {@link RoleManager#setAnimated}).
  *
  * <p>Fairness rule (per design): every disability in {@link Role#ASSIGNABLE} is
- * handed out at least once before any repeats. Shuffle the pool (randomises which
- * disabilities fill the distinct slots and which duplicate), shuffle the players
- * (randomises who gets what), then deal the pool out cyclically — cycling guarantees
- * full coverage before repeats.
+ * handed out at least once before any repeats. Each candidate deal shuffles the
+ * pool (randomises which disabilities fill the distinct slots and which duplicate)
+ * and deals it out cyclically — cycling guarantees full coverage before repeats.
  *
- * <p>No-repeat rule (best effort): a re-roll should CHANGE your role. After dealing,
- * any player who landed on their current role gets repaired — first by swapping with
- * another player (only if the swap creates no new repeat), then, when fewer players
- * than roles are online, by trading with an undealt role from the pool. The only
- * unfixable case is forced by the fairness rule itself: 3+ players who ALL share one
- * role (someone must take it back to keep full coverage).
+ * <p>History rule (anti-streak, per the user: "I was often blind"): the roller
+ * tries {@link #DEAL_TRIALS} candidate deals and keeps the one whose roles the
+ * players have had LEAST overall ({@link RoleHistory} counts, persisted across
+ * restarts) — so someone who's been BLIND twice drifts toward DEAF/MUTED instead
+ * of looping. Ties stay random (trial order is random), so rolls don't become a
+ * predictable rotation either.
+ *
+ * <p>No-repeat rule (best effort): a re-roll should CHANGE your role. Scored as a
+ * heavy penalty in the trial search, then guaranteed by a repair pass — first by
+ * swapping with another player (only if the swap creates no new repeat), then,
+ * when fewer players than roles are online, by trading with an undealt role from
+ * the pool. The only unfixable case is forced by the fairness rule itself: 3+
+ * players who ALL share one role (someone must take it back to keep full coverage).
+ *
+ * <p>NEVER BLOCKS (hard requirement): there is no retry-until-success anywhere —
+ * a fixed number of trials, then the best deal found is applied as-is. History and
+ * no-repeat are preferences expressed as scores; when they can't be satisfied
+ * (odd player counts, someone absent last round, everyone sharing a role), the
+ * roulette still completes with the least-bad deal.
  */
 public final class RoleRoller {
     private RoleRoller() {}
 
     private static final Random RNG = new Random();
+
+    /** Candidate deals tried per roll; the lowest-scoring one wins. Cheap (a few
+     *  list shuffles each), so generous. */
+    private static final int DEAL_TRIALS = 64;
+
+    /** Score penalty for handing a player the role they already have — dwarfs any
+     *  realistic history count, so a repeat only survives when every trial has one. */
+    private static final int REPEAT_PENALTY = 1_000;
 
     /**
      * Assign a random disability to everyone in {@code players}.
@@ -40,15 +60,35 @@ public final class RoleRoller {
     public static int rollAll(List<ServerPlayerEntity> players, RoleManager roles) {
         if (players.isEmpty()) return 0;
 
-        List<Role> pool = new ArrayList<>(Arrays.asList(Role.ASSIGNABLE));
+        RoleHistory history = roles.history();
         List<ServerPlayerEntity> shuffled = new ArrayList<>(players);
-        Collections.shuffle(pool, RNG);
         Collections.shuffle(shuffled, RNG);
-
         int poolSize = Role.ASSIGNABLE.length;
-        List<Role> assigned = new ArrayList<>(shuffled.size());
-        for (int i = 0; i < shuffled.size(); i++) {
-            assigned.add(pool.get(i % poolSize));
+
+        // Best-of-N search: every trial is a valid coverage deal; score = how often
+        // each player has already had the role they'd get (+ heavy repeat penalty).
+        List<Role> assigned = null;
+        List<Role> pool = null; // pool of the winning trial — its undealt tail feeds the repair pass
+        int bestScore = Integer.MAX_VALUE;
+        for (int t = 0; t < DEAL_TRIALS; t++) {
+            List<Role> candPool = new ArrayList<>(Arrays.asList(Role.ASSIGNABLE));
+            Collections.shuffle(candPool, RNG);
+            List<Role> cand = new ArrayList<>(shuffled.size());
+            for (int i = 0; i < shuffled.size(); i++) {
+                cand.add(candPool.get(i % poolSize));
+            }
+            Collections.shuffle(cand, RNG); // decouple "who gets what" from pool order
+
+            int score = 0;
+            for (int i = 0; i < shuffled.size(); i++) {
+                score += history.count(shuffled.get(i).getUuid(), cand.get(i));
+                if (cand.get(i) == roles.get(shuffled.get(i))) score += REPEAT_PENALTY;
+            }
+            if (score < bestScore) {
+                bestScore = score;
+                assigned = cand;
+                pool = candPool;
+            }
         }
 
         // Repair pass: nobody should keep their current role if avoidable.
@@ -75,6 +115,26 @@ public final class RoleRoller {
                     pool.set(k, current);
                     fixed = true;
                 }
+            }
+        }
+
+        // Coverage enforcement (hard requirement, belt + braces): with 3+ players EVERY
+        // disability MUST be present. Structurally already true (cyclic deal covers all
+        // roles; the 3+ repair path only swaps, preserving the multiset), but this pass
+        // makes the invariant survive any future edit: any missing role forcibly replaces
+        // a duplicated one — preferring a player for whom it isn't a repeat.
+        if (shuffled.size() >= poolSize) {
+            for (Role role : Role.ASSIGNABLE) {
+                if (assigned.contains(role)) continue;
+                int fallback = -1, pick = -1;
+                for (int i = 0; i < assigned.size() && pick < 0; i++) {
+                    if (Collections.frequency(assigned, assigned.get(i)) > 1) {
+                        if (roles.get(shuffled.get(i)) != role) pick = i;
+                        else if (fallback < 0) fallback = i;
+                    }
+                }
+                // A duplicate always exists here (pigeonhole: players >= roles, one missing).
+                assigned.set(pick >= 0 ? pick : fallback, role);
             }
         }
 

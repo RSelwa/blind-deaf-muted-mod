@@ -25,6 +25,10 @@ import java.util.UUID;
 public class RoleManager {
     private final Map<UUID, Role> roles = new HashMap<>();
 
+    /** Fairness memory: how often each player has had each role (persisted). Recorded on
+     *  every assignment path here, read by {@link RoleRoller} to steer new deals. */
+    private final RoleHistory history = new RoleHistory();
+
     /** How long the client roulette animation runs (65 ticks) plus a little slack — while
      *  this window is open the vanilla roster sidebar must NOT refresh (anti-spoiler). */
     private static final long ROULETTE_FREEZE_MS = 3_500L;
@@ -43,9 +47,14 @@ public class RoleManager {
         return roles.getOrDefault(uuid, Role.NONE);
     }
 
+    public RoleHistory history() {
+        return history;
+    }
+
     /** Set a player's role, tell them about it, and immediately sync it to their client. */
     public void set(ServerPlayerEntity player, Role role) {
         roles.put(player.getUuid(), role);
+        history.record(player.getUuid(), role);
         announce(player, role);
         sync(player);
     }
@@ -61,6 +70,7 @@ public class RoleManager {
      */
     public void setAnimated(ServerPlayerEntity player, Role role) {
         roles.put(player.getUuid(), role);
+        history.record(player.getUuid(), role);
         lastAnimatedAtMs = System.currentTimeMillis();
         ServerPlayNetworking.send(player, new RollPayload(role));
     }
