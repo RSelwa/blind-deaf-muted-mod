@@ -150,13 +150,13 @@ public class BlindDeafMutedServer implements ModInitializer {
      *  knob takes effect on the next {@code /reload} or restart, not instantly (unlike the
      *  audio/fog knobs). */
 
-    /** Chance a single Piglin barter ALSO yields a Randomizer. A reliable, farmable
-     *  source (trade gold to piglins) on top of the rare structure chests. Kept low
-     *  so it's a treat, not spam — piglins barter fast. */
+    /** Chance a single Piglin barter ALSO yields a Potion of Relief (fight/trade reward).
+     *  A reliable, farmable source (trade gold to piglins). Kept low so it's a treat, not
+     *  spam — piglins barter fast. */
     private static final float PIGLIN_BARTER_CHANCE = 0.05F;
 
-    /** Mob death drops: chance a killed mob of each type drops a Randomizer. These are
-     *  pure bonuses on the entity loot tables (added, not replacing vanilla drops). */
+    /** Mob death drops: chance a killed mob of each type drops a Potion of Relief (fight
+     *  reward). Pure bonuses on the entity loot tables (added, not replacing vanilla drops). */
     private static final Map<EntityType<?>, Float> MOB_DEATH_DROPS = Map.of(
             EntityType.PIGLIN, 0.10F,
             EntityType.IRON_GOLEM, 0.60F,
@@ -300,23 +300,25 @@ public class BlindDeafMutedServer implements ModInitializer {
                                 configManager.get().randomizerChestChance()))
                         .with(ItemEntry.builder(ModItems.RANDOMIZER)));
             }
-            // Piglin bartering: a reliable Nether source. Adds an independent pool that
-            // rolls once per barter at PIGLIN_BARTER_CHANCE, on top of the normal barter.
+            // Piglin bartering: a reliable Nether source of the Potion of Relief — a FIGHT
+            // reward (combat/trade earns the co-op boost). Independent pool, rolls once per
+            // barter at PIGLIN_BARTER_CHANCE, on top of the normal barter.
             if (source.isBuiltin() && key.equals(LootTables.PIGLIN_BARTERING_GAMEPLAY)) {
                 tableBuilder.pool(LootPool.builder()
                         .rolls(ConstantLootNumberProvider.create(1))
                         .conditionally(RandomChanceLootCondition.builder(PIGLIN_BARTER_CHANCE))
-                        .with(ItemEntry.builder(ModItems.RANDOMIZER)));
+                        .with(ItemEntry.builder(ModItems.RELIEF_POTION)));
             }
-            // Mob death drops (piglin/iron golem/blaze): add a bonus pool on each entity's
-            // loot table, on top of its vanilla drops (piglin has none — pure bonus there).
+            // Mob death drops (piglin/iron golem/blaze): a Potion of Relief as a FIGHT reward.
+            // Bonus pool on each entity's loot table, on top of its vanilla drops (piglin has
+            // none — pure bonus there).
             if (source.isBuiltin()) {
                 for (Map.Entry<EntityType<?>, Float> drop : MOB_DEATH_DROPS.entrySet()) {
                     if (drop.getKey().getLootTableKey().map(key::equals).orElse(false)) {
                         tableBuilder.pool(LootPool.builder()
                                 .rolls(ConstantLootNumberProvider.create(1))
                                 .conditionally(RandomChanceLootCondition.builder(drop.getValue()))
-                                .with(ItemEntry.builder(ModItems.RANDOMIZER)));
+                                .with(ItemEntry.builder(ModItems.RELIEF_POTION)));
                     }
                 }
             }
