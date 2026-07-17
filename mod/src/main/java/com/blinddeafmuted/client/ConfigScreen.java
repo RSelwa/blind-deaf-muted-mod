@@ -10,6 +10,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.CheckboxWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.text.Text;
 
@@ -66,7 +67,6 @@ public final class ConfigScreen extends Screen {
             new Spec(16, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.myopiaDarkness", Category.BLIND),
             new Spec(30, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.blindHotbarObscureOpacity", Category.BLIND),
             new Spec(31, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.blindInventoryObscureOpacity", Category.BLIND),
-            new Spec(32, 0f, 1f, Style.BOOLEAN, "config.blind-deaf-muted.blindArrowCrystal", Category.BLIND),
             // ---- RELIEF: relief potion stats and deaf-relief downsides (tinnitus + ghosts) ----
             new Spec(-1, 0, 0, Style.HEADER, "config.blind-deaf-muted.cat.relief.general", Category.RELIEF),
             new Spec(13, 1f, 32f, Style.BLOCKS, "config.blind-deaf-muted.reliefRangeBlocks", Category.RELIEF),
@@ -91,6 +91,7 @@ public final class ConfigScreen extends Screen {
             new Spec(10, 0f, 1f, Style.PERCENT, "config.blind-deaf-muted.randomizerChestChance", Category.OTHER),
             new Spec(11, 1f, 30f, Style.SECONDS, "config.blind-deaf-muted.megaphoneBurstSeconds", Category.OTHER),
             new Spec(12, 5f, 600f, Style.SECONDS, "config.blind-deaf-muted.megaphoneCooldownSeconds", Category.OTHER),
+            new Spec(32, 0f, 1f, Style.BOOLEAN, "config.blind-deaf-muted.blindArrowCrystal", Category.OTHER),
             new Spec(33, 0f, 1f, Style.BOOLEAN, "config.blind-deaf-muted.endRerollEnabled", Category.OTHER),
             new Spec(34, 30f, 120f, Style.SECONDS, "config.blind-deaf-muted.endRerollSeconds", Category.OTHER),
     };
@@ -98,6 +99,7 @@ public final class ConfigScreen extends Screen {
     /** Working copy edited by the sliders; rebuilt into a ModConfig on each send. */
     private final float[] working = ClientConfigState.get().toArray();
     private final List<ParamSlider> sliders = new ArrayList<>();
+    private final List<ParamCheckbox> checkboxes = new ArrayList<>();
     private final List<ParamHeader> headers = new ArrayList<>();
 
     /** Which tab is showing. Kept across init() calls (resize / tab switch) so the view is stable. */
@@ -123,6 +125,7 @@ public final class ConfigScreen extends Screen {
     @Override
     protected void init() {
         sliders.clear();
+        checkboxes.clear();
         headers.clear();
         tabButtons.clear();
 
@@ -166,6 +169,15 @@ public final class ConfigScreen extends Screen {
                 headers.add(header);
                 currentY += 20; // header height
                 col = 0; // reset column for next items
+            } else if (spec.style == Style.BOOLEAN) {
+                int x = (col == 0) ? leftX : rightX;
+                ParamCheckbox checkbox = new ParamCheckbox(spec, x, currentY, sliderW);
+                checkbox.baseY = currentY;
+                checkboxes.add(checkbox);
+                if (col == 1) {
+                    currentY += gapY;
+                }
+                col = (col + 1) % 2;
             } else {
                 int x = (col == 0) ? leftX : rightX;
                 ParamSlider slider = new ParamSlider(spec, x, currentY, sliderW, sliderH);
@@ -202,15 +214,16 @@ public final class ConfigScreen extends Screen {
     /** Reposition every slider from its laid-out base Y minus the current scroll offset. */
     private void reflow() {
         for (ParamSlider s : sliders) s.setY(s.baseY - scrollY);
+        for (ParamCheckbox c : checkboxes) c.setY(c.baseY - scrollY);
         for (ParamHeader h : headers) h.setY(h.baseY - scrollY);
     }
 
     private void resetDefaults() {
         float[] def = ModConfig.DEFAULT.toArray();
         System.arraycopy(def, 0, working, 0, working.length);
-        for (ParamSlider s : sliders) s.syncFromWorking();
         ClientConfigState.set(ModConfig.fromArray(working)); // instant local preview
         sendUpdate();
+        clearAndInit(); // rebuild sliders + checkboxes from the reset working array (checkboxes have no live setter)
     }
 
     /** Push the current working config to the server (persist + broadcast). */
@@ -246,6 +259,7 @@ public final class ConfigScreen extends Screen {
         // Clip the sliders to the viewport so scrolled-out rows don't bleed over the title/buttons.
         context.enableScissor(0, viewportTop, this.width, viewportBottom);
         for (ParamSlider s : sliders) s.render(context, mouseX, mouseY, delta);
+        for (ParamCheckbox c : checkboxes) c.render(context, mouseX, mouseY, delta);
         for (ParamHeader h : headers) h.render(context);
         context.disableScissor();
 
@@ -286,11 +300,17 @@ public final class ConfigScreen extends Screen {
             updateScrollFromMouse(mouseY);
             return true;
         }
-        // Sliders (only when the click is inside the visible viewport).
+        // Sliders + checkboxes (only when the click is inside the visible viewport).
         if (mouseY >= viewportTop && mouseY < viewportBottom) {
             for (ParamSlider s : sliders) {
                 if (s.mouseClicked(mouseX, mouseY, button)) {
                     focusedSlider = s;
+                    return true;
+                }
+            }
+            for (ParamCheckbox c : checkboxes) {
+                if (c.mouseClicked(mouseX, mouseY, button)) {
+                    focusedSlider = null;
                     return true;
                 }
             }
@@ -338,6 +358,40 @@ public final class ConfigScreen extends Screen {
         reflow();
     }
 
+    /** A real checkbox bound to one boolean {@code working[index]} knob (stored as 0/1). Toggling
+     *  it previews locally and pushes the config to the server, same as a slider release. */
+    private final class ParamCheckbox {
+        private final CheckboxWidget widget;
+        /** Un-scrolled Y in the grid; reflow() sets the live Y = baseY - scrollY. */
+        int baseY;
+
+        ParamCheckbox(Spec spec, int x, int y, int w) {
+            this.baseY = y;
+            this.widget = CheckboxWidget.builder(Text.translatable(spec.labelKey()), textRenderer)
+                    .pos(x, y)
+                    .maxWidth(w)
+                    .checked(working[spec.index()] > 0.5f)
+                    .callback((cb, checked) -> {
+                        working[spec.index()] = checked ? 1f : 0f;
+                        ClientConfigState.set(ModConfig.fromArray(working)); // instant local preview
+                        sendUpdate();
+                    })
+                    .build();
+        }
+
+        void setY(int y) {
+            widget.setY(y);
+        }
+
+        void render(DrawContext context, int mouseX, int mouseY, float delta) {
+            widget.render(context, mouseX, mouseY, delta);
+        }
+
+        boolean mouseClicked(double mouseX, double mouseY, int button) {
+            return widget.mouseClicked(mouseX, mouseY, button);
+        }
+    }
+
     private final class ParamHeader {
         private final Text text;
         private final int x;
@@ -377,12 +431,6 @@ public final class ConfigScreen extends Screen {
         private static double normalized(Spec spec, float raw) {
             return net.minecraft.util.math.MathHelper.clamp(
                     (raw - spec.min()) / (spec.max() - spec.min()), 0.0, 1.0);
-        }
-
-        /** Re-seed the handle + label from the working array (after a reset). */
-        void syncFromWorking() {
-            this.value = normalized(spec, working[spec.index()]);
-            updateMessage();
         }
 
         @Override
