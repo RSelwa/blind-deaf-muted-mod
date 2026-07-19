@@ -1,18 +1,11 @@
 {
-  "type": "minecraft:crafting_shaped",
+  "type": "minecraft:crafting_shapeless",
   "category": "misc",
-  "pattern": [
-    " E ",
-    "fBg",
-    " o "
+  "ingredients": [
+    "minecraft:potion",
+    "minecraft:diamond",
+    "minecraft:lapis_lazuli"
   ],
-  "key": {
-    "E": "minecraft:spider_eye",
-    "o": "minecraft:bone",
-    "f": "minecraft:rotten_flesh",
-    "g": "minecraft:gunpowder",
-    "B": "minecraft:glass_bottle"
-  },
   "result": {
     "id": "blind-deaf-muted:relief_potion",
     "count": 1
