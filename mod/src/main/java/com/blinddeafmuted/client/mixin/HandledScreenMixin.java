@@ -1,6 +1,7 @@
 package com.blinddeafmuted.client.mixin;
 
 import com.blinddeafmuted.client.ClientConfigState;
+import com.blinddeafmuted.client.ReliefState;
 import com.blinddeafmuted.client.RoleState;
 import com.blinddeafmuted.client.UIBlurRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -36,7 +37,10 @@ public abstract class HandledScreenMixin {
     private void blinddeafmuted$obscureInventory(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (!RoleState.blindEffectActive()) return;
 
-        float strength = ClientConfigState.get().blindInventoryObscureOpacity();
+        // Relief attenuates the blur like every other blind effect (scaled by how much of
+        // the disability remains — 0 while relieved).
+        float strength = ClientConfigState.get().blindInventoryObscureOpacity()
+                * ReliefState.disabilityRemaining();
         if (strength > 0) {
             // Blur just the inventory window area (with a small margin for item tooltips
             // that might peek out). This keeps the rest of the screen (title bar, etc.)
@@ -58,7 +62,8 @@ public abstract class HandledScreenMixin {
     private void blinddeafmuted$obscureTooltip(DrawContext context, int x, int y, CallbackInfo ci) {
         if (!RoleState.blindEffectActive()) return;
 
-        float strength = ClientConfigState.get().blindInventoryObscureOpacity();
+        float strength = ClientConfigState.get().blindInventoryObscureOpacity()
+                * ReliefState.disabilityRemaining();
         if (strength > 0 && UIBlurRenderer.hasTooltipThisFrame) {
             int tMargin = 4;
             UIBlurRenderer.blurRegion(context,

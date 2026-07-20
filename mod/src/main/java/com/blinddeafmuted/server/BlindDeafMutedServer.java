@@ -125,10 +125,6 @@ public class BlindDeafMutedServer implements ModInitializer {
             LootTables.JUNGLE_TEMPLE_CHEST,
             LootTables.DESERT_PYRAMID_CHEST,
             LootTables.NETHER_BRIDGE_CHEST,
-            LootTables.BASTION_TREASURE_CHEST,
-            LootTables.BASTION_OTHER_CHEST,
-            LootTables.BASTION_BRIDGE_CHEST,
-            LootTables.BASTION_HOGLIN_STABLE_CHEST,
             // Every village job-site + house chest.
             LootTables.VILLAGE_WEAPONSMITH_CHEST,
             LootTables.VILLAGE_TOOLSMITH_CHEST,
@@ -147,6 +143,17 @@ public class BlindDeafMutedServer implements ModInitializer {
             LootTables.VILLAGE_SNOWY_HOUSE_CHEST,
             LootTables.VILLAGE_SAVANNA_HOUSE_CHEST);
 
+    /** Bastion chests get the Randomizer too, but at a LOWER, fixed chance than every other
+     *  structure — bastions are chest-dense, so the base rate over-supplied them. */
+    private static final Set<RegistryKey<LootTable>> BASTION_RANDOMIZER_CHESTS = Set.of(
+            LootTables.BASTION_TREASURE_CHEST,
+            LootTables.BASTION_OTHER_CHEST,
+            LootTables.BASTION_BRIDGE_CHEST,
+            LootTables.BASTION_HOGLIN_STABLE_CHEST);
+
+    /** Randomizer chance for bastion chests (fixed, not the {@code randomizerChestChance} knob). */
+    private static final float BASTION_RANDOMIZER_CHANCE = 0.15F;
+
     /** How often a qualifying chest yields a Randomizer — now lives in {@link ConfigManager}
      *  ({@code randomizerChestChance}, default 0.55). Read live in the loot callback below.
      *  NOTE: loot tables only re-roll this on resource (re)load, so a live change to this one
@@ -159,8 +166,8 @@ public class BlindDeafMutedServer implements ModInitializer {
     private static final float PIGLIN_BARTER_CHANCE = 0.05F;
 
     /** How many Relief potions a piglin gives per hit (barter bonus + piglin death drop).
-     *  3 = one splash for each disability holder in a trio. Golem/blaze death drops stay 1. */
-    private static final int RELIEF_DROP_COUNT = 3;
+     *  1 = a single splash (was 3 — too generous). Golem/blaze death drops also 1. */
+    private static final int RELIEF_DROP_COUNT = 1;
 
     /** Bonus chance a single Piglin barter ALSO yields ender pearls (on top of vanilla's
      *  ~2.2% weighted entry, which stays untouched). Vanilla alone averages ~185 gold for
@@ -173,9 +180,9 @@ public class BlindDeafMutedServer implements ModInitializer {
     /** Mob death drops: chance a killed mob of each type drops a Potion of Relief (fight
      *  reward). Pure bonuses on the entity loot tables (added, not replacing vanilla drops). */
     private static final Map<EntityType<?>, Float> MOB_DEATH_DROPS = Map.of(
-            EntityType.PIGLIN, 0.10F,
-            EntityType.IRON_GOLEM, 0.60F,
-            EntityType.BLAZE, 0.60F);
+            EntityType.PIGLIN, 0.05F,
+            EntityType.IRON_GOLEM, 0.25F,
+            EntityType.BLAZE, 0.25F);
 
     @Override
     public void onInitialize() {
@@ -313,6 +320,13 @@ public class BlindDeafMutedServer implements ModInitializer {
                         .rolls(ConstantLootNumberProvider.create(1))
                         .conditionally(RandomChanceLootCondition.builder(
                                 configManager.get().randomizerChestChance()))
+                        .with(ItemEntry.builder(ModItems.RANDOMIZER)));
+            }
+            // Bastion chests: same Randomizer, lower fixed chance (bastions are chest-dense).
+            if (source.isBuiltin() && BASTION_RANDOMIZER_CHESTS.contains(key)) {
+                tableBuilder.pool(LootPool.builder()
+                        .rolls(ConstantLootNumberProvider.create(1))
+                        .conditionally(RandomChanceLootCondition.builder(BASTION_RANDOMIZER_CHANCE))
                         .with(ItemEntry.builder(ModItems.RANDOMIZER)));
             }
             // Piglin bartering: a reliable Nether source of the Potion of Relief — a FIGHT
