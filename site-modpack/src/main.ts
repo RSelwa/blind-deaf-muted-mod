@@ -4,7 +4,7 @@ import gradleProps from '../../gradle.properties?raw'
 const MC_VERSION = /^minecraft_version=(.+)$/m.exec(gradleProps)?.[1].trim() ?? '1.21.4'
 const MOD_VERSION = /^mod_version=(.+)$/m.exec(gradleProps)?.[1].trim() ?? '0.1.0'
 
-const MRPACK = `blind-deaf-muted-pack-${MOD_VERSION}.mrpack`
+const MRPACK = `blind-deaf-muted-${MOD_VERSION}.mrpack`
 const MRPACK_URL = `./downloads/${MRPACK}`
 
 // Injecte par Vite au build (voir vite.config.ts). Date du dernier deploiement.
@@ -73,15 +73,11 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </p>
       <div class="flex flex-wrap justify-center gap-3">
         <a class="${btnPrimary} track-download" href="${MRPACK_URL}" download>⬇ Télécharger le Modpack (.mrpack)</a>
-        <a class="${btnGhost} track-modrinth" href="https://modrinth.com/mod/blind-deaf-muted" target="_blank">Page Modrinth</a>
+        <a class="${btnGhost} track-modrinth" href="https://modrinth.com/mod/blind-deaf-mute" target="_blank">Page Modrinth</a>
         <a class="${btnGhost}" href="#tuto">Lire le tutoriel</a>
       </div>
-      <div class="mt-6 mb-2">
-        <p class="bg-[#2a1d0e] border border-[#6b4a17] rounded-lg px-4 py-2 text-[#f0d9b0] text-sm inline-block text-left max-w-xl">
-          ⏳ <b>En attente (Review)</b> : Le mod est actuellement en cours de validation par l'équipe Modrinth. En attendant qu'il soit public, veuillez télécharger le modpack ci-dessus (<b>.mrpack</b>) !
-        </p>
-      </div>
-      <p class="mt-4 text-sm text-slate-400"><a href="https://ko-fi.com/toho183994" target="_blank" rel="noopener" class="hover:text-slate-300 underline underline-offset-2 transition track-kofi">Soutenir le projet sur Ko-fi ☕</a></p>
+      <p class="mt-4 text-sm text-slate-400"><a href="https://ko-fi.com/toho183994" target="_blank" rel="noopener" class="hover:text-slate-300 underline underline-offset-2 transition track-kofi">Soutenir ToHo sur Ko-fi ☕</a></p>
+      <p class="mt-4 text-sm text-slate-400"><a href="https://buymeacoffee.com/rselwa" target="_blank" rel="noopener" class="hover:text-slate-300 underline underline-offset-2 transition track-kofi">Soutenir LuckyFisher sur Buy Me a Coffee ☕</a></p>
       <p class="mt-2 text-xs text-slate-500">Dernière mise à jour : ${BUILD_DATE}</p>
       <p class="mt-6 text-sm text-slate-400">Le Modpack inclut le mod principal, Simple Voice Chat, Emotecraft, et Simple Revive pour l'expérience ultime.</p>
     </div>
@@ -96,16 +92,16 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </p>
       <div class="grid gap-4 sm:grid-cols-3">
         ${roles
-          .map(
-            (r) => `
+    .map(
+      (r) => `
           <article class="bg-card border border-line rounded-xl p-6 border-t-[3px]" style="border-top-color:${r.couleur}">
             <div class="text-4xl">${r.emoji}</div>
             <h3 class="mt-2 font-bold text-lg" style="color:${r.couleur}">${r.nom}</h3>
             <p class="italic text-slate-400 mb-2">perd ${r.perd}</p>
             <p class="text-sm">${r.desc}</p>
           </article>`,
-          )
-          .join('')}
+    )
+    .join('')}
       </div>
     </section>
 
@@ -205,7 +201,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
   <footer class="text-center py-10 px-6 text-sm text-slate-400">
     <p>Blind Deaf Muted — mod Minecraft coopératif. Aveugle, sourd, muet : communiquez ou périssez.</p>
-    <p class="mt-2"><a href="https://ko-fi.com/toho183994" target="_blank" rel="noopener" class="hover:text-slate-300 underline underline-offset-2 transition track-kofi">Soutenir le projet sur Ko-fi ☕</a></p>
+    <p class="mt-2"><a href="https://ko-fi.com/toho183994" target="_blank" rel="noopener" class="hover:text-slate-300 underline underline-offset-2 transition track-kofi">Soutenir ToHo sur Ko-fi ☕</a></p>
+    <p class="mt-2"><a href="https://buymeacoffee.com/rselwa" target="_blank" rel="noopener" class="hover:text-slate-300 underline underline-offset-2 transition track-kofi">Soutenir LuckyFisher sur Buy Me a Coffee ☕</a></p>
   </footer>
 `
 
@@ -213,7 +210,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 const API_URL = '/api';
 
 // Track page view
-fetch(`${API_URL}/track/view`, { method: 'POST' }).catch(() => {});
+fetch(`${API_URL}/track/view`, { method: 'POST' }).catch(() => { });
 
 // Track clicks
 document.addEventListener('click', (e) => {
@@ -227,6 +224,6 @@ document.addEventListener('click', (e) => {
 
   if (type) {
     // Fire and forget click tracking
-    fetch(`${API_URL}/track/click/${type}`, { method: 'POST' }).catch(() => {});
+    fetch(`${API_URL}/track/click/${type}`, { method: 'POST' }).catch(() => { });
   }
 });
