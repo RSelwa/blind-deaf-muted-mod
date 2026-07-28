@@ -210,7 +210,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 `
 
 // --- API Tracking ---
-const API_URL = 'http://localhost:3000/api';
+const API_URL = '/api';
 
 // Track page view
 fetch(`${API_URL}/track/view`, { method: 'POST' }).catch(() => {});

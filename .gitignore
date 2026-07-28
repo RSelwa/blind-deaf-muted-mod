@@ -45,3 +45,4 @@ site-modpack/dist/
 # (build/ above is ignored; this copy under site/public/downloads/ is committed
 #  on purpose — re-copy it after each `:mod:build` + version bump.)
 !site/public/downloads/*.jar
+nginx.conf

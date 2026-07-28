@@ -4,11 +4,15 @@ import fs from 'fs';
 import path from 'path';
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || '127.0.0.1';
 const STATS_FILE = path.resolve('stats.json');
 
 app.use(cors());
 app.use(express.json());
+
+// Servir les fichiers statiques du site (Vue/Vite)
+app.use(express.static(path.resolve('../site-modpack/dist')));
 
 let stats = { views: 0, clicks: { download: 0, modrinth: 0, kofi: 0 } };
 
@@ -67,6 +71,6 @@ app.get('/api/stats', (req, res) => {
   res.json(stats);
 });
 
-app.listen(PORT, () => {
-  console.log(`Tracking API à l'écoute sur http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`Tracking API à l'écoute sur http://${HOST}:${PORT}`);
 });
