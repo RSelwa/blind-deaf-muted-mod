@@ -1,0 +1,15 @@
+@import 'tailwindcss';
+
+/* Palette + reglages globaux du site. Tailwind v4 lit le theme via @theme. */
+@theme {
+  --color-ink: #0d0f14;
+  --color-ink-2: #141821;
+  --color-card: #1a1f2b;
+  --color-line: #2a3140;
+  --color-brand: #5ad17a;
+  --color-brand-dark: #3fae5e;
+}
+
+html {
+  scroll-behavior: smooth;
+}

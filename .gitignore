@@ -39,6 +39,7 @@ hs_err_pid*
 # Vite site
 node_modules/
 site/dist/
+site-modpack/dist/
 
 # Keep the distributable mod jar tracked so it's downloadable from the site.
 # (build/ above is ignored; this copy under site/public/downloads/ is committed
